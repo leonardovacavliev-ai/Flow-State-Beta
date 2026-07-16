@@ -43,6 +43,9 @@ backend/chroma_db/
 *.swo
 *~
 
+# Claude Code settings (local permissions/config)
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
