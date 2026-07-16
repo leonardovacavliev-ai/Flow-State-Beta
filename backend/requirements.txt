@@ -5,3 +5,5 @@ beautifulsoup4
 requests
 google-generativeai
 anthropic
+pinecone-client
+sentence-transformers

@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from vectorize import DocumentVectorizer
+from adapters.vector.vector_manager import get_vector_adapter
 from crawler import crawl_and_save
 from analytics import (
     create_session, track_message, track_esp_selection,
@@ -16,10 +16,12 @@ import uuid
 app = Flask(__name__)
 CORS(app)
 
-# Initialize vectorizer
+# Initialize vectorizer with adapter pattern
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_PATH, "backend/chroma_db")
-vectorizer = DocumentVectorizer(persist_directory=DB_PATH)
+
+# Use factory to get vector adapter based on environment
+vectorizer = get_vector_adapter(persist_directory=DB_PATH)
 
 # Admin password
 ADMIN_PASSWORD = "RICHCSM"

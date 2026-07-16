@@ -2,6 +2,14 @@ import chromadb
 from chromadb.utils import embedding_functions
 import os
 import json
+import warnings
+
+# Legacy class - use adapters.vector.vector_manager.get_vector_adapter() for new code
+warnings.warn(
+    "DocumentVectorizer is deprecated. Use adapters.vector.vector_manager.get_vector_adapter() instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 class DocumentVectorizer:
     def __init__(self, persist_directory="./chroma_db"):
