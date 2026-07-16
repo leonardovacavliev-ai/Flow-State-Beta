@@ -1,8 +1,11 @@
 #!/bin/bash
-export GEMINI_API_KEY="AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw"
-export VECTOR_DB_PROVIDER=pinecone
-export PINECONE_API_KEY="pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU"
-export PINECONE_INDEX_NAME="esp-loyalty-docs1"
+
+# Load environment variables from .env file
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Set production overrides
 export FLASK_ENV=production
 export FLASK_DEBUG=0
 

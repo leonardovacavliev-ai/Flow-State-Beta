@@ -29,7 +29,7 @@ If the script doesn't work, start manually:
 ```bash
 # Terminal 1 - Backend
 cd "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/backend"
-export GEMINI_API_KEY="AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw"
+export GEMINI_API_KEY="your_gemini_api_key_here"
 python3 app.py
 
 # Terminal 2 - Frontend
@@ -88,7 +88,7 @@ All settings are in `.env`:
 
 ```bash
 # Your Gemini API Key (already set)
-GEMINI_API_KEY=AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # Vector Database (local ChromaDB)
 VECTOR_DB_PROVIDER=chromadb

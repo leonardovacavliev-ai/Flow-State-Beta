@@ -17,8 +17,12 @@ else
     echo "   The app will create it automatically on first run"
 fi
 
-# Set environment variables from .env file
-export GEMINI_API_KEY="AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw"
+# Load environment variables from .env file
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+# Override for local development
 export VECTOR_DB_PROVIDER=chromadb
 export FLASK_ENV=development
 export FLASK_DEBUG=0

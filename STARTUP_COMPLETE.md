@@ -137,12 +137,12 @@ cd "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP"
 The following are configured in `.env`:
 
 ```bash
-GEMINI_API_KEY=AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw
+GEMINI_API_KEY=your_gemini_api_key_here
 VECTOR_DB_PROVIDER=pinecone
-PINECONE_API_KEY=pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU
+PINECONE_API_KEY=your_pinecone_api_key_here
 PINECONE_INDEX_NAME=esp-loyalty-docs1
 PINECONE_ENVIRONMENT=us-east-1
-ADMIN_PASSWORD=RICHCSM
+ADMIN_PASSWORD=your_secure_password_here
 FLASK_ENV=production
 FLASK_DEBUG=0
 PORT=5001

@@ -33,21 +33,21 @@ Before you push to GitHub and deploy, verify these items:
 Copy these to Railway dashboard when deploying:
 
 ```bash
-# AI Provider
-GEMINI_API_KEY=AQ.Ab8RN6LArZu3L8DrOLafh5uy8VhrC1OzdjkKwYQp60LMpU9kUw
+# AI Provider - Copy actual values from your .env file
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # Security (⚠️ CHANGE THIS!)
-ADMIN_PASSWORD=RICHCSM
+ADMIN_PASSWORD=your_secure_password_here
 
 # Vector Database
 VECTOR_DB_PROVIDER=pinecone
-PINECONE_API_KEY=pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU
+PINECONE_API_KEY=your_pinecone_api_key_here
 PINECONE_INDEX_NAME=esp-loyalty-docs1
 PINECONE_ENVIRONMENT=us-east-1
 
 # Analytics Database
 DATABASE_PROVIDER=postgres
-DATABASE_URL=postgresql://postgres:kWTbHNiMEoSTLJGdZWidWgVwMzplAuYH@tokaido.proxy.rlwy.net:14038/railway
+DATABASE_URL=your_railway_postgres_url_here
 
 # App Config
 FLASK_ENV=production
