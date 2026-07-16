@@ -33,7 +33,8 @@
       "Bash(curl -s http://localhost:5001/api/admin/esp/ometria/links)",
       "Bash(curl -s -o /dev/null -w '%{http_code}' --max-time 10 -H 'User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\)' https://support.ometria.com/hc/en-gb/articles/4800701859997-Setting-up-Yotpo-Loyalty-Referrals)",
       "Bash(curl -s -L --max-time 10 -H 'User-Agent: Mozilla/5.0 \\(Macintosh; Intel Mac OS X 10_15_7\\) AppleWebKit/537.36' https://support.ometria.com/hc/en-gb/articles/4800701859997)",
-      "Bash(ls -la \"/Users/leonardo.vacavliev/Downloads/\" | grep -E \"\\(png|PNG\\)\" | tail -5)"
+      "Bash(ls -la \"/Users/leonardo.vacavliev/Downloads/\" | grep -E \"\\(png|PNG\\)\" | tail -5)",
+      "Bash(git add *)"
     ]
   }
 }

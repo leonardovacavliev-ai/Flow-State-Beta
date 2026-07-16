@@ -23,8 +23,8 @@ DB_PATH = os.path.join(BASE_PATH, "backend/chroma_db")
 # Use factory to get vector adapter based on environment
 vectorizer = get_vector_adapter(persist_directory=DB_PATH)
 
-# Admin password
-ADMIN_PASSWORD = "RICHCSM"
+# Admin password - from environment variable for security
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
 
 # Initialize configuration manager
 config_manager = ConfigManager(BASE_PATH)

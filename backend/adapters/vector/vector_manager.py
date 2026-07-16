@@ -2,7 +2,13 @@ import os
 from typing import Optional
 from .base import VectorAdapter
 from .chroma_adapter import ChromaDBAdapter
-from .pinecone_adapter import PineconeAdapter
+
+# Only import PineconeAdapter if available
+try:
+    from .pinecone_adapter import PineconeAdapter
+    PINECONE_AVAILABLE = True
+except ImportError:
+    PINECONE_AVAILABLE = False
 
 def get_vector_adapter(
     provider: Optional[str] = None,
@@ -55,6 +61,12 @@ def get_vector_adapter(
         return ChromaDBAdapter(persist_directory=persist_dir)
 
     elif provider == 'pinecone':
+        if not PINECONE_AVAILABLE:
+            raise ImportError(
+                "Pinecone is not installed. Install it with: pip install pinecone\n"
+                "Or set VECTOR_DB_PROVIDER=chromadb in your .env file to use ChromaDB instead."
+            )
+
         api_key = kwargs.get('api_key') or os.getenv('PINECONE_API_KEY')
         if not api_key:
             raise ValueError("Pinecone API key required. Set PINECONE_API_KEY or pass api_key")
