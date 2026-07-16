@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from adapters.vector.vector_manager import get_vector_adapter
 from crawler import crawl_and_save
@@ -39,6 +39,19 @@ ai_client = AIClient(
     model_name=ai_model_config.get('model_name', 'gemini-flash-latest'),
     system_prompt=system_prompt
 )
+
+# Serve frontend
+FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
+
+@app.route('/')
+def serve_frontend():
+    """Serve the main frontend HTML"""
+    return send_from_directory(FRONTEND_PATH, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Serve static files (CSS, JS, images)"""
+    return send_from_directory(FRONTEND_PATH, path)
 
 @app.route('/api/session/init', methods=['POST'])
 def init_session():
