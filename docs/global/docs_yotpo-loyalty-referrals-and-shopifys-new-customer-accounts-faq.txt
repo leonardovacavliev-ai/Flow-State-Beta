@@ -1,0 +1,91 @@
+Source URL: https://support.yotpo.com/docs/yotpo-loyalty-referrals-and-shopifys-new-customer-accounts-faq
+
+Products
+Loyalty & Referrals
+Supported plans
+All plans
+eCommerce Platform
+Shopify, Shopify Plus
+The New Customer Account Experience
+Shopify’s new Customer Accounts
+offer a streamlined, passwordless login experience, making it easier for shoppers to access their store profiles. Unlike Classic (legacy) accounts that require a username and password, new Customer Accounts use a secure six-digit email verification code. Once verified, customers remain signed in for up to 90 days.
+Yotpo Loyalty & Referrals fully supports Shopify’s new Customer Accounts
+, ensuring your loyalty program works seamlessly across both classic and new customer account types.
+In this article, we’ll cover the most frequently asked questions about how Yotpo integrates with Shopify’s new Customer Accounts.
+Frequently Asked Questions about Customer Accounts
+What are Shopify’s new Customer Accounts?
+Shopify’s new Customer Accounts allow customers to log in without a password. Shoppers enter their email address and receive a six-digit verification code. Upon entering the code, a customer profile is automatically created, and the shopper remains logged in for 90 days without needing to reverify.
+Does Yotpo Loyalty & Referrals support Shopify’s new Customer Accounts?
+Yes! Yotpo Loyalty & Referrals fully supports Shopify’s Customer Accounts across all core loyalty features, widgets, and extensions.
+Is the new Customer Accounts experience supported on a Headless setup?
+Yes. If you’re using our out-of-the-box widgets, there’s no need to use our API since data is automatically synced with Shopify. However, if your program eligibility strategy is set to Only customers opted-in via API and you’re using custom-built widgets, you must use this API endpoint to sync customer data:
+Create/Update Customer Records
+.
+How does Yotpo Loyalty & Referrals support Customer Accounts?
+Yotpo supports all opt-in strategies:
+All customers
+(automatic enrollment)
+Only members who signed up
+(explicit opt-in): We’ve created an explicit opt-in flow allowing customers to join your program through our core widgets or the Rewards page. This opt-in flow is fully compliant with privacy protection laws like GDPR.
+Only customers opted-in via API
+Our core widgets and extensions also support new Customer Accounts:
+Widgets
+: Designed to facilitate different opt-in flows to ensure a smooth experience regardless of how your customers log in.
+Rewards page
+Referrals
+Product Points widget
+Sticky bar
+Extensions
+Rewards at checkout
+: An app block that allows you to add a dropdown element to your checkout page, enabling logged-in customers to redeem rewards for points they’ve earned.
+Referrals post-checkout extension
+: Displays a referral prompt on the Shopify Thank You page, engaging customers at a high-conversion moment.
+New customer account extension
+: Designed to increase visibility and engagement with your loyalty program by integrating loyalty information directly on the Shopify Orders page when customers log in.
+I’m migrating from Legacy to Customer Accounts. Should I do anything?
+No.
+It's safe to switch to Shopify Customer Accounts while using any loyalty program eligibility strategy
+.
+If your program is set to
+Only members who signed up
+, customers will continue to be able to join your loyalty program. Yotpo automatically displays the appropriate sign-up experience for customers who are logged in but not yet loyalty members across supported widgets and extensions.
+Customizing the sign-up experience (such as the messaging, styling, or adding an optional consent disclaimer with a checkbox) is optional and can be done at any time. Your customers can continue joining the program even if you don't make these customizations when migrating.
+How is "loyalty sign-up" defined without traditional account creation?
+With the
+All customers
+opt-in strategy, customers are automatically enrolled in the loyalty program through any interaction that creates a customer profile in Shopify. This includes actions such as making a purchase, signing up for email marketing, or checking out as a guest. No traditional account creation is required.
+For the
+Only members who signed up
+opt-in, customers need to take an additional step by clicking the opt-in button on the Rewards page or one of the widgets to complete the loyalty signup.
+How does this impact anniversary rewards for the "All Customers" opt-in?
+Anniversary rewards can only be based on personalized anniversary dates. Rewards tied to account creation dates are not supported with new Customer Accounts.
+Can customers enter their birth date with the new Customer Accounts (like they could with classic accounts)?
+No. Shopify’s new Customer Accounts do not include a birth date field by default. However, customers can still provide their birth date through the Rewards page.
+What happens to the “swell_has_account” property in Klaviyo?
+Existing customers will retain the property
+swell_has_account = true
+.
+New customers will have this property set to
+false
+.
+If you’re using the new Customer Accounts, you will have to update your Klaviyo flows.
+What happens if I change the opt-in strategy from "All Customers" to "Only members who signed up"?
+If you change the opt-in strategy from
+All Customers
+to
+Only members who signed up
+, the change will not apply retroactively. To make this change retroactive, please contact support or your Success Manager. Keep in mind that applying the change retroactively will opt all existing users out of the program. Only new members who sign up using the checkbox in the widgets or on the Rewards page will be considered eligible.
+Why didn't some customers receive the New Member Reward after joining the program?
+If you’re using
+Only members who signed up
+, there are a few reasons why some of your customers may not receive their New Member Reward after being opted in:
+CSV import
+: Customers who were opted in through a CSV import won’t receive the New Member Reward immediately. They’ll receive it after completing their first purchase as a loyalty member.
+Sharing a referral
+: If a non-member is automatically opted in after sharing a referral (when the referral auto opt-in setting is enabled), they also won't immediately get the New Member Reward. They'll become eligible after completing a purchase as a loyalty member.
+Can I remove all existing users from the program so they can consent again?
+Yotpo offers a membership recalculation feature that can reset customer membership data. However, we don’t recommend using it unless absolutely necessary. Running a recalculation will remove all existing loyalty data, including points, tiers, and history, which can negatively impact your customers’ experience.
+How to create segments based on loyalty membership status with the new Customer Accounts?
+Replace the “has store account enabled” condition with “is Loyalty member.” For
+All Customers
+, you can also add “Points earned is greater than X” to ensure you’re targeting loyalty members who’ve already purchased from your store.

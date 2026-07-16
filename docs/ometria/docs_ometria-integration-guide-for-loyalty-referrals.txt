@@ -1,0 +1,62 @@
+Source URL: https://support.yotpo.com/docs/ometria-integration-guide-for-loyalty-referrals
+
+Products
+Loyalty & Referrals
+Supported plans
+Premium, Enterprise
+eCommerce Platform
+Shopify, Shopify Plus, BigCommerce, Salesforce Commerce Cloud, Adobe Commerce (Magento)
+The Ometria integration with Yotpo Loyalty & Referrals enables you to store your Yotpo loyalty data against your Ometria contact and product records.
+This integration automatically imports your live Loyalty contact data into Ometria, so you can personalize your campaigns and uncover new insights to inform your marketing strategy.
+About Ometria
+Ometria combines the data capabilities of a CDP with a cross-channel marketing orchestration platform, letting retail marketers create relevant experiences throughout the customer journey.
+Before you begin
+You’ll first need to do the following:
+Create an API key in Ometria. To learn how, refer to the
+Ometria help center
+Find your Yotpo API key and GUID. To learn how, see
+Finding your Loyalty & Referrals API Key and GUID
+Setting up the integration
+In Ometria, go to Settings and select the
+Connections
+tab.
+Click
+Add new connection
+, then select
+Yotpo loyalty & referrals
+. The Ometria authentication screen displays.
+Click
+New authentication
+.
+Enter the API key you created at the beginning of the process and select
+Create
+.
+Click
+New authentication
+.
+Change your authentication name if you wish. This name will help you identify any other Yotpo accounts you might have added in Ometria.
+Enter your Yotpo API key and GUID, and click
+Create
+.
+Once the authentication is successful, click
+Next
+to reach the Yotpo Loyalty & Referrals webhook screen.
+Copy the Webhook URL and log into your Yotpo Loyalty & Referrals account.
+In Yotpo, go to
+Settings > General Settings
+, and paste the URL into the Yotpo Webhook URL field.
+Tip:
+If you already have a webhook registered, you can add this one in the same field by separating the URLs using semicolons (;).
+Save these changes in Yotpo, then return to Ometria.
+Select
+Finish
+. Your Yotpo Loyalty & Referrals connection is set up.
+Now you’ve set up the integration, you’ll need to create your custom fields. To learn how, and to see some use cases for this integration, refer to the
+Ometria Loyalty & Referrals integration page
+.
+Having issues with the integration?
+Contact Ometria support by clicking
+here
+. at
+support@ometria.com
+.

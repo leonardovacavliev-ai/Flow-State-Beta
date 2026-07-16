@@ -1,0 +1,412 @@
+Source URL: https://support.ometria.com/hc/en-gb/articles/4800701859997
+
+Ometria's integration withYotpo Loyalty & Referrals
+means that your Yotpo loyalty and referrals data can be stored against your Ometria contact's records.
+See also:
+Yotpo's guide
+for launching an on-site Loyalty & Referrals programme.
+The integration works by automatically importing the live contact data into Ometria, where you can use the data to personalise your campaigns and uncover new insights to inform your marketing strategy.
+Note:
+Due to the limitations of the Yotpo API, you'll needto upload your historical data from Yotpo into Ometria via CSV. Speak to your
+Customer Success Representative
+who can assist with this.
+If you have multiple Yotpo instances you'd like to connect withOmetria we recommend setting up each connection separately, following the steps below for every instance.
+Before you begin
+To get started with Yotpo, contact your Customer Success Representative.
+Next, set up a
+Yotpo Loyalty &; Referral account.
+You'll also need to
+create an API key
+in Ometria to set up your connection.
+If you're planning to connect multiple Yotpo instances with Ometria then it's best to set up separate API keys for each and give theman easily recognisable name, e.g. 'Yotpo US'.
+Only users with administrator account permissions
+can access the
+API keys
+tab.
+Setting up your integration with Yotpo Loyalty & Referrals
+In Ometria, go to
+Settings
+and select the
+Connections
+tab:
+Click
+Add new connection
+, then select
+Yotpo loyalty & referrals
+.
+The
+Ometria authentication
+screen displays.
+Select
+New authentication.
+The
+Create a new authentication
+window displays:
+Enter the
+API key
+you created at the
+beginning of the process
+and select
+Create
+.
+The
+Yotpo LoyaltyAuthentication
+screen displays:
+Click
+New authentication
+.&nbsp;
+The
+Create a new authentication
+pop-up displays:&nbsp;
+Change
+Your authentication name
+if you wish. This name will help you identify any other Yotpo accounts you might have added in Ometria.
+Enter the
+GUID and API key
+previously created in your
+Yotpo Loyalty & Referrals
+account and click
+Create
+.
+Once the authentication is successful, click
+Next
+to reach the
+Yotpo Loyalty & Referrals webhook
+screen:
+Copy the
+Webhook URL
+and log into your
+Yotpo Loyalty & Referrals
+admin account.
+In Yotpo, go to
+Settings
+>
+General Settings
+and paste the URL into the Yotpo
+Webhook URL
+field:
+Note:
+If you already have a webhook registered, you can add this one in the same field by separating the URLs using semicolons (;).
+Save
+these changes in Yotpo, then return to Ometria.
+Loyalty opt-in identifier
+In the final step of the integration configuration flow, you'll be askedto select which property Ometria should use as the loyalty opt-in identifier:
+This depends on whether you're using Yotpo's Legacy accounts or the newer
+Customer accounts
+:
+Legacy accounts
+use
+has_store_account
+, stored in Ometria as
+yotpo_has_platform_account
+.
+Customer accounts
+use
+is_opt_in
+, stored in Ometria as
+yotpo_is_opt_in
+.
+If you are migrating from Legacy to Customer accounts, you'll need to enable Customer accounts in Yotpo first, which makes the
+is_opt_in
+property available.
+Then update the setting in Ometria so the integration uses
+is_opt_in
+as the loyalty identifier.
+<p>These changes should be made at around the same time in both platforms toensure data consistency and avoid gaps in tracking opt-in status.
+For more context on Yotpo's Customer Accounts and loyalty opt-ins, see
+Yotpo's documentation on using Loyalty & Referrals with Shopify's new Customer Accounts
+.
+Final stepsSelect
+Finish
+.
+Your
+Yotpo Loyalty &amp; Referrals
+connection is set up.
+Next you'll need to
+raise a request
+with the
+Support team
+to get your
+custom events
+set up. After that, Ometria's
+Creative team
+will need to add the triggers to your email templates.
+Data passed to Ometria
+Ometriaretrieves two types of data from Yotpo Loyalty & Referrals:
+Custom fields
+- fields you
+create manually
+in Ometria.
+Default fields
+- fields that already exist in Ometria's database.
+Yotpo also sends Ometria
+Create your custom fields
+Once your
+Yotpo Loyalty &; Reviews
+connection is set up in Ometria, you'll need to create the custom fields below for retrieving the data.
+You only need to create the fields that you think will provide value to your marketing strategy.
+Note:
+If you've had this integration set up for a while, there's a chance you could be using some legacy fields which aren't listed here. These fields should still work as expected, but please contact our
+Support Team
+if you have any questions.
+Follow the steps in
+Create a custom field
+to set up the following:
+Ometria Field ID
+Description
+Type
+Yotpo field
+yotpo_perks_redeemed
+The number of perks/rewards the customer has redeemed.
+E.g.
+2
+Number
+perks_redeemed
+yotpo_points_earned
+Total points the customer has earned in their lifetime.
+E.g.
+1000
+Number
+points_earned
+yotpo_points_balance
+Current points balance (after point redemptions, expirations etc.)
+E.g.
+100
+Number
+points_balance
+yotpo_points_expire_at
+Next expiry date for a batch of points.
+E.g.
+2025-12-12
+Note:
+Not all Yotpo accounts use this field, please check with your Yotpo representative.
+Date
+points_expire_at
+yotpo_next_points_expire_on
+Next expiry date for a batch of points.
+E.g.
+2025-12-12
+Note:
+Not all Yotpo accounts use this field, please check with your Yotpo representative.
+Date
+next_points_expire_on
+yotpo_next_points_expire_amount
+The amount of points that will expire on the next expiration date.
+Note:
+Not all Yotpo accounts use this field, please confirm with your Yotpo representative.
+Number
+next_points_expire_amount
+yotpo_loyalty_enrolled
+Whether or not the customer is enrolled in the loyalty program.
+E.g.
+True
+String (True/False)
+opt_in
+yotpo_loyalty_enrolled_date
+The date the customer enrolled in the loyalty program.
+E.g.
+2023-01-01
+Date
+opted_in_at
+yotpo_has_store_account
+Whether or not the customer has a POS account.
+E.g.
+True
+String (True/False)
+has_store_account
+yotpo_tier
+The contact's current tier name.
+E.g.
+Gold
+String
+vip_tier_name
+yotpo_tier_entry_date
+Date the customer entered their current tier.
+E.g.
+2023-01-01
+Date
+vip_tier_entry_date
+yotpo_tier_expiration_date
+The expiration date of the current tier if maintenance goals arent reached.
+E.g.
+2025-12-12
+Date
+vip_tier_expiration
+yotpo_maintain_tier_points
+Points needed to maintain tier.
+E.g.
+12
+Number
+vip_tier_maintenance_requirements.points_needed
+yotpo_maintain_tier_amount
+Spending amount needed to maintain tier (in
+cents
+).
+E.g.
+1599
+Number
+vip_tier_maintenance_requirements.amount_cents_needed
+yotpo_maintain_tier_purchases
+Purchases needed to maintain tier.
+E.g.
+2
+Number
+vip_tier_maintenance_requirements.purchases_needed
+yotpo_maintain_tier_referrals
+Referrals needed to maintain tier.
+E.g.
+2
+Number
+vip_tier_maintenance_requirements.referrals_needed
+yotpo_upgrade_tier_points
+Points needed to upgrade tier.
+E.g.
+20
+Number
+vip_tier_upgrade_requirements.points_needed
+yotpo_upgrade_tier_amount
+Spending amount needed to upgrade tier (in
+cents
+).
+E.g.
+1000
+Number
+vip_tier_upgrade_requirements.amount_cents_needed
+yotpo_upgrade_tier_purchases
+Purchases needed to upgrade tier.
+E.g.
+4
+Number
+vip_tier_upgrade_requirements.purchases_needed
+yotpo_upgrade_tier_referrals
+Referrals needed to upgrade tier.
+E.g.
+5
+Number
+vip_tier_upgrade_requirements.referrals_needed
+yotpo_firstname
+If you have not specified that you want to use the standard first name field, this will be used.
+E.g.
+Janie
+String
+first_name
+yotpo_lastname
+If you haven't specified that you want to use the standard last name field, this will be used.
+E.g.
+Jones
+String
+last_name
+date_of_birth
+If you haven't specified that you want to use the standard date of birthfield, this will be used.
+E.g.
+2000-04-08
+Date
+customer.birth_day
+customer.birth_month
+customer.birth_year
+Migrating from legacy to customer accounts
+If you are migrating from legacy to <strong>customer
+accounts, be aware of the following behaviour:
+The
+yotpo_is_opt_in
+property is used as the loyalty opt-in identifier for new customers after the switch.
+Existing customer data remains unchanged — only
+yotpo_has_platform_account
+may be present for customers acquired before the migration.
+Note:
+The example below assumes your legacy opt-in identifier is
+yotpo_has_platform_account
+. If you are using a different property, substitute it accordingly. Check with your
+Customer Success Representative
+if you're unsure.
+Previous condition:
+yotpo_has_platform_account
+=
+true
+Updated condition:
+(
+yotpo_has_platform_account
+=
+true
+AND
+yotpo_is_opt_in
+is
+not
+known
+)
+OR
+yotpo_is_opt_in
+=
+true
+Thisensures your campaigns continue to capture both customers acquired before the migration and those who opted in under the new
+Customer accounts
+setup.
+Event triggers
+Full list of the Yotpo event triggers Ometria supports:
+Yotpo Loyalty & Referrals: Supported events
+Use cases
+Automation campaigns
+Points reminder
+Set up a campaign to remind your customers how many loyalty points they have available using the entry trigger:
+The contact has entered or exited a segment
+The contact had
+entered
+a segment - which is - Accumulator Point Reminder.
+Points confirmation
+Set up a campaign to let your customers know how many loyalty points they have after placing an order by using the entry trigger:
+Custom date
+- Last purchase date - Is today
+New tier confirmation
+Set up a campaign to let your customers know when they have moved into a new
+loyalty tier
+by using the entry trigger:
+Contact entered or exited a segment
+Contact has
+entered
+a segment - which is - [select your loyalty tier]
+Loyalty welcome
+Set up a campaign to thank your customers for opting into your loyalty programme by using the entry trigger:
+Custom date
+- [Opt-in date field name] - Is today
+Broadcast campaigns - dynamic blocks
+Configure your broadcast campaign templates to display only for contacts in your loyalty tier segments and tailor the information specifically to them:
+Using merge tags to convert cents into dollars
+Yotpo sends currency values to Ometria as cents, not dollar amounts (e.g. 4999 instead of 49.99).
+You can use
+merge tags
+to convert these values into dollar amounts in your marketing messages:
+Field
+Merge tag
+yotpo_maintain_tier_amount
+{{ ("%.2f" % ((properties.yotpo_maintain_tier_amount | int) /100)}}
+yotpo_upgrade_tier_amount
+{{ ("%.2f" % ((properties.yotpo_upgrade_tier_amount | int) /100) }}
+ 
+ 
+Recently viewed articles
+Yotpo Loyalty & Referrals: Supported events
+How entry triggers work
+ 
+ 
+ 
+ 
+Related articles
+ 
+ 
+Create a custom field
+ 
+Setting up Yotpo product reviews
+ 
+Merge tags in Ometria
+ 
+Attribution in the orders report
+ 
+Hidden blocks
+ 
+ 
+ 
+ 
+ 
+ 
+Article is closed for comments.
+ 

@@ -1,0 +1,84 @@
+Source URL: https://loyaltyapi.yotpo.com/reference/record-a-customer-action
+
+Time
+Status
+User Agent
+Retrieving recent requests…
+Loading
+Loading…
+📘
+Please note:
+The "created
+at" parameter will be used in the
+Get Customer Details call
+with the "with
+history" parameter.
+type
+string
+required
+Defaults to CustomAction
+The type of action. Almost always set this to
+CustomAction
+customer_email
+string
+required
+The email address used to identify the customer who performed the action. Required if no customer_id is passed.
+customer_id
+string
+The unique identifier of the customer who performed the action in your system. Required if no customer_email is passed.
+action_name
+string
+required
+The name of the action that was performed. This must match the name set for one of your Custom Action Campaigns.
+ip_address
+string
+The ip address of the user when the action was performed. This is required if this action completes a referral program requirement.
+user_agent
+string
+The browser user agent of the user when the action was performed. This is strongly recommended if this action completes a referral program requirements.
+created_at
+string
+The time the action was performed. This will default to the current time. Use this if you need to back date an action.
+reward_points
+int32
+Use this to override the normal amount of points awarded for performing the action. Will default to the rules of the campaign otherwise.
+history_title
+string
+Use this to override the normal description shown to the user in their history. Will default to the campaign settings otherwise.
+200
+200
+400
+400
+423
+423
+Updated
+7 months ago
+Did this page help you?
+Yes
+No
+Shell
+Node
+Ruby
+PHP
+Python
+Loading
+Loading…
+Click
+Try It!
+to start a request and see the response here!
+Or choose an example:
+application/json
+200
+-
+Result
+400
+-
+Result
+423
+-
+Result
+Updated
+7 months ago
+Did this page help you?
+Yes
+No

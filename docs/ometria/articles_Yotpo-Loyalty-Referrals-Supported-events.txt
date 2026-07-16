@@ -1,0 +1,616 @@
+Source URL: https://support.ometria.com/hc/en-gb/articles/30378613995933
+
+These are the custom events Ometria supports for our integration with
+Yotpo Loyalty & Referrals
+.
+You can use these events to
+trigger automation campaigns
+.See:
+Yotpo Loyalty & Referrals: Use cases
+All of these events also contain <strong>core fields
+you can use in the
+customer filter
+to create segments or as merge tags</a> in your marketing templates.
+Every event has one field thatcontains the full Yotpo payload.
+You can only use the contents of this field in
+merge tags
+.
+To create amerge tag for any fields within that payload (i.e. fields that arent already part of the core fields), please see the link to Yotpos documentation in each table below to view the payload structure. yotpo_loyalty_opt_in
+This event triggers when a customer
+opts into or out of
+your loyalty program.
+An opted-in customer can earn points, join tiers, redeem points, etc.
+You can use this event for your loyalty scheme welcome campaigns.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+opt_in_date
+Loyalty opt in date
+Date
+loyalty_opt_in_date
+yotpo_event
+Yotpo event
+-
+event.customer
+yotpo_points_changed
+This event triggers every time a customer's points balance changes.
+The event provides:
+previous point balance
+current point balance
+how many points it changed by.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+previous_balance
+Previous balance
+Number
+previous_balance
+current_balance
+Current balance
+Number
+current_balance
+added_or_removed
+Added or removed
+String
+added_or_removed
+points_changed_reason
+Points changed reason
+String
+points_changed_reason
+difference
+Difference
+Number
+difference
+yotpo_event
+Yotpo event
+-
+event.customer
+yotpo_points_earned
+This event triggers any time a customer earns points. </p>
+This is useful for keeping a customer's point balance up to date.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+reward_points
+Reward points
+Number
+perk.reward_points
+history_title
+History title
+String
+perk.history_title
+yotpo_lifetime_points
+Yotpo lifetime points
+Number
+customer.points_earned
+yotpo_remaining_points
+Yotpo remaining points
+Number
+customer.points_balance
+yotpo_points_expire_at
+Yotpo points expire at
+Date
+customer.points_expire_at
+yotpo_event
+Yotpo event
+-
+event
+yotpo_points_reminder
+This event triggers after a certain amount of days of inactivity.
+This is great for reminding the customer that they're close to earning a reward.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+points_needed
+Points needed
+Number
+points_needed
+redemption_option_name
+Redemption option name
+String
+redemption_option.name
+yotpo_lifetime_points
+Yotpo lifetime points
+Number
+customer.points_earned
+yotpo_remaining_points
+Yotpo remaining points
+Number
+customer.points_balance
+yotpo_points_expire_at
+Yotpo points expire at
+Number
+customer.points_expire_at
+yotpo_event
+Yotpo event
+Number
+event
+yotpo_loyalty_expiration_reminder
+This event triggers when a customer's points are about to expire.
+You can use this to remind your customers that they should use their points while they still can.
+Points reminder events are triggered every day at 5:00pm UTC.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+store_name
+Store name
+String
+store_name
+website_url
+Website URL
+String
+website_url
+loyalty_next_points_expire_on
+Loyalty next points expire on
+Date
+loyalty_next_points_expire_on
+loyalty_next_points_expire_amount
+Loyalty next points expire amount
+Number
+loyalty_next_points_expire_amount
+days_to_point_expiration
+Days to point expiration
+Number
+days_to_point_expiration
+yotpo_event
+Yotpo event
+-
+event
+yotpo_tier_earn
+This event triggers when a customer meets the requirement for a new tier.
+This is great for letting a customer know they reached a certain status level.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+new_tier_name
+New tier name
+String
+new_tier.name
+old_tier_name
+Old tier name
+String
+old_tier.name
+yotpo_event
+Yotpo event
+-
+event
+yotpo_tier_lost
+This event is triggered when a customer fails to meet the requirement for a tier after the specified period of time has passed.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+new_tier_name
+New tier name
+String
+new_tier.name
+old_tier_name
+Old tier name
+String
+old_tier.name
+yotpo_event
+Yotpo event
+-
+event
+yotpo_tier_status_change
+This event triggers when a customer gets closer to or farther from retaining their current tier, and from entering the next tier.</p>
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+points_needed_maintain
+Points needed maintain
+Number
+vip_stats_needed_maintain.points_needed
+amount_needed_maintain
+Amount needed maintain
+Number
+vip_stats_needed_maintain.amount_cents_needed
+purchases_needed_maintain
+Purchases needed maintain
+Number
+vip_stats_needed_maintain.purchases_needed
+referrals_needed_maintain
+Referrals needed maintain
+Number
+vip_stats_needed_maintain.referrals_needed
+points_needed_next
+Points needed next
+Number
+vip_stats_needed_next.points_needed
+amount_needed_next
+Amount needed next
+Number
+vip_stats_needed_next.amount_cents_needed
+purchases_needed_next
+Purchases needed next
+Number
+vip_stats_needed_next.purchases_needed
+referrals_needed_next
+Referrals needed next
+Number
+vip_stats_needed_next.referrals_needed
+yotpo_event
+Yotpo event
+-
+event
+yotpo_coupon_earned_redeemed
+This event triggers any time:
+a customer redeems points and receives a coupon code, or;
+a customer earns a discount from completing a campaign (e.g. NewsletterSignup).
+Note: Points redeemed
+is included in events where the customer redeemed points to receive an award.
+Campaign completed
+is included in events where the customer completed a campaign to receivean award.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+coupon
+Coupon
+String
+redemption.reward_text
+points_redeemed
+Points redeemed
+Number
+redemption_option.amount
+campaign_completed
+Campaign completed
+String
+perk.history_title
+yotpo_remaining_points
+Yotpo remaining points
+Number
+customer.points_balance
+yotpo_event
+Yotpo event
+Yotpo documentation:
+Points redeemed
+Campaign completed
+-
+event
+yotpo_redemption_reminder
+This event triggers after a certain amount of days of inactivity. You can use this to remind customers that they have enough points for a reward.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+reward_available
+Reward available
+String
+redemption_option.name
+reward_description
+Reward description
+String
+redemption_option.description
+yotpo_event
+Yotpo event
+-
+event
+yotpo_referral_advocate
+This event triggers when a customer refers a friend who satisfies the referral program requirements.
+You can use this event to send a message thanking the customer for the referral.
+Note:
+This event triggers for the
+advocate
+(the customer who made the referral).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+friend
+Friend
+String
+email
+referral_link
+Referral link
+String
+referral_link
+referral_code
+Referral code
+Array
+referral_code
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+yotpo_event
+Yotpo event
+Documentation:
+Yotpo customers pre-August 2024
+Yotpo customers post-August 2024
+-
+event
+yotpo_referral_friend
+This event triggers when a customer refers a friend who satisfies the referral program requirements.
+You can use this to send a message letting the friend know about the referral.
+Note:
+This event triggers for the
+friend
+(the person who was referred by the advocate).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+advocate
+Advocate
+String
+from
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+referral_link
+Referral link
+String
+referral_link
+yotpo_event
+Yotpo event
+Documentation:
+Yotpo customers pre-August 2024
+Yotpo customers post-August 2024
+-
+event
+yotpo_referral_advocate_reminder
+This event triggers after a referred customer (friend) hasn't placed an order a certain amount of days after being referred.
+You can use this to send a reminder to the advocate to prompt their friend to use their referral link.
+Note:
+This event is triggered for the
+advocate
+(the customer who made the referral).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+friend
+Friend
+String
+email
+referral_link
+Referral link
+String
+referral_link
+referral_code
+Referral code
+String
+referral_code
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+yotpo_event
+Yotpo event
+-
+event
+yotpo_referral_friend_reminder
+This event triggers after a referred customer (friend) hasn't placed an order a certain amount of days after being referred.
+You can use this event to trigger a reminder to the referred customer touse their referral link.
+Note:
+This event triggers for the
+friend
+(the person who was referred by the advocate).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+advocate
+Advocate
+String
+from
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+referral_link
+Referral link
+String
+referral_link
+yotpo_event
+Yotpo event
+-
+event
+yotpo_referral_advocate_completed
+This event triggers when a customer refers a friend who satisfies the referral program requirements.
+Use this to send a message thanking the customer for making the referral.
+Note:
+This event triggers for the
+advocate
+(the customer who made the referral).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+friend
+Friend
+String
+email
+referral_link
+Referral link
+String
+referral_link
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+yotpo_event
+Yotpo event
+Documentation:
+Yotpo customers pre-August 2024
+Yotpo customers post-August 2024
+-
+event
+yotpo_referral_friend_completed
+This event triggers when a customer refers a friend who satisfies the referral program requirements.
+You can use this to send the customer a thank you message for the referral.
+Note:
+This event triggers for the
+friend
+(the person who was referred by the advocate).
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+advocate
+Advocate
+String
+from
+discount_amount
+Discount amount
+String
+redemption_option.discount_with_currency
+referral_link
+Referral link
+String
+referral_link
+reward
+Reward
+String
+redemption.reward_text
+yotpo_event
+Yotpo event
+Documentation:
+Yotpo customers pre-August 2024
+<span class="wysiwyg-underline">Yotpo customers post-August 2024
+-
+event
+yotpo_customer_birthday_captured
+This event triggers when a customer sets their birthday through your storefront or if the birthday date was manually updated in Yotpo Loyalty &Referrals.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field(s)
+birthday
+Birthday
+Date
+customer.birth_day
+customer.birth_month
+customer.birth_year
+yotpo_event
+Yotpo event
+-
+event
+yotpo_customer_birthday
+This event triggers on the customer's birthday.
+This is great for sending an email to congratulate them and let them know if they've been awarded a birthday coupon or discount,
+Customer Birthday events are triggered each day at 1:00pm UTC.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+birthday_points
+Birthday points
+Number
+perk.reward_points
+birthday_coupon_code
+Birthday coupon code
+String
+redemption.reward_text
+birthday_coupon_name
+Birthday coupon name
+String
+redemption_option.name
+birthday_coupon_description
+Birthday coupon description
+String
+redemption_option.description
+yotpo_event
+Yotpo event
+-
+event
+yotpo_customer_anniversary_capturedThis event triggers when a customer sets their anniversary date through your storefront.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field(s)
+date_of_anniversary
+Date of anniversary year
+Date
+customer.anniversary_day
+customer.anniversary_month
+customer.anniversary_year
+yotpo_event
+Yotpo event
+-
+event
+yotpo_customer_anniversary
+This event triggers on a customer's anniversary.
+You can send them a message congratulating them and let them know if they've been awarded any points or coupons.
+The anniversary events are triggered each day at 11:00am UTC.
+Event properties:
+Ometria Field ID
+Title
+Type
+Yotpo field
+anniversary_points
+Anniversary points
+Number
+perk.reward_points
+anniversary_coupon_code
+Anniversary coupon code
+String
+redemption.reward_text
+anniversary_coupon_name
+Anniversary coupon name
+String
+redemption_option.name
+anniversary_coupon_description
+Anniversary coupon description
+String
+redemption_option.description
+yotpo_event
+Yotpo event
+event
+ 
+ 
+Recently viewed articles
+How entry triggers work
+Setting up Yotpo Loyalty & Referrals
+ 
+ 
+ 
+ 
+Related articles
+ 
+ 
+Setting up Yotpo Loyalty & Referrals
+ 
+Channel settings
+ 
+Automation campaign triggers
+ 
+Unidentified visitors
+ 
+Enhanced browsing event storage
+ 
+ 
+ 
+ 
+ 
+ 
+Article is closed for comments.
+ 

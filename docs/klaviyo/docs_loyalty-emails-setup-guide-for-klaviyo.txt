@@ -1,0 +1,700 @@
+Source URL: https://support.yotpo.com/docs/loyalty-emails-setup-guide-for-klaviyo
+
+Products
+Loyalty & Referrals
+Supported plans
+Pro, Premium, Enterprise
+eCommerce Platform
+Shopify, Shopify Plus, BigCommerce, Salesforce Commerce Cloud, Adobe Commerce (Magento), Custom
+After you integrate Yotpo Loyalty & Referrals with your Klaviyo account and your customers and events are synced with Klaviyo, you can set up the necessary customer emails.
+Create your core emails
+Create your additional recommended emails
+After setting up your core and recommended emails, you can:
+Explore a
+full list of events
+you can use to trigger emails
+Explore a
+full list of customer properties
+and see how to leverage them
+Before you start
+Important
+When using ESP integrations, customer data such as
+loyalty points may appear inconsistent if multiple profiles exist for the same person
+. This reflects differences in how platforms identify customers. To maintain consistency, we recommend checking your Klaviyo settings for profile deduplication or strict email matching, or consulting with Klaviyo support.
+If you have yet to integrate Yotpo Loyalty & Referrals with your Klaviyo account, follow t
+hese steps for our OAuth integration
+and these for the
+legacy API-key integration
+.
+Make sure that after you set up the email flows in Klaviyo, you disable Loyalty & Referrals emails manually so that your customers won't get the same email twice.
+Core emails
+These are basic customer communication emails that are necessary for your loyalty and referrals programs. Without them, your customers will not be able to refer friends via email and will not be made aware of the rewards they’ve received.
+Below are the core emails we recommend setting up together with their triggers and ready-made text you can paste into Klaviyo.
+Program announcement email
+This is a one-off email that is sent to all customers who choose to receive marketing materials. Start your loyalty program off with a bang and make sure all your customers don’t miss out on it.
+Tip:
+We recommend sending out a program announcement email  48 hours after you publish your program on-site.
+Email type
+: Campaign
+Trigger
+: N/A. There is no trigger since this email is only sent once to all customers
+Suggested email copy
+Title/Subject
+Introducing {{ organization.name }}’s exclusive rewards program 🌟
+Preview text
+It’s finally here! Earn points every time you shop.
+Body
+It’s finally here - {{ organization.name }}’s new rewards program!
+Get ready to earn points every time you shop 🛍️ , unlock rewards, and enjoy special offers.
+Sign up today to start earning!
+CTA
+Sign up
+Referral share email
+This email will be sent to the referred friend - any new customer being referred, containing the referring customer's unique referral link. The friend will click on the link contained in this email to receive an incentive to make their first purchase with your store.
+Email type
+: Flow
+Trigger
+: Swell Referral Share
+Suggested email copy
+Title/Subject:
+Your friend gifted you a special discount! 🎁
+Preview text:
+Unlock {{ event.redemption_option.name}} your first purchase at {{ organization.name }}!
+Body:
+Hey friend,
+{{ person|lookup:"swell_referrer_name"|default:"" }} thinks you’ll just love {{ organization.name }}! Here is a special discount off your first purchase to get you started. Click below to unlock your offer:
+Happy shopping!
+CTA:
+Unlock your discount {{ event.customer.referral_link }}
+Referral completed
+This event-triggered email is sent to the referring customer letting them know they have received a reward for their referred friend completing a purchase.
+Email type
+: Flow
+Trigger
+: Swell Referral Completed
+The copy will change according to the reward you have set in your
+referral program settings
+.
+Points as reward
+If you choose to reward the referring customer with points, the email will contain the number of points added to their account.
+Suggested email copy
+Title/Subject:
+You earned points for your referral! 🌟
+Preview text:
+Log in now to see your reward.
+Body:
+Hey {{ first_name|default:'friend' }},
+A friend made their first purchase using your referral link.
+As a thank you, we’ve added {{ event.perk.reward_points }} points to your account, which are redeemable for all kinds of great rewards at our store!
+Log into your account to see which rewards you could be eligible for.
+CTA:
+Log in
+Discount as reward
+If you choose to reward the referring customer with a discount, the email will contain the discount code they can use.
+Suggested email copy
+Title/Subject:
+You earned a reward for your referral! 🌟
+Preview text:
+Use it on your next purchase
+Body:
+Hey {{ first_name|default:'friend' }},
+A friend made their first purchase using your referral link.
+As a thank you, we’re awarding you with {{ event.redemption_option.name|default:‘a discount’ }} at our store!
+Use this discount code at checkout: {{ event.redemption.reward_text }}
+CTA:
+Log in
+Redemption created (Reward received)
+This event-triggered email is sent to a customer whenever they get a coupon code from a loyalty reward. To learn more about the Rewards Page, see
+Creating a Rewards Page
+.
+While the code will appear on-site for the customer to copy and paste at checkout, this email contains the discount code as well and is triggered so customers can easily locate the code should they opt to use the discount at a later time.
+Email type
+: Flow
+Trigger: Yotpo
+: Reward received
+Suggested email copy
+Title/Subject:
+Congrats, you’ve got a new reward!
+Preview text:
+Use the discount code on your next purchase
+Body:
+Hey {{ first_name|default:'friend' }},
+Your {{ event.redemption_option.name}} reward from {{ organization.name }} is here!
+Your discount code is:
+{{ event.redemption.reward_text }}
+Just enter it at checkout when you make your next purchase.
+CTA:
+Shop now
+Referral share email (New)
+Available for
+Shopify merchants who joined Yopto Loyalty & Referrals Pro plan after April 2024
+Shopify merchants who joined Yopto Loyalty & Referrals Premium and Enterprise plans after August 2024
+This event-triggered email is sent to the referred friend (any new customer who has been referred) and includes the referring customer's unique referral link.
+Note
+This flow is only necessary if you choose the "Marketing email" option in the Referral Share widget. If you’re using the "Personal email" option, you don’t need to set up this flow, as referring customers will send referrals through their own email provider (e.g., Gmail, Yahoo, or Outlook).
+The friend will click on the link contained in this email to receive an incentive to make their first purchase with your store.
+Email type
+: Flow
+Trigger
+: Yotpo Referral Shared
+Suggested email copy
+Title/Subject:
+Your friend gifted you a special discount! 🎁
+Preview text:
+Unlock {{event.perk.redemption_option.name}} your first purchase at {{ organization.name }}!
+Body:
+Hey friend,
+{{ person|lookup:"swell_referrer_name"|default:"" }} thinks you’ll just love {{ organization.name }}! Here is a special discount off your first purchase to get you started. Click below to unlock your offer:
+Happy shopping!
+CTA:
+Unlock your discount {{ event.referral_link }}
+Referral completed (New)
+Available for:
+Shopify merchants who joined Yopto Loyalty & Referrals Pro plan after April 2024
+Shopify merchants who joined Yopto Loyalty & Referrals Premium and Enterprise plans after August 2024
+This event-triggered email is sent to the referring customer after a successful referral, once their friend completes a purchase.
+Purpose
+: Its main purpose is to build trust and let them know the referral was successful and a reward is waiting for them. You can also include a message directing them to the rewards page, where they can view all their loyalty rewards and coupon codes.
+Email type
+: Flow
+Trigger
+: Yotpo Referral Completed
+The copy will change according to the reward you have set in your
+referral program settings
+.
+Points as reward
+If you choose to reward the referring customer with points, the email will contain the number of points added to their account.
+Suggested email copy
+Title/Subject:
+You earned points for your referral! 🌟
+Preview text:
+Log in now to see your reward.
+Body:
+Hey {{ first_name|default:'friend' }},
+A friend made their first purchase using your referral link.
+As a thank you, we’ve added {{ event.perk.reward_points }} points to your account, which are redeemable for all kinds of great rewards at our store!
+Log into your account to see which rewards you could be eligible for.
+CTA:
+Log in
+Discount as reward
+If you choose to reward the referring customer with a discount, the email will contain the discount code they can use.
+Suggested email copy
+Title/Subject:
+You earned a reward for your referral! 🌟
+Preview text:
+Use it on your next purchase
+Body:
+Hey {{ first_name|default:'friend' }},
+A friend made their first purchase using your referral link.
+As a thank you, we’re awarding you with {{ event.perk.redemption_option.name }} at our store!
+Use this discount code at checkout: {{ event.perk.redemption.reward_text }}
+CTA:
+Log in
+Referral reward received - Optional (New)
+Available for:
+Shopify merchants who joined Yopto Loyalty & Referrals Pro plan after April 2024
+Shopify merchants who joined Yopto Loyalty & Referrals Premium and Enterprise plans after August 2024
+This event-triggered email is sent to an eligible referred friend whenever they get a coupon code after clicking a referral code. Learn more about
+referral rewards
+.
+Purpose
+: The main goal is to ensure the referred friend can easily access their coupon code via email, even if they don’t purchase right away. The code will also appear in the welcome pop-up and will be automatically applied at checkout, unless the default program settings have been changed.
+You can use a conditional split and create 2 templates for the “Reward received” email:
+Template #1 (Yes) – is triggered specifically for a referred friend, after they click a referral link and the coupon is generated on the welcome popup.
+Template #2 (No) – is triggered when a customer receives a discount reward that isn’t related to referrals.
+Use the trigger split “source equals referrals”:
+Email type
+: Flow
+Trigger: Yotpo
+: Reward received
+Suggested email copy
+Title/Subject:
+Congrats, you’ve got a new reward!
+Preview text:
+Use your referral discount code on your next purchase
+Body:
+Hey {{ first_name|default:'friend' }},
+Your referral reward from {{ first_name|default:'your friend' }}, is here!
+Your discount code is:
+{{ event.redemption.reward_text }}
+Just enter it at checkout when you make your next purchase.
+CTA:
+Shop now
+Additional recommended emails
+Rewards program welcome email
+This flow sends an email to customers after they create a platform account to inform them of the loyalty benefits.
+Use the
+swell_account_created
+property to set up the flow.
+Suggested email copy
+Title/Subject:
+Welcome to {{ organization.name }}’s rewards program!
+Preview text:
+Earn points and exclusive offers every time you shop
+Body:
+{{ first_name|default:"" }}, you’re in!
+Earn points, redeem them for discounts, and get exclusive offers like early access to our newest products and VIP deals.
+Log in today to check out your rewards!
+CTA:
+Check it out
+VIP tier earned
+This event-triggered email is sent to a customer when reaching a new VIP tier level.
+Email type
+: Flow
+Trigger: Yotpo
+: Tier earned
+To set up this flow, use a conditional split based on the
+swell_vip_tier_name
+customer property.  For example, after the trigger comes the 1st conditional split- customer property "swell_vip_tier_name" = {1st tier name}.
+If YES, send an email with the suggested copy and update the name of the tier in the email's copy.
+If NO, set another conditional split for the 2nd tier: customer property "swell_vip_tier_name" = {2st tier name}.
+If YES, send an email with the suggested copy and update the name of the tier in the email's copy.
+If NO,  set another conditional split for the 2nd tier, etc.
+Use the following copy options according to the reward set up in your VIP tier program.
+Points as reward
+If you choose to reward the customer with points, the email will contain the number of points being added to the customer's account as a bonus for moving up to the new tier.
+Suggested email copy
+Title/Subject:
+You’ve entered a new tier!
+Preview text:
+New tier = more rewards ﻿
+Body:
+Congratulations, {{ first_name|default:'friend' }}!
+You’ve just leveled up to {{ person|lookup:'swell_vip_tier_name'|default:'your new tier' }} status.
+To celebrate, we’ve added {{ event.perk.reward_points }} points to your account.
+Explore your new benefits and shop now!
+CTA:
+Shop now
+Discount as reward
+If you choose to reward the customer with a discount, the email will contain the discount code they receive for moving up to the new tier.
+Suggested email copy
+Title/Subject:
+You’ve got a new reward for entering a new tier!
+Preview text:
+New tier = more rewards
+Body:
+Congratulations, {{ first_name|default:'friend' }}!
+You’ve just leveled up to {{ person|lookup:'swell_vip_tier_name'|default:'your new tier' }} status.
+To celebrate, here is a {{ event.redemption_option.name}} reward.
+Discount code: {{ event.redemption.reward_text }}
+Explore your new tier benefits and shop now!
+CTA:
+Shop now
+No reward
+You can also choose to only inform the customer about entering a new VIP tier without giving a reward.
+Suggested email copy
+Title/Subject:
+You’ve entered a new tier!
+Preview text:
+New tier = more benefits ﻿
+Body:
+Congratulations, {{ first_name|default:'friend' }}!
+You’ve just leveled up to {{ person|lookup:'swell_vip_tier_name'|default:'your new tier' }} status.
+As a {{ person|lookup:'swell_vip_tier_name'|default:'rewards' }} member, you can enjoy many more program benefits including special rewards, exclusive discounts, and more!
+Explore your new tier benefits and shop now!
+CTA:
+Shop now
+Redemption reminder
+This event is triggered after a specified duration of inactivity and sends an email reminding the customer that they have enough points to redeem for a reward.
+Email type
+: Flow
+Trigger
+: Swell Redemption Reminder
+Suggested email copy
+Title/Subject:
+Don't forget!
+Body:
+You have {{ person|lookup:'swell_point_balance'|default:'text' }} points // OR {{ person|lookup:'swell_credit_balance'|default:'text' }} to use - now it's time to treat yourself by cashing in.
+Login to your account to redeem a discount on your next order!
+CTA:
+Shop now
+Customer birthday
+This event-triggered email is sent to customers on their birthday and lets them know they received a gift from your store.
+Email type
+: Flow
+Trigger
+: Swell Customer Birthday
+The copy will change according to the reward you have set in your
+Birthday Reward earning rule
+.
+Points as reward
+If you choose to reward the customer with points, the email will contain the number of points added to their account.
+Suggested email copy
+Title/Subject:
+Happy birthday 🎉 A special reward is waiting for you.
+Preview text:
+Enjoy this special gift
+Body:
+Happy birthday, {{ first_name|default:’friend’}}!
+You didn’t think we’d come empty-handed, did you? We’re getting this party started with BONUS birthday points just for you.
+We added {{ event.perk.reward_points|default:'' }} points to your account.
+You now have a total of {{ person|lookup:"swell_point_balance"|default:"" }} points to treat yourself.
+CTA:
+Redeem now
+Discount as reward
+If you choose to reward the customer with a discount, the email will contain the discount code they receive as a birthday reward.
+Suggested email copy
+Title/Subject:
+Happy birthday 🎉 A special reward is waiting for you.
+Preview text:
+Enjoy this special gift
+Body:
+Happy birthday, {{ first_name|default:’friend’}}!
+You didn’t think we’d come empty-handed, did you? We’re getting this party started with a special discount just for you.
+Enjoy this {{ event.redemption_option.name }} reward off your next purchase from {{ organization.name }}.
+Discount code:{{ event.redemption.reward_text }}
+Just enter it at checkout when you make your next purchase.
+CTA:
+Shop now
+Anniversary reward
+This event-triggered email is sent to customers to mark the date they joined your loyalty program. It lets them know they received a gift from your store to celebrate the occasion.
+Email type
+: Flow
+Trigger
+: Swell Customer Anniversary
+The copy will change according to the reward you have set in your
+Anniversary Reward earning rule
+.
+Points as reward
+If you choose to reward the customer with points, the email will contain the number of points added to their account.
+Suggested email copy
+Title/Subject:
+Happy {{ organization.name)) anniversary 🎉!
+Preview text:
+A special reward is waiting for you
+Body:
+Hey, {{ first_name|default:’friend’}}!
+We’re so excited to celebrate the anniversary of you becoming a rewards member. Please enjoy {{ event.perk.reward_points|default:” }} BONUS points added to your account.
+Thanks for being such a loyal member!
+You now have a total of {{ person|lookup:”swell_point_balance”|default” }} points to treat yourself!
+CTA:
+Redeem now
+Discount as reward
+If you choose to reward the customer with a discount, the email will contain the discount code they receive as an anniversary present.
+Suggested email copy
+Title/Subject:
+Happy {{ organization.name }} anniversary 🎉!
+Preview text:
+A special reward is waiting for you
+Body:
+Hey, {{ first_name|default:’friend’}}!
+We’re so excited to celebrate the anniversary of you becoming a rewards member. Please enjoy this {{ event.redemption_option.name }} reward off your next purchase.
+Thanks for being such a loyal member!
+Discount code: {{ event.redemption.reward_text }}
+CTA:
+Shop now
+Points reminder (fixed amount rewards only)
+This event is triggered after a specified duration of inactivity and sends an email notifying customers of their point balance, as well as the number of additional points they must earn to redeem a reward.
+Email type
+: Flow
+Trigger
+: Swell Points Reminder
+Suggested email copy
+Title/Subject:
+Get a discount off your next order!
+Body:
+Hi {{ first_name|default:'reward member' }},
+You have {{ person|lookup:'swell_point_balance'|default:'tons of' }} points to use - now it's time to treat yourself by cashing in.
+Login to your account to redeem a discount on your next order!
+Want to learn more? Login to your account at to check out your status and redeem your rewards.
+Happy shopping!
+CTA:
+Shop now
+Referral share reminder
+This event is triggered after a specified duration of inactivity and sends an email that reminds the referred friend to take advantage of their referral discount.
+Email type
+: Flow
+Trigger
+: Swell Redemption Reminder
+Suggested email copy
+Subject/Title:
+Don't miss out!
+Preview text:
+You still have [insert amount] towards your first purchase of [insert amount].
+Body:
+Use this link {{ event.customer.referral_link }} and they'll give you a coupon for [insert discount] you can use at checkout.
+CTA:
+Shop now
+Tier expiration reminder
+Available for
+Merchants using
+Loyalty Tiers
+.
+This event-triggered email is sent to customers who are at risk of losing their current tier.
+Use this flow to remind customers of their upcoming tier expiration and encourage them to retain their benefits by earning more points or spending more in your store before the tier expires.
+Email type
+: Flow
+Trigger
+: Yotpo Tier Expiration Reminder
+Suggested email copy
+Title/Subject:
+You're about to lose your tier!
+Body (for
+Points Earned
+thresholds):
+Hi {{ first_name|default:'reward member' }},
+Your VIP tier will expire on {{ person|lookup:"swell_vip_tier_ends_at"|default:'' }}
+To maintain your tier, you need to earn this number of points: {{ person|lookup:"loyalty_mt_points"|default:'' }}
+Happy shopping!
+Body (for
+Amount Spent
+thresholds):
+Hi {{ first_name|default:'reward member' }},
+Your VIP tier will expire on {{ person|lookup:"swell_vip_tier_ends_at"|default:'' }}
+To maintain your tier, you need to spend: {{ person|lookup:"loyalty_mt_amount_cents"|default:'' }}
+Happy shopping!
+CTA:
+Shop now
+Full list of events you can use to trigger emails
+These are webhook events that you can use to trigger specific emails. Each event also includes the
+store_name
+attribute that refers the event to the store where it originated.
+For example, the
+Swell Account Created
+event is triggered when a reward is given to a customer for creating an account using the New Member Reward earning rule. This is useful if you want to do a
+Welcome Series
+for new users. Use these events in conjunction with customer attributes to create an incredible variety of targeted emails.
+List of events
+Swell Points Earned
+This event is triggered any time a customer earns points
+This event is commonly used for
+keeping a customer's point balance up to date in your CRM or email marketing platform.
+Swell Points Reminder
+This event is triggered after a specified duration of inactivity and sends an email notifying customers of their point balance, as well as the number of additional points they must earn to redeem a reward.
+Swell Redemption Reminder
+This event is triggered after a certain amount of days of inactivity.
+This event is commonly used for
+sending an email to remind the customer that they have enough points for a reward.
+Swell Redemption Created
+This event is triggered any time a customer redeems points and receives a coupon code. When the customer does not explicitly receive a coupon code, during redemption at checkout, for example, this event will not fire.
+Tip
+The Redemption Created event fires every time a coupon is generated, regardless if it was already sent in another flow (e.g., VIP tier, birthday, referrals). To avoid duplicate emails, you can add a trigger split and filter by reward name (e.g.,
+redemption_option_name
+contains VIP) or source (e.g., VIP, referrals) so only relevant rewards trigger this email.
+This event is commonly used for
+sending an email with the coupon code to the customer.
+Points Expiration Reminder
+(appears as “Loyalty Expiration Reminder“ in Klaviyo)
+This event is triggered when a customer's points are about to expire. Customers will receive email notifications 30, 14, and 7 days before the points will expire to prompt them to use the points and make a purchase.
+This reminder is sent only for points with the nearest expiration date. To learn more about points expiration, see
+Setting up Points Expiration
+.
+This event is commonly used for:
+sending a reminder email to incentivize the customer to use their points before they expire.
+Tip
+The default expiration date format is YYYY-MM-DD. To change it, you can use this property: {{ person|lookup:"loyalty_next_points_expire_on"|format_date_string }}
+_____________________________________________________________________________
+Referrals
+Swell Referral Completed
+/
+Yotpo Referral Completed
+(new)
+This event is triggered any time a customer refers a friend who completes the referral program requirements.
+This event is commonly used for:
+sending an email thanking the customer for the referral.
+Swell Referral Share
+/
+Yotpo Referral Share
+(new)
+This event is triggered when a customer shares their referral link with their friends.
+This event is commonly used for:
+telling new customers that someone they know likes your store.
+Swell Referral Share Reminder
+This event is triggered after a certain amount of days that a referred customer had not submitted a purchase in
+This event is commonly used for:
+sending an email to remind the referred customer to use their friend's referral link to give both the referring and referred customer a reward. To update the setting, go to
+Communications
+>
+Settings
+.
+_____________________________________________________________________________
+Birthday & Anniversary
+Swell Customer Birthday
+This event is triggered on the birthday of a customer. The Customer Birthday events will be triggered each day at 10 am local time, based on the selected timezone in the admin.
+This event is commonly used for:
+sending an email to congratulate them and update them if they were awarded points or a coupon according to an existing Birthday Campaign.
+Swell Birthday Captured
+This event is triggered when a customer sets their birthday through your storefront.
+Swell Customer Anniversary
+This event is triggered on the anniversary of a customer. The Anniversary Birthday events will be triggered each day at 11 am UTC.
+This event is commonly used for:
+sending an email to congratulate them and update them if they were awarded points or a coupon according to an existing Anniversary Campaign.
+Swell Anniversary Captured
+This event is triggered when a customer sets their anniversary through your storefront.
+______________________________________________________________________________
+VIP Tiers
+Swell Tier Earned
+This event is triggered when a customer meets the requirement for a new tier.
+This event is commonly used for:
+letting a customer know they reached a certain status level.
+Swell Tier Lost
+This event is triggered when a customer fails to meet the requirement for a tier after the specified period of time has passed.
+Swell Tier Status Changed
+This event is triggered when a customer gets closer or farther from retaining their current tier, and from entering the next tier.
+This event is commonly used for
+creating incentives by
+notifying customers, "You only need X more points to reach the next tier."
+Yotpo Tier Expiration Reminder
+This event is triggered when a customer is at risk of losing their current tier. The event is sent 30, 14, or 7 days before the tier expires, based on your settings, and only if the customer has not met the requirements needed to maintain their tier.
+This event is commonly used for
+sending reminder emails that encourage customers to earn more points, spend more, make additional purchases, or complete other qualifying actions necessary to keep their tier before expiration.
+______________________________________________________________________________
+Other Swell Widgets Customer Authentication
+(Relevant if your POS is integrated with Loyalty & Referrals)
+If a customer has an account with your store, they will enter their email address in the "email address" field and will get a "We Sent You An Email" verification message. They will then receive f the
+In-Store Loyalty Authentication Link
+email to log in to the module.
+Be sure to set up the widget_url attribute so that the
+In-Store Loyalty Authentication Link
+is included in the email your customers receive.
+Loyalty opt_in/opt_out
+This event is triggered when a customer opts-in or out of the loyalty program. A customer who is opted in can earn points, get into tiers, redeem points, etc. As opposed to a customer that is opted out that cannot participate in any of these activities. Read more about
+Loyalty Opt-in
+This event is commonly used for:
+Segmenting
+customers based on if they are loyalty members if they have an account
+Swell Redemption Code Below Threshold
+This event is triggered when your "Custom Coupon" is running low on uploaded coupon codes. This is determined by the threshold set in the "Custom Coupon" itself in your Yotpo Loyalty admin. We will send a webhook notification when your unused codes are at the following values: [threshold, threshold/2, threshold/4, threshold/8, 0]
+This event is commonly used:
+To let you know when you're running out of coupon codes!
+Swell Account Created
+Important
+The
+Swell Account Created
+event can’t dynamically display the exact new member reward (points or coupon), since there’s no dynamic attribute available for it.
+If using
+points
+as a reward, display the value as static content (e.g., “You earned 50 points”).
+If using a
+discount
+coupon, use the
+Swell Redemption Created
+event to send the coupon code.
+The event is triggered when a reward is given to a customer for creating an account using the
+New Member Reward
+earning rule.
+This event is commonly used:
+if you want to do a
+Welcome Series
+for new users.
+Events for code-based referrals
+The following events are only relevant if you are using a
+code-based referral program
+Swell Referral code Activated
+When the customer's referral code is activated
+Swell Referral Discount Code Updated
+For code referral programs when the customer’s code gets manually updated
+Swell Purchase Payout Received
+This email notification is triggered when PayPal notifies Yotpo that a customer successfully received their cash payout into their PayPal account. This allows you to reach out directly and remind them of the value of their payout or the date it was sent.
+Swell Redemption Payout Received
+This email notification is triggered when a customer successfully receives their payout in the form of a coupon/reward.
+Swell Purchase Payout Scheduled
+This email notification is triggered when a referred customer makes a purchase using an influencer link and a cash payout is created.
+Swell Redemption Payout Scheduled
+This email gets sent to the influencer responsible for the referral and serves as a notice that the influencer has earned a coupon/reward payout for referring a customer to your store.
+Swell Redemption Payout Unclaimed
+This email notification is triggered when PayPal tells us that payment is unclaimed because the email address used to send the payment does exist on PayPal.
+Swell Customer Locked
+(only relevant for US-based customers)In the US there’s a rule that says that if you "pay" an individual more than $600 a year, they are considered your employee and you must pay taxes for their employment (The awarded customer will have to do the same). As soon as a user reaches this amount, their affiliate status will be locked and you will be notified that they need to collect this customer's tax details.
+Leveraging customer properties
+Important
+If you’ve connected Attentive to Klaviyo, note that Attentive may sync loyalty attributes into Klaviyo with the prefix
+yotpo_loyalty_
+. To ensure your data and flows function correctly, always use the
+swell_
+properties when creating loyalty segments or flows in Klaviyo.
+The
+yotpo_loyalty_
+fields are
+for Attentive only
+and shouldn’t be used within Klaviyo.
+Customer attributes can be a powerful tool to use in conjunction with your events. There are two main ways to leverage your customer attributes:
+Use them to segment customers for
+highly targeted emails
+.
+Add these attributes to your emails for the
+highest level of customization possible
+.
+List of customer properties
+Note
+Every time a value is updated (for example, if a customer earns more points), it triggers Yotpo Loyalty & Referrals to automatically push an update into Klaviyo as well.
+List of customer properties
+loyalty_next_points_expire_on -
+The expiration date for the customer's points. Use this data to encourage customers to use their points before the points expire.
+loyalty_next_points_expire_amount
+-The number of points that are about to expire.
+swell_points_earned -
+The customer's total historical points earned.
+swell_point_balance
+(if you are using points-as-credit, see below) - The customer's current available points balance that they can use now.
+swell_credit_balance
+(only relevant if you display points as credit) - The customer's current available credits. This will equal the dollar value of the customer’s point balance, based on the logic set in your
+variable redemption rewards
+.
+swell_vip_tier_name -
+The name of the tier the customer is in now.
+swell_vt_ends_at_date -
+The date this customer's eligibility for the tier ends. Use this data to encourage customers to maintain their VIP tier status and keep their perks.
+loyalty_nt_points -
+The number of points the customer must earn in order to proceed to the next tier.
+loyalty_nt_amount_cents -
+The amount the customer must spend in order to proceed to the next tier. This property will show the
+default currency
+defined in your account settings.
+loyalty_nt_amount_cents_c -
+The amount the customer must spend in order to proceed to the next tier. This property will show the currency the customer used when making the purchase.
+loyalty_nt_purchases -
+The number of purchases the customer must complete in order to proceed to the next tier.
+loyalty_nt_referrals -
+The number of referrals the customer must complete in order to proceed to the next tier.
+loyalty_mt_points -
+The number of points the customer must have in order to maintain their current tier status.
+loyalty_mt_amount_cents -
+The amount the customer must spend in order to maintain their current tier status. This property will show the
+default currency
+defined in your account settings.
+loyalty_mt_amount_cents_c -
+The amount the customer must spend in order to maintain their current tier status. This property will show the currency the customer used when making the purchase.
+loyalty_mt_purchases -
+The number of purchases the customer must complete in order to maintain their current tier status.
+loyalty_mt_referrals -
+The number of referrals the customer must complete in order to maintain their current tier status.
+swell_referral_link -
+The customer's unique referral link. If you are running a code-based referral program, see below for attributes for code-based referrals.
+loyalty_opt_in -
+Whether the customer opts into the loyalty program following the event trigger.
+loyalty_opt_in_date -
+Date when the customer has opted into the loyalty program.
+swell_has_account -
+True/False depending on whether the customer has an account with the platform or not.
+______________________________________________________________________________
+Referring Customer Attributes
+These are attributes of the referring customer (also known as the "advocate").
+swell_referrer_email
+The email of the customer to send the referral to the friend.
+swell_referrer_link
+Referral link of the referring customer (advocate).
+swell_referrer_name
+The first name + last name of the advocate (if that information is available).
+Tip
+If you’re using
+Fixed amount rewards
+, note that the
+swell_credit_balance
+or similar “credit” fields in Klaviyo may display
+0
+. These fields are only populated when using
+Any amount (variable) redemptions
+.
+To display the monetary value of a customer’s points in your emails, you can
+calculate it directly in your Klaviyo template
+using the
+swell_point_balance
+property.
+For example, for 10% points value, you use this:
+${{ person|lookup:"swell_point_balance" | default:0 | multiply:0.10 | floatformat:2 }}
+Learn more in Klaviyo’s personalization guide
+.
+Properties for code-based referrals
+swell_referral_discount_code
+The customer's unique referral code (if you are using a link-based referral program, see above).

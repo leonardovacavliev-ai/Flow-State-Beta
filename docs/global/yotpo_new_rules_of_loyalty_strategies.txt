@@ -1,0 +1,672 @@
+Source: Yotpo New Rules of Loyalty Strategies.pdf
+Type: Industry Best Practices - Global Knowledge
+
+
+
+--- Page 1 ---
+
+The Loyalty game has changed. Points and predictable perks arenʼt enough anymore. Today, shoppers swipe, scroll, and
+tap through infinite choice, rewriting the rules of brand devotion in real time. Retention costs climb, lifetime value
+plateaus, and brands are asking the hard questions: what does true loyalty look like, and how do you earn it in a world
+where anyone can launch a program?
+The New Rules of Loyalty is our answer. Across three insight-packed, data-driven volumes, we show how brands turn
+fleeting attention into lasting connection. Drawing on insights from top industry leaders, real-world brand stories,
+analysis of 1k+ brands, and 45k+ survey responses collected from global respondents across all generational cohorts
+from Gen Z through Baby Boomers, we explore what works, what fails, and whatʼs next.
+In an era where consumers hold an average of nearly 20 loyalty memberships but actively engage with fewer than half, a
+harsh reality emerges: most loyalty programs are dead on arrival. Shoppers sign up enthusiastically, claim their welcome
+bonus, and then disappear, never to return. To stand out in 2025, brands must personalize the entire loyalty experience.
+But thereʼs a catch: todayʼs consumers crave personalization but recoil when it feels invasive or algorithmic. In this
+volume, weʼll explore how to strike the right balance in personalization, building adaptive loyalty programs that feel
+human, not algorithmic, that drive engagement without crossing into intrusion, and how to measure their impact to prove
+the value they deliver.
+Personalization has always been a powerful tool for driving loyalty, but what once required just a name and a birthday
+now demands far more. Todayʼs shoppers expect programs that recognize them as unique individuals, not data points,
+delivering experiences that reflect their habits, preferences, and the value they believe their loyalty deserves. 
+Effective personalization doesnʼt just serve up offers; it validates who the customer is, builds trust, and drives the kind
+of engagement that keeps them coming back. Yet push too far with hyper-personalization and AI-driven tactics, and
+consumers feel watched rather than recognized. Pull back too much, and youʼre just another generic program destined
+for the graveyard of forgotten apps.
+ LTYVOL. 2TAILORMADETHE NEW RULES OF LOYALTYVOL. 2TAILORMADETHE
+EXPLORE NOW
+
+
+--- Page 2 ---
+
+Done right, personalization has the power to turn loyalty into something deeper: a relationship that feels genuine and
+rewarding to both shopper and brand.
+Rule #1: Recognition Creates Reciprocity
+When a brand reflects an understanding of a customerʼs identity, preferences, habits, and choices, it triggers a powerful
+psychological payoff: they feel recognized. Recognition drives loyalty by saying: we know you, we value you, and we
+anticipate what matters to you.
+The numbers back this up:  71% of consumers expect companies to deliver personalized interactions, and 76% get
+frustrated when this doesnʼt happen. Beyond satisfaction, personalization drives real business outcomes: companies that
+grow faster generate 40% more of their revenue from personalization than slower-growing counterparts, according to a
+McKinsey & Company study.
+Making customers feel seen isnʼt just good for loyalty, itʼs good for the bottom line.
+“I love nothing more than shopping with a brand that seems to understand me and my preferences” -Zoe, 32,
+Illinois, USA
+Some brands go above and beyond, showing what
+“being seen” really looks like in action:
+Chewy goes beyond transactions with a uniquely human
+touch. When customers cancel orders after losing a pet,
+Chewy not only refunds the product but has been known
+to follow up with a bouquet of flowers or even a hand-
+painted pet portrait.
+Itʼs a small but deeply personal gesture that shows
+Chewy sees customers not just as shoppers, but as
+people experiencing real moments. That empathy
+creates an emotional loyalty no coupon alone could. 
+Brooks Running is another example of thoughtful
+personalization. The brand started noticing a unique
+shopper behavior: customers frequently adding two
+sizes of the same shoe to their cart, often leading to
+returns. This led them to build a hyper-personalized
+experience for this exact segment.
+Shoppers who triggered this behavior saw a tailored pop-up message: “Not sure what size to get? Our expert customer
+service can help you figure out the one for you so you donʼt have to return one later. Call 1-800-2-BROOKS or chat with
+them now to get fitted.” By addressing the behavior in real time and offering human support, Brooks turned a friction point
+into a confidence-building moment. Returns dropped and customers felt seen and understood rather than sold to. 
+These arenʼt just examples of brands being thoughtful, they illustrate a core principle: personalization drives loyalty
+when it validates, anticipates, and humanizes the experience. When done well, personalization creates a two-way
+exchange of value. The brand builds loyalty and gains revenue, while the customer gets more than just a product that
+works for them. They get validation, recognition, and experiences that feel relevant and personal. 
+
+--- Page 3 ---
+
+Rule #2: Play to Behavioral Biases
+Shoppers are wired for immediacy, ownership, and simplicity. Three behavioral patterns drive this: present bias (favoring
+immediate rewards), the endowment effect (valuing what feels owned), and decision paralysis (being overwhelmed by
+too many choices).
+Loyalty programs that tap into these instincts stay top of mind, turning routine interactions into motivating and
+rewarding experiences through instant gratification, highlighted earned rewards, and simplified decision-making.
+Present Bias: Rewards that Trigger Immediate Action
+Shoppers naturally favor rewards they can get right away. Credit cards have leveraged this bias for years. Chaseʼs
+Sapphire Preferred card, for example, dangles a massive point welcome bonus for hitting a spend threshold, creating
+urgency and driving immediate action. Similarly, nearly every loyalty program gives members points just for signing up,
+delivering instant gratification and reinforcing the first positive interaction.
+Many programs go further by using mechanisms like
+points expiration, limited-time offers, or exclusive point-
+redemption windows to create a sense of urgency. 
+A great loyalty example is Dunkinʼ Rewards.
+The program offers promotions like Mobile Mondays
+(100 bonus points for ahead-of-time orders), birthday
+bonuses (3x points), and seasonal events like Perks
+Week or National Coffee Day with point multipliers or
+free items.
+These time-sensitive rewards nudge members to act
+immediately, redeem points, make repeat purchases,
+and engage with the brand in ways that feel timely,
+relevant, and satisfying.
+Endowment Effect: Rewards that Feel Like “Yours”
+People value rewards they feel they “own.” Just as urgency drives action, ownership drives emotional connection.
+Behavioral science shows that accumulating points toward a goal increases both investment and motivation. A classic
+
+--- Page 4 ---
+
+example of this effect is seen in airline programs. Delta SkyMiles, for example, rewards members with tiered status levels
+(Silver, Gold, Platinum, and Diamond), where each milestone feels earned and gives members real ownership over perks
+like upgrades, priority boarding, and lounge access. Loyalty programs turn points and rewards into tangible
+“possessions” shoppers can control.
+Leanne Chan, ThirdloveʼsSenior Director of CRM & Loyalty, shared an example on Yotpoʼs The Loyalists podcast.
+She described how the Gap Good Rewards program integrates Gap, Old Navy, and Athleta, letting shoppers earn points
+across multiple stores. Each purchase adds to their balance, and as points accumulate shoppers feel a growing sense of
+ownership. As she explains, “You buy stuff for your kids at Gap and Old Navy. You store up your points, you get your big
+reward, and then you go to Athleta. Itʼs me time, I earned this, so now Iʼm gonna buy myself some leggings.”
+Rewards feel earned, not given. Points become a tangible payoff shoppers can control, choosing how and where to
+spend them. This earned value reinforces engagement and strengthens loyalty. Personalized rewards amplify ownership
+further: a tailored offer feels uniquely theirs, increasing its perceived value compared to generic promotions.
+Decision Paralysis: Simplicity and Personalization Reduce Friction
+With endless options online, consumers can feel overwhelmed. This phenomenon, known as decision paralysis or
+“choice overload,” occurs when too many options make it harder to choose anything at all. Personalization cuts through
+that noise, surfacing the “right” option at the right time.
+Research shows that when faced with too many choices, shoppers often abandon their carts, delay purchases, or feel
+less satisfied with their final decision. In loyalty programs, this same paralysis can occur when members are presented
+with dozens of redemption options, unclear point values, or complicated reward structures. The result is disengagement,
+low redemption rates, and programs that feel more burdensome than beneficial.
+The solution is strategic simplification through personalization. By guiding shoppers toward clear, relevant choices like
+rewards they actually want, products theyʼre likely to buy, or perks that match their tier, loyalty programs can turn points
+and rewards into actionable incentives. The program becomes a tool that simplifies their shopping experience rather than
+complicating it.
+“Ideally I would want to be recommended products and deals instantly, right when I arrive on site so I donʼt have to
+go searching. Just make the decision process easier for me.” -Lily, 19, Sydney AUS
+The most effective loyalty programs work with human psychology, not against it. By designing experiences that leverage
+these behavioral instincts, brands can create loyalty that feels immediate, tangible, and motivating. 
+To do this effectively, brands must understand the different cohorts of shoppers and tailor personalization accordingly:
+The Exclusives (status-motivated members): Exclusivity matters to this group. Curate options only available to this
+group, emphasizing ownership and prestige. Our Placeʼs Host tier is a great example of this. It is allows members to
+redeem larger point balances at once, a perk exclusive to this tier. By reserving these high-value redemptions for top-tier
+members, the program taps into the endowment effect, making points feel earned and personally valuable, while
+reducing decision paralysis, simplifying high-value redemptions and reinforcing recognition.
+“When Iʼm loyal to a brand, I want to feel like it matters, like getting access to products or perks that arenʼt
+available to everyone else.”-James, 40, Georgia USA
+Loyal Hearts (reciprocity-driven members): Recognition from brands makes these members feel valued and encourages
+action. Highlighting rewards they can earn or redeem as they are shopping taps into present bias. Timely incentives
+simplify decision-making and drive engagement. Knix surfaces personalized messaging on product pages, showing
+
+--- Page 5 ---
+
+when a shopper has enough points to redeem an item for free. This not only reduces friction at the moment of decision
+but also strengthens the emotional connection by signaling that the brand values and recognizes them.
+“When I visit a site, I want to feel recognized, like the brand knows me and values me. That means anticipating
+what I want with personalized suggestions and relevant rewards.”-Carly, 25, Ohio, USA
+Comfort Buyers (habit-motivated members): For this cohort, simplicity wins. Highlighting products they know and love,
+and offering discounts or perks minimizes decision fatigue and drives action. Starbucks Rewards nails this, making it
+easy for habitual customers to reorder their favorite drinks with a single tap. This takes the decision out of the equation
+(especially effective for the morning rush hour, pre-caffeine brain) routine purchases become a rewarding, friction-free
+experience. By removing barriers and offering instant gratification, the program leverages present bias while guiding
+routine actions in a way that feels seamless and rewarding.
+“I want to feel like the brand appreciates my loyalty by timing discounts or incentives when they know iʼm getting
+close to needing or wanting their product.”-Mara, 33, Florida, USA
+The rules in this chapter all point to one truth: personalization only matters if itʼs felt.
+That means showing customers you see them, tapping
+into the instincts that drive engagement, and making it
+effortless to act on the value theyʼve earned.This is
+where solutions like Yotpoʼs Spotlight Widgetcome into
+play.
+Instead of hiding value behind login walls or clunky
+redemption flows, it will surface each shopperʼs real-
+time points, tier, and rewards as they shop. It will even
+let shoppers redeem directly from the widget, no
+redirects required.
+It helps shoppers feel seen through personalized
+visibility, taps into behavioral biases like immediacy and
+ownership by making rewards instantly usable, and
+reduces decision paralysis by turning loyalty into clear,
+in-the-moment actions. The Spotlight Widget brings the
+psychology of great loyalty design to life.
+What This All Means: Personalization isnʼt just a nice touch anymore, itʼs the foundation of effective modern loyalty.
+When brands make customers feel truly recognized, they create a reciprocal relationship: customers reward that
+recognition with deeper engagement, repeat purchases, and measurable revenue growth.
+Looking Forward:
+Recognition as currency: Programs will move beyond transactional rewards to validate customer identity, preferences,
+and values, creating emotional connections that drive loyalty.
+Behavior-driven design: The most successful programs will tap into natural human instincts while making value
+immediately visible and actionable and engagement feel instinctive and rewarding.
+Cohort-specific personalization: Loyalty will dynamically adapt to different shopper motivations, whether status,
+reciprocity, or habit, ensuring every interaction resonates.
+Personalization canʼt exist without data, but in 2025, itʼs not just about how much you can gather. Itʼs about what kind of
+data you collect, how responsibly you handle it, and how clearly you prove the value back to the customer.
+Zero- and first-party insights power modern loyalty programs, helping brands deliver experiences that feel personal,
+immediate, and relevant. Shoppers know this and theyʼre willing to share, but only if the exchange feels fair, safe, and
+meaningful. 
+
+
+--- Page 6 ---
+
+Rule #3: Collect with Care
+First-party data (what brands collect directly from customer interactions) is the foundation of personalization. The
+conversation around loyalty data often gets polarized: customers demand privacy while brands chase data at any
+cost.The reality is far more nuanced than that. Shoppers are wary of how their data is collected, yes, but most brands
+arenʼt trying to overstep. Theyʼre trying to create programs that feel relevant, rewarding, and effective. 
+hereʼs the paradox: consumers want personalization in loyalty programs. In fact, Attentiveʼs research found that nearly
+two-thirds of consumers take steps to protect their privacy, yet theyʼll still opt in when the experience feels relevant
+and rewarding. Shoppers want early access, curated perks, and recognition for their unique behaviors, yes, but they also
+donʼt want their data collected in ways that feel opaque, excessive, or invasive. 
+Resolving this paradox is simpler than it seems: loyalty programs that clearly communicate what data theyʼre collecting,
+why, and how it translates into better rewards win. When customers can see the benefit, more relevant perks, easier
+redemptions, or offers that feel tailored, theyʼre not just more comfortable sharing data; theyʼre more loyal because of it.
+Shoppers said:
+“I really appreciate when a brand seems to understand what I want. Iʼm not overly protective of my data, so Iʼm
+happy to share more if it means I get a truly unique, personalized experience.”– Amelia, 27, London UK
+“I love when a shopping experience feels highly tailored to me, but I still want the choice to control how
+personalized it is and what data is being used.”-Ashley, 41, Massachusetts, USA
+And this desire for thoughtful, transparent data collection isnʼt limited to a single generation. Consumers of all ages want
+to understand how their data is being used. They expect personalization, but only when brands are transparent and
+ethical. And, the stakes are high:
+34%of shoppers would stop buying from a brand
+they love if trust was broken.
+This figure is strikingly consistent across generations (33–36%), showing that trust is a universal loyalty dealbreaker.
+Men are also more likely than women to walk away after a trust breach (37% vs 31%).
+Modern shoppers notice when brands collect data unnecessarily or without explanation, and theyʼll quickly abandon
+brands that feel ‘creepyʼ or careless. One shopper said:
+“I found out a brand I loved had a security breach where my personal info and passwords and that of millions of
+others were leaked, that was the end of my love for that brand.”-Patrick, 50, Ohio USA
+
+--- Page 7 ---
+
+On the flip side, brands that are open about and clearly communicate what theyʼre collecting and why earn the trust to go
+deeper, unlocking more meaningful, personalized experiences.
+Rule #4: Make It a Value Exchange
+Zero-party data (information customers intentionally share about themselves) is key to deep personalization. To do
+this effectively brands must treat data-sharing as a two-way street. This is where loyalty programs shine. They act as the
+perfect opportunity to gather zero-party data by asking shoppers about their preferences, routines, or values. By tying
+the purpose of the questions back to the program, they are able to see an immediate payoff of sharing personal
+information. Tell me your favorite product type, and Iʼll show you exclusive perks for it.
+As shoppers said:
+“I really like when a brand gives me control, asks me questions and has me complete consumer profiles for a more
+personalized experience.”-Lucas, 26, France
+“I love being asked questions to personalize my purchase perfectly to my preferences and needs. Everything feels
+smooth and easy, and it makes me feel important and appreciated.”–Gemma, 37, UK
+ThirdLoveʼs Hooked Loyalty program demonstrates this
+principle perfectly. Members earn 20 points by
+completing the fitting room quiz, which helps them find
+the most accurate fit for their items. At the same time,
+ThirdLove gains valuable zero-party data on fit, style
+preferences, and customer concerns within the
+category. Customers see an immediate benefit, points
+toward rewards, while also getting more personalized
+recommendations that improve their product
+satisfaction. 
+Another great example of this is Supergoop , where
+Members can earn 10 points by taking the Product
+Finder quiz. This gives Supergoop valuable zero-party
+data about each customerʼs preferences and routines,
+while customers instantly see the benefit in both points
+and more personalized product recommendations. 
+By tying data collection directly to rewards, these brands make the value exchange obvious, turning what could feel like
+a brand ask into a moment of recognition and reward.
+Once customers experience the immediate benefit of sharing basic preferences like size, fit, or style, they become more
+comfortable sharing deeper, more sensitive information, like health, mood, or financial priorities. This allows brands to
+create even richer, hyper-tailored experiences.
+of shoppers say theyʼd share deeply personal
+data (mood, relationships, health, finances) if
+
+
+--- Page 8 ---
+
+30%it genuinely improved their personalization
+experience.
+While the majority remain cautious, this nearly one-third represents a highly engaged segment willing to trade data for
+meaningful, tailored experiences. That means there is significant potential for deeper personalization that is valuable to
+both brand and shopper. Another 25% are on the fence, open to sharing if they see real, tangible benefits. Further
+highlighting the opportunity for brands to prove value and earn trust. But even the shoppers willing to share this kind of
+information arenʼt doing it blindly.
+Not only do they want transparency on how it is being used but 16% would need to see measurable value and 14%
+would require the ability to revoke access at any time.
+The brands that win will be those that treat data like currency: something to be negotiated openly, not taken silently. 
+WOULD YOU EXCHANGE DEEPLY PERSONAL
+DATA FOR A BETTER SHOPPING EXPERIENCE?
+Yes, if it makes my experience
+measurably better.
+Yes, only if I could revoke
+access at anytime.
+Maybe, but Iʼd need proof it
+works first.
+No, some personal data should
+stay private.
+Absolutely not, my personal
+data isnʼt for sale
+From Yotpo's 2025 Global Shopper Survey
+A great example comes from Lululemon and Oura Ring. As part of a collaboration, Lululemon members who purchase an
+Oura Ring with a prepaid annual membership receive six complimentary months of Oura membership. In return, members
+gain access to advanced health insights tailored to their routines and wellness goals, while Lululemon collects data to
+personalize perks like early access to product drops or additional partner rewards. Here, the exchange is obvious,
+immediate, and mutually beneficial.
+This willingness to share, however, varies significantly across generations. 
+35% of Gen Z and 33% of Millennials are open to sharing sensitive data, compared to just 25% of Gen X and 16% of
+Baby Boomers. So, while many younger shoppers are comfortable exchanging deeply personal information, older
+shoppers are much more cautious and require more reassurance that nothing risky is happening with their information. 
+Rule #5: Turn Data Into Action
+Collecting data isnʼt enough. Powerful personalization comes from what you do with it. Programs that use data to
+anticipate needs create a cycle of value that customers feel, remember, and reward with loyalty. Success hinges on a
+feedback loop: collect data, generate actionable insights, personalize experiences, engage customers, and gather even
+more data to keep refining.
+Turning data into action requires focus on four key areas:
+1. Timeliness: Engage customers at the right moment, points expiring, or milestone achievements, so your messaging
+feels relevant and urgent.
+2. Relevance: Ensure offers, rewards, and messaging match real behaviors and preferences, turning generic touchpoints
+into meaningful interactions.
+3. Iterative Testing: Constantly refine personalization strategies. Test, learn, and adjust to make your program smarter
+over time.
+
+--- Page 9 ---
+
+4. Multi-Channel Integration: Connect insights across email, apps, in-store, and beyond, creating seamless experiences
+where every interaction feels connected and intentional. (more to come on this in Volume 3: In Sync)
+Loyalty integration partners like Attentive are the perfect way to effectively turn data into action. Loyalty attributes like
+tiers, points, and referral activity flow directly into SMS and email campaigns, powering smarter segmentation and real-
+time personalization. Brands can reward members for subscribing to messages, trigger timely loyalty nudges, and create
+campaigns that feel genuinely relevant. This powerful, data driven personalization drives engagement, repeat purchases,
+and measurable ROI.
+When done right, data stops being a static asset and becomes a loyalty engine. Recommendations guide, rewards
+excite, and interactions feel helpful, not invasive. Every insight collected and acted on strengthens the cycle of trust and
+value, making the customer feel seen, understood, and rewarded.
+What This All Means: Data is only as powerful as the trust it earns. Brands that collect insights responsibly, communicate
+transparently, and deliver real personal value turn privacy from a liability into a competitive advantage, and make loyalty
+stick.
+Looking Forward:
+Trust as prerequisite: Shoppers will demand transparency, control, and security in how their data is collected and
+used, making trust non-negotiable.
+Zero-party data advantage: Programs will prioritize information customers intentionally share, creating richer
+personalization while respecting privacy boundaries.
+Value exchange clarity: Data collection will be explicitly tied to tangible benefits, making the trade feel fair, reciprocal,
+and worth it.
+From collection to action: Winning brands will turn data into anticipatory experiences through real-time
+personalization, timely messaging, and multi-channel integration.
+Shoppers in 2025 expect brands to reward them in ways that feel instant, personal, and human. When personalization is
+done well, it creates meaningful experiences that drive loyalty and sales. AI amplifies this potential, not by replacing the
+human touch, but by helping brands predict preferences, deliver timely rewards, and surface the right experiences at the
+right moment. If data is the foundation, AI is the accelerant.
+Together, they define what modern, effective personalization looks like in practice. But as personalization becomes
+smarter and more powerful, it also walks a finer line, between feeling intuitive and feeling intrusive. The next evolution of
+loyalty isnʼt just about what brands can personalize, but how thoughtfully and transparently they do it.
+Rule #6: Not All Personalization is Good Personalization
+Personalization works best when the timing and context are right. Knowing when and how to personalize is just as
+important as what you personalize. Personalization is supposed to feel relevant and helpful, but nearly every shopper
+has experienced it backfire.
+
+--- Page 10 ---
+
+95%of shoppers have experienced
+personalization that felt invasive or “off.”
+Across all generations shoppers notice, and react strongly to, personalization that feels intrusive or unexpected.
+One of the biggest triggers is brands referencing information consumers donʼt recall sharing. Nearly half of all shoppers
+flag this as concerning (48%), with Baby Boomers especially sensitive at 64%. Other common pain points include
+referencing social media data without permission (46%), mentioning location unexpectedly (42%), and referencing
+sensitive life events (breakups, deaths, medical issues) (39%).
+“Itʼs creepy to me when brands reference things I donʼt remember sharing with them.”-Xaiver, 61, Illinois, USA
+Shoppers want to be seen, but not surveilled. Successful personalization needs to feel like collaboration, not intrusion.
+In our survey, shoppers repeatedly cited well-timed product recommendations as their favorite form of personalization.
+Because this kind of personalization is both helpful and aligns with the data customers are comfortable sharing, it
+transforms browsing into buying naturally. A win-win for both the shopper and the brand.
+Shoppers said:
+“I love seeing items I like without having to search, when a brand knows my style, it just flows and feels made for
+me.”-Katie, 19, Florida, USA
+“I want personalized product suggestions and rewards based on what I actually use, displayed first so I can find
+them easily.”-Rebecca, 24, UK
+“Iʼm totally fine with brands using my profile to understand what I like, showing me options Iʼll enjoy so I donʼt have
+to sift through endless choices.”- Hugo, 34, Texas, USA
+“I love when retailers highlight items Iʼve browsed or purchased before, offer relevant discounts, and suggest
+complementary products. It makes shopping faster, easier, and more enjoyable.” -Mary, 42, Arizona, USA
+Pace Athleticprovides a concrete example of this in
+action. Using product, price, and category data, they
+created flows that guided footwear buyers toward new
+categories like nutrition and apparel, leveraging loyalty
+rewards to educate customers and diversify their
+baskets. This timely, data-driven approach has driven a
+remarkable increase in spending from redeemers,
+expanding loyalty redemptions beyond footwear, and
+showing how well-executed recommendations can
+deepen engagement and increase lifetime value.
+Each successful recommendation is a small touchpoint
+that signals the brand values their preferences,
+increasing engagement with loyalty programs,
+encouraging repeat visits, and driving long-term
+retention. 
+Rule #7: Rethink Loyalty in the AI Era
+AI is changing the rules of commerce. Bots shop. Algorithms recommend. Loyalty now competes with a layer of
+automation that never existed before. Programs have to evolve from static, rules-based systems into living ecosystems
+that adapt to changing behaviors in real time.
+In this new era of AI shopping, loyalty isnʼt just nice to have, itʼs essential. 
+
+--- Page 11 ---
+
+Especially now, with AI assistants like ChatGPT offering
+instant checkout, shopping through AI has become an
+effortless default for many consumers. Brands must
+create enough emotional connection and trust that
+customers bypass the AI middleman and go straight to
+them.
+66% of shoppers who purchase online more than once
+a week, say they regularly use AI like ChatGPT to guide
+their purchase decisions. With 44% of Gen Z and
+Millennials having actually purchased a product based
+on an AI recommendation.
+“I use AI chat bots to help determine the best
+product for my needs, the best rated products,
+where to buy for the best price, etc. AI has replaced
+google for search for me.” -Andi, 28, New York, USA
+Loyalty can play a decisive role here. When shoppers already trust a brand, theyʼre less likely to rely on algorithms to
+make decisions for them. Instead of asking an AI tool for the “best moisturizer” theyʼll go straight to the brands they are
+loyal to.
+This shift is most pronounced among younger shoppers, who are already embracing AI for shopping and whose loyalty
+brands must actively earn to keep them from relying on algorithms.
+58%of Gen Z Shoppers say they already use AI
+assistants (like ChatGPT, Perplexity, etc.) for
+discovering products to purchase.
+And 31% of them say they plan to use it more in the future.
+But AIʼs growing role in shopping doesnʼt mean brands should adopt it haphazardly. Like personalization, what matters
+most is using AI thoughtfully to enhance trust, make experiences feel tailored, and deliver value that truly matters to
+the customer. 
+Brands that succeed will use AI not just to predict behaviors but to create smart segments and cohorts, tailoring loyalty
+experiences in ways that feel thoughtful and relevant. Loyalty integration partners like Tapcart make this possible: AI
+segments behaviors, surfaces hyper-relevant push notifications, and triggers early access or VIP offers tailored to
+shoppersʼ preferences.
+Rule #8: Automate, But Donʼt Dehumanize
+AI and personalization must feel human. Personalization without human oversight alienates rather than engages.
+Shoppers want relevance with empathy and precision with personality. No matter how advanced the technology
+becomes, shoppers donʼt want to feel like theyʼre being managed by a machine. AI can operate at scale, tailoring
+rewards in real time and even predicting what a shopper wants before they do, but it only works if the experience feels
+human and trustworthy. Back
+01The Power of Personalization
+02Data as the Trust Foundation
+03Personalization, AI, and the Future
+of Loyalty
+04Behavior by Design: Loyalty That
+Adapts and DeliversVOL 1 - OBSESSED
+VOL 2 - TAILORMADE
+VOL 3 - IN SYNC
+ProductsCustomersPricingResources LoginGetademo
+
+--- Page 12 ---
+
+Thatʼs why itʼs critical that brands double down on trust, connection, and authentic experiences to drive lasting loyalty.
+The rise in use of AI by brands is already highly visible in the customer experience.
+68%of shoppers regularly notice brands using AI.
+Younger generations notice it even more, 75% of Gen Z versus 63% of Boomers. But noticing AI is just the start; how
+customers feel about it matters even more.
+Nearly 40% of Gen Z and Millennials report positive experiences with AI, seeing it as a natural extension of shopping.
+Gen X are less enthusiastic at 28%, and Baby Boomers even less so, with only 20% reporting positive
+experiences. Across all generations, a significant portion (23–31%) remain unsure about AI in shopping, reflecting both
+opportunity and risk. 
+This gap underscores the stakes for loyalty programs. Younger consumers are open to AI-powered personalization and
+may reward brands that get it right, while older shoppers demand slower, more transparent approaches that signal trust.
+Done well, AI can lock in the next generation of loyalists; done poorly, it can erode trust permanently across all
+generations.
+Context matters too. When AI is applied where it clearly adds value, helping shoppers make confident choices about fit,
+shade, or style, for example, customers are far more receptive, and the opportunity for meaningful engagement is much
+higher. As one shopper said:
+“Brands need to know when to say no to AI, understanding when itʼs better to have real people who listen, ask
+questions and follow through and who also understand what no means.” -Marc, 54, Washington, USA
+Industries like fashion and beauty, where these details are deeply personal and vary widely from shopper to shopper, are
+prime examples of where AI can humanize and enhance the experience to drive purchase decisions.
+(69%) nearly 7 in 10 fashion and beauty shoppers report frequently checking reviews in order to find information about
+how an item will fit or look based on their specific details. 
+A product recommendation alone isnʼt enough if shoppers arenʼt confident it meets their specific needs. AI-driven
+insights allow brands to deliver recommendations that feel thoughtful, relevant, and genuinely personal. This is also an
+ideal moment to weave in loyalty, surface personalized rewards, points-based offers, or tiered perks right alongside
+recommendations. When executed well, this approach not only inspires confident purchases but also builds trust, boosts
+engagement, and transforms everyday shopping into long-term loyalty-building moments.
+AI-powered personalization doesnʼt just shape what customers see, it shapes where and how they experience loyalty.
+Inside mobile apps, for example, it can turn routine interactions into revenue-driving moments: surfacing the next best
+offer, recommending a reward to redeem, or reminding a shopper how close they are to unlocking a new tier. These
+personalizations keep loyalty top of mind, encourage repeat visits, and help brands capture more ROI from the customers
+they already have by keeping them engaged.ProductsCustomersPricingResources Log inGet a demo
+
+--- Page 13 ---
+
+On the messaging side, loyalty integration partners like Attentive use automation and AI to scale personalization without
+losing authenticity. Allowing brands to take real-time loyalty events, like point milestones or referral activity, and translate
+them into highly personalized, dynamic SMS and email journeys. Each touchpoint signals that the brand sees and values
+the customer, deepening engagement and driving retention.
+What This All Means: AI-powered personalization can drive remarkable loyalty, but only when it preserves the human
+side of the experience. Brands that use AI to anticipate needs, deliver timely rewards, and scale relevance (without
+crossing into surveillance) will earn both engagement and trust.
+Looking Forward:
+AI as accelerant, not replacement: Brands will use AI to scale personalization and predict behaviors while maintaining
+human oversight and authentic touchpoints.
+Context-aware personalization: AI will deliver recommendations at the right time, in the right way, helping shoppers
+make confident decisions without feeling surveilled.
+Loyalty as competitive moat: As AI shopping assistants proliferate, strong loyalty programs will keep customers
+coming directly to brands instead of relying on algorithmic middlemen.
+Transparency wins trust: Shoppers will reward brands that clearly show how AI enhances their experience while
+respecting privacy and maintaining ethical, bias-free practices.
+Shoppers arenʼt short on loyalty programs. Theyʼre short on attention. Most consumers are members of a dozen
+programs, but they only actively engage with a handful. The difference between programs customers love and
+programs they forget comes down to adaptability. Static, cookie-cutter programs fade into the background, while
+dynamic ones evolve alongside customer behavior. 
+Modern loyalty is about designing systems that flex with shifting needs, speak to different cohorts, and prove their value
+through measurable impact. To do that, brands need both agility and accountability: the ability to reimagine mechanics in
+real time and both the discipline and dashboards to track whether those changes actually deepen engagement, retention,
+and advocacy.
+Rule #9: Customize the Program, Not Just the Offer
+Discounts and perks can get customers in the door, but itʼs the structure of the program itself that keeps them around.
+Modern consumers donʼt just want to climb a ladder, they want programs that feel relevant, aspirational, and
+reflective of their identity and behavior. Building this depth of connection at scale requires a loyalty strategy that
+appeals to a critical mass of your customers and highlights the uniqueness of your brand. Creating these kinds of
+emotional connections with your entire customer base is hard, but it is possible. 
+
+--- Page 14 ---
+
+Rule #9: Customize the Program, Not Just the Offer
+Adaptive loyalty design means personalizing mechanics themselves, not just the rewards. That might mean creating
+seasonal tiers, testing early access with specific cohorts, or adding new benefit types for subsets of your audience. 
+A great example of seasonal loyalty customization is Starbucks. Every November, their holiday cups reappear and
+suddenly, loyalty spikes. Not because the base mechanics of the program changed, stars-for-spend are the same, but
+because Starbucks knows how to adapt program engagement to cultural rhythms. Seasonal challenges, double-star
+days, and early access to holiday flavors make loyalty feel alive, not static. Thatʼs the difference between a program that
+sits in the background and one that moves with its customers.
+When it comes to testing new benefit types for different member subsets, LSKD offers a masterclass in tailoring loyalty to
+distinct audience motivations. In their home market of Australia, loyalty members place greater importance on exclusivity
+and access compared to other geos. LSKD responds by developing products available only to top-tier members, some
+gifted as surprise-and-delight moments, others redeemable with points. They also provide curated, “money-canʼt-buy”
+experiences like VIP shopping nights and community-led events. This tailored approach taps into the specific emotional
+connection between brand and member, making loyalty feel like true membership, not just a transactional program.
+One of the most powerful ways to bring adaptability to life is through tier structures. 
+Bronze. Silver. Gold. Once the industry standard, these tier names have become the ultimate loyalty cliché. Static, one-
+dimensional tiers no longer reflect how customers behave or how brands grow. Tiers are where programs can offer truly
+advanced, personalized journeys that reflect how different customers engage. Adaptive tiering lets brands break free
+from static hierarchies and design dynamic structures that feel fresh, motivating, and relevant.
+Identity-Based Tiering That Aligns With Values and Lifestyles
+Programs with tiering structures that reflect the identities, values, and lifestyles of a brandʼs most engaged customers,
+not just what they buy.
+The program goodr created is a perfect example of identity-based tiering in action. Each tier is tied to the character and
+values of goodrʼs customers, speaking their language and celebrating what makes them unique. By learning who their
+customers are and what excites them, the program builds loyalty thatʼs felt, not just earned, strengthening the emotional
+connection between the brand and its most engaged fans. Itʼs a flexible, modern approach to loyalty that shows how
+identity-driven tiers can create meaningful engagement while staying true to the brandʼs personality.
+Behavior-Driven Tiering That Rewards More Than Purchases
+Modern loyalty is about engagement, not just transactions. Brands are rewarding behaviors like referrals, social shares,
+event participation, or even product reviews. For example, a brand might elevate members who consistently engage with
+content or champion the brand online, even if they arenʼt top spenders. This approach encourages holistic participation,
+builds advocacy, and keeps customers involved between purchases.
+Kleo Kolor, for example, rewards members for following the brand on social platforms, leaving reviews, and sharing visual
+content, offering more points for including images and even more for videos. By rewarding these authentic, community-
+driven actions, Kleo Kolor turns engagement into progression, not just purchases. This approach builds advocacy, keeps
+customers active between buys, and ensures loyalty feels participatory, not transactional.
+Manual Tier Assignment That Gives Brands Total Control and Endless Possibilities
+Sometimes, the most loyal customers donʼt fit into traditional data models. Manual tier assignment allows brands to hand-
+select VIPs, surprise loyalists, or move customers between tiers on their own terms. Itʼs also a powerful tool for testing
+new tier structures or creating short-term “pop-up” tiers for seasonal campaigns or events.
+Hereʼs how different business models can leverage manual tier assignment:
+Subscription-heavy brands might reward tier status based on subscription engagement. Incentivizing shoppers to get
+to the next subscription milestone with rewards and perks.
+Event-oriented brands could introduce event-based VIP access for things like BFCM or pop-up events.
+Value-driven merchants could reward top customers with purchase streaks. Reward those who place an order each
+month for three consecutive months by moving them up a tier and keeping the status as long as their streak continues.
+Engagement-focused brands may assign status based on non-transactional data like leaving reviews or social
+interaction, or create hidden tiers for influencers and affiliates.
+Yotpo Loyalty Tiers makes all of this possible, giving brands the flexibility to manually move members between tiers,
+whether to recognize exceptional loyalty, test new structures, or create temporary tiers for special campaigns. This level
+of control ensures every program feels dynamic, strategic, and true to how each brand defines loyalty. The result is
+loyalty that feels meaningful and authentic to customers and while driving behaviors brands value at scale.
+
+--- Page 15 ---
+
+Rule #10: Prove the Payoff
+Loyalty programs succeed or fail based on measurable impact, not good intentions. But topline metrics like total members
+or points redeemed only tell part of the story. The real measure of success is whether personalization and adaptability
+drive outcomes like higher engagement, greater lifetime value, and stronger advocacy. 
+Brands looking to be successful in the modern loyalty landscape need to ask the question: is our loyalty program creating
+perceived value, for us and for our customers?” The best programs strengthen both sides of that equation. For shoppers,
+value is emotional and tangible: earning rewards that feel worth it, receiving experiences that feel personal. For brands,
+value perception shows up in things like measurable ROI and increased average order value. When customers clearly see
+the value of being part of a program, brands feel the payoff in the numbers.
+David Baker, Chief Digital Officer at Beekman 1802 explains on Yotpoʼs The Loyalists  podcast that measuring success
+goes beyond total spend. By analyzing how loyalty membersʼ shopping behaviors change before and after joining the
+program, a brand can see where loyalty is truly moving the needle. Even if average order value dips, say, from benefits
+like free shipping, the overall impact remains positive when purchase frequency rises. This focus on incrementality,
+understanding the lift loyalty creates across multiple behaviors, has become a guiding principle for the brand.
+This approach allows brands to validate both the emotional connection and financial impact of their loyalty program.
+Adaptive loyalty means no two customersʼ journeys look the same, and thatʼs exactly the point. To truly understand a
+programʼs impact, brands need deeper, more segmented insights, going beyond topline numbers to uncover whatʼs
+actually driving engagement.
+Looking at metrics by tier is a way to do this. When tiers are built around real customer behaviors, measurement
+becomes more meaningful. Metrics like participation rate, average order value per tier, and tier progression over time
+show whether members see real value in moving up and give brands deeper insights into the value coming from each
+tier, so they can make better, strategic decisions.
+What This All Means: Modern loyalty thrives on adaptability. Brands that design programs to flex with customer behavior,
+reflect their identity, and reward engagement beyond purchases will capture attention, deepen emotional connection, and
+drive measurable business impact.
+Looking Forward:
+Beyond bronze, silver, gold: Loyalty will evolve from static tiers into identity-based, behavior-driven, and manually
+curated structures that feel fresh and motivating.
+Mechanics as personalization: Programs will customize not just rewards but the structure itself, seasonal tiers, cohort-
+specific benefits, and dynamic progressions.
+Holistic engagement: Brands will reward the full spectrum of loyalty behaviors (purchases, referrals, reviews, social
+sharing) keeping customers active between transactions.
+Incrementality over vanity metrics: Success will be measured by behavioral lift and segmented insights, not just
+topline membership or points redeemed.
+Conclusion
+Volume 1: Obsessed showed us that brand obsession comes from identity, belonging, and emotional resonance. Volume
+2 shows how to make that obsession last: personalization, data, AI, and adaptability transform connection into action.
+The brands that win in 2025 and beyond will treat loyalty like a living system: adaptive, intelligent, and deeply personal,
+turning insights into moments that matter, experiences that feel effortless, and rewards that feel earned. When
+personalization is done right, it doesnʼt just drive transactions; it builds loyalty that lasts.
+Next up: Volume 3: In Sync, where weʼll explore how to unify channels and touchpoints, creating seamless, omnichannel
+loyalty that doesnʼt just engage customers, it captivates them.
+
+--- Page 16 ---
+
+Don't Miss Out
+On Revenue Growth
+Don't Miss Out On Revenue Growth
+Inside CommerceGPT
+The newsletter for eComm leaders navigating the
+shift to AI.Products
+Reviews & UGC
+Loyalty & Referrals
+Pricing
+Product Releases Hub
+Company
+About Yotpo
+Contact us
+Careers
+Request a Demo
+Customer SuccessResources
+Resources
+Blog
+Integrations
+Use Cases
+Amazing Women in
+eCommerce
+Insights 
+eCommerce Glossary
+Loyalty Program
+Software
+Shopify Reviews App
+Shopify Loyalty App
+Tools
+Profit Margin Calculator
+Barcode Generator
+Invoice Generator
+Review Calculator
+UTM Builder Partnerships
+Become a Partner
+Agency Partner Program
+Build an Integration
+Commission Board
+Affiliate program
+Compare
+Yotpo vs Loyalty Lion
+Yotpo vs Okendo
+Yotpo vs PowerReviews
+Yotpo vs BazaarVoice
+Yotpo vs Reviews.io
+Yotpo vs RivoSupport
+Contact Support
+Help Center
+Connect with an Agency
+Accessibility Statement
+API Documentation
+API Changelog
+Yotpo Status
+FAQsGet a Demo
+NEW
+NEWEmail* Subscribe
+Terms of ServicePrivacy PolicySecurityWebsite Terms of UseCookie Settings
+Fac
+Link
+Twit
+InstAccessibility

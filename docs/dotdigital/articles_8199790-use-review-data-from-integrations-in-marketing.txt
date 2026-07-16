@@ -1,0 +1,170 @@
+Source URL: https://marketing.help.dotdigital.com/en/articles/8199790-use-review-data-from-integrations-in-marketing
+
+Use review data from integrations in Marketing
+Use product and service review data from supported integrations to personalise campaigns and build automated program journeys.
+Written by
+Gareth Burroughes
+Updated over 2 weeks ago
+Table of contents
+When you sync product and service review data from your integrations, Marketing stores it as Insight data. You can use this data to build targeted segments and create personalised program journeys based on customer feedback. Whether you're responding to positive reviews or nurturing unhappy customers, review data helps you tailor your communications and improve engagement.
+This feature supports integrations such as Trustpilot, Yotpo, Judge.me, and others.
+Before you start
+You must connect an integration and ensure that review data is syncing to your contacts.
+Some integrations only sync review data for existing contacts. Check your integration’s behaviour to ensure contacts are created or matched correctly.
+​
+Learn more in
+Integrations by category
+.
+Use product and service review data in segments
+Review data is stored in Marketing as contact insight, inside a collection called
+Reviews
+. Each review includes a
+type
+field that identifies whether it’s a product or service review.
+When building a segment based on review data, you can filter by review type and other fields to target specific behaviours or preferences.
+We store the following fields for each review record:
+id
+reviewdate
+ratingscore
+ratingcontent
+productid
+name
+– product name (product reviews only)
+sku
+– product SKU (product reviews only)
+brand
+type
+– identifies whether the review is for a product or a service
+These fields are available in the segment builder, allowing you to create rules such as
+all reviews for a specific product
+or
+all reviews with a rating score above 4
+.
+Field names may vary slightly depending on the integration, but the structure and segmentation options remain consistent across supported platforms.
+Access review data within a segment
+Go to
+Audience
+>
+Segments
+, and select the
+Edit
+icon to edit an existing segment, or
+NEW SEGMENT
+to create a new one.
+Inside the segment builder, from the left side panel, drag an
+Insight data block
+into one of the segment dropzones, and select
+click to select insight data
+to edit the rules.
+Expand the
+drop-down menu
+at the top of the
+Insight data
+window to select the
+Reviews
+insight data collection.
+​
+If you only have a small number of insight data collections, instead of an Insight data block, you might see individual blocks for each collection. If that’s the case, drag a
+Reviews block
+into your segment.
+​
+Set your contact filter using the radio buttons to choose between
+Number of
+,
+Total of
+and
+Average of
+, and then expand the
+Contact filter
+drop-down menu to choose and configure an
+operator
+.
+​
+You can hover over the label for each radio button to see an explanation of how each option affects the records shown in the final segment.
+​
+Expand the
+Record filters
+drop-down menu to choose
+type
+.
+Type
+Product
+or
+Service
+and set other rules according to your preference.
+Once you‘re happy with your rules, select
+OK
+to return to the segment builder.
+The
+Record filters
+area allows you to build out simple or complex segment rules based on the review data you have stored against your contacts.
+Learn more in
+Using Insight data for segmentation
+.
+Use product and service review data in programs
+You can configure automatic program enrolments for customers who leave a product or service review as part of the integration setup. Once these contacts have been enrolled, you can use Decision nodes containing segments to tailor the program journey based on specific information from a contact’s reviews.
+Use cases
+Send a follow-up email campaign containing
+Also bought
+product recommendations to customers who have reviewed a specific product highly.
+Enrol contacts who have left a negative review into a nurture program aiming to retain their custom.
+Example
+Let’s look at how you can set up a program to send an email campaign to contacts who have left a positive review for a specific category of products, for example, jackets.
+Go to
+Automation
+>
+Programs
+and select
+NEW PROGRAM
+.
+Select
+Blank template
+and give the program a
+name
+.
+Drag a
+Start node
+onto the canvas, select it, and set the
+Enrolment schedule
+to
+No scheduled enrolment.
+The integration pushes contacts directly into your program, so you don’t need to configure separate enrolment rules.
+Add a
+Decision node
+which identifies contacts who:
+have left a review that day (to ensure that you’re not identifying historic review data)
+and
+have reviewed a product where the name contains jacket
+and
+gave a review with a rating score of 4 or higher
+Add an
+End node
+to the
+No
+path of your Decision node, to exit contacts who don’t meet the criteria from the program.
+Add a
+Campaign node
+to the
+Yes
+path of your Decision node, to send an email campaign to those contacts who do meet the criteria.
+Connect the
+Campaign node
+to the
+End node
+so that contacts exit the program once they have been sent the campaign.
+This simple program allows you to target a specific group of contacts based on their review data and send them an email. There are many more things you can choose to do with automations.
+Learn more
+Working with the program builder
+Use two-way decisions to branch automated programs
+Use the multi decision node to branch programs to multiple outcomes
+Related Articles
+Use review data from integrations in Marketing
+Integrate Yotpo Reviews with Marketing
+Use Stamped review data in Marketing
+Integrate Judge.me Reviews with Marketing
+Integrate Bazaarvoice with Marketing
+Did this answer your question?
+😞
+😐
+😃
+Table of contents

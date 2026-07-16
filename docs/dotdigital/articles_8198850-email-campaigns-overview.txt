@@ -1,0 +1,80 @@
+Source URL: https://marketing.help.dotdigital.com/en/articles/8198850-email-campaigns-overview
+
+Email campaigns overview
+An email campaign is an email that you create, store, and send from your account.
+Written by
+Gareth Burroughes
+Updated this week
+Table of contents
+After
+creating an email campaign
+, you can perform the following actions:
+Preview
+your campaign to see how it looks on different devices.
+Test send
+your campaign to see how it will look in different email clients and different devices.
+Alternatively, you can
+pay for an inbox and spam filter test
+for an extensive set of results.
+Track
+your campaign to see how it performs after it's been sent.
+Send
+your campaign to different lists or segments.
+Translate
+your campaign or its blocks into 39 languages using Dotdigital AI.
+Types of email campaigns
+You can create the following two types of email campaigns:
+Standard campaign
+A standard campaign is sent manually
+, either immediately or scheduled for a later time.
+A standard campaign is the only type of campaign that can be
+sent as a split test
+(also known as
+A/B testing
+).
+Triggered campaign
+A triggered
+campaign is sent automatically
+when an action or certain criteria are met, for example:
+When contacts reply to your campaign, you can
+send them an automated campaign as an auto-responder
+.
+When contacts opt in to a list, you can
+send them an automated campaign as a join action
+.
+When contacts opt in to a list, you can
+send them an automated campaign as a confirmation email
+.
+When contacts reach a node in the program builder, you can
+send them an automated campaign through the campaign node
+.
+When contacts click on specific links in your campaigns, you can automatically trigger targeted follow-up emails tailored to their interests.
+If you'd like to automatically send one of your standard campaigns, you can
+change its type from standard to trigger
+ed
+.
+Personalise content in email campaigns
+We offer the following options for sending personalised content to contacts:
+Dynamic content
+: Displays personalised content for contacts depending on the values of their contact data fields.
+External dynamic content
+: Displays personalised content that's served from an external server.
+Liquid
+: Displays personalised content, using a subset of Liquid markup language.
+Send email campaigns in different languages
+As well as our default character encoding of Unicode (UTF-8), which is best for Latin-based characters, we also offer
+character encodings that support other languages
+.
+See also
+Manage folders
+Related Articles
+Get started with email
+Campaign setup
+Program messaging channel: Email campaign
+Create an SMS campaign
+Use email single send in Microsoft Dynamics
+Did this answer your question?
+😞
+😐
+😃
+Table of contents

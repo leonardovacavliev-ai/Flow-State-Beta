@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copy Button Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'muted-foreground': 'oklch(0.556 0 0)',
+                        'foreground': 'oklch(0.145 0 0)',
+                        'card': 'oklch(1 0 0)',
+                        'card-foreground': 'oklch(0.145 0 0)',
+                        'border': 'oklch(0.922 0 0)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Copy Button Test - AI Response</h1>
+
+        <!-- Demo of assistant message with copy button -->
+        <div id="chatMessages" class="space-y-4">
+            <div class="max-w-4xl mx-auto mb-4 flex gap-3 justify-start">
+                <!-- Avatar -->
+                <div class="flex-shrink-0 w-10 h-10 mt-1">
+                    <div class="w-full h-full rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
+                        AI
+                    </div>
+                </div>
+
+                <!-- Bubble wrapper with copy button -->
+                <div class="flex flex-col gap-2">
+                    <!-- Message bubble -->
+                    <div class="max-w-3xl relative bg-card text-card-foreground border border-border rounded-2xl rounded-tl-sm p-4 shadow-sm">
+                        <div class="prose prose-sm max-w-none">
+                            <p><strong>Here's how to set up a loyalty campaign in Klaviyo:</strong></p>
+                            <ol>
+                                <li>Navigate to the Integrations tab in your Klaviyo dashboard</li>
+                                <li>Connect your Yotpo Loyalty account</li>
+                                <li>Configure the webhook endpoints</li>
+                                <li>Test the integration with a sample transaction</li>
+                            </ol>
+                            <p>Let me know if you need help with any of these steps!</p>
+                        </div>
+                    </div>
+
+                    <!-- Copy button underneath -->
+                    <button class="copy-btn flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-60 hover:opacity-100 pl-4">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        <span class="copy-text">Copy</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add copy functionality
+        const copyBtn = document.querySelector('.copy-btn');
+        const messageContent = `**Here's how to set up a loyalty campaign in Klaviyo:**
+
+1. Navigate to the Integrations tab in your Klaviyo dashboard
+2. Connect your Yotpo Loyalty account
+3. Configure the webhook endpoints
+4. Test the integration with a sample transaction
+
+Let me know if you need help with any of these steps!`;
+
+        copyBtn.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(messageContent);
+                const textSpan = copyBtn.querySelector('.copy-text');
+                const originalText = textSpan.textContent;
+                textSpan.textContent = 'Copied!';
+                setTimeout(() => {
+                    textSpan.textContent = originalText;
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to copy:', error);
+            }
+        });
+    </script>
+</body>
+</html>

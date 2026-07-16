@@ -1,0 +1,83 @@
+Source URL: https://help.attentivemobile.com/hc/en-us/articles/41480509454740-Yotpo-Loyalty-Referrals#h_01K5T1K8JKGD6GK6H9E1XA868S
+
+Yotpo Loyalty & Referrals
+Updated 9 months ago
+
+The Attentive and Yotpo Loyalty & Referrals integration allows you to sync your customer loyalty data with Attentive to power personalized and high-performing SMS and email messages. By connecting the two platforms, you can create automated journeys and targeted segments based on a customer's loyalty status, points balance, and redemption history.
+
+With this integration, you can:
+
+Automatically send timely messages triggered by loyalty events (e.g., points earned, VIP tier achieved).
+Create dynamic segments based on loyalty attributes (e.g., point balance, VIP tier name).
+Personalize messages with loyalty data to increase engagement and drive redemptions.
+
+Prerequisites
+
+Ensure that you meet the following requirements in order to set up this integration:
+
+Have an active Yotpo Loyalty & Referrals account on a supported plan.
+Have an active Attentive account.
+
+Set up the integration
+
+The connection is initiated from your Yotpo Loyalty & Referrals account. For detailed, step-by-step instructions on connecting your accounts, please refer to the Yotpo Help Center article.
+
+Once the authorization is complete, your Attentive and Yotpo accounts are connected. After the initial sync, all customer loyalty attributes and events will sync in real time.
+
+Building Journeys and Segments with Yotpo Data
+
+After the integration is set up, you can use loyalty events to trigger automated journeys and loyalty attributes to create dynamic segments directly within the Attentive platform.
+
+Journeys
+
+In Attentive, you can create a custom journey that is triggered by a specific Yotpo event. These events are available under the Apps dropdown menu when you select Start from scratch in the Journeys builder.
+
+Here is a list of common Yotpo events you can use as triggers:
+
+Event Name	Description
+Points Earned	Triggered when a customer earns points.
+Tier Earned	Triggered when a customer qualifies for a new tier.
+Redemption Created	Triggered when a customer redeems points for a reward.
+Customer Birthday	Triggered on the customer's birthday.
+Points Expiration Reminder	Triggered when a customer's points are about to expire.
+Referral Completed	Triggered when a referred friend completes a purchase.
+Loyalty opt_in	Triggered when a customer joins the loyalty program.
+
+Segments
+
+To create a dynamic segment in Attentive, navigate to the Segments page and select Create segment. You can use the custom loyalty attributes synced from Yotpo to build highly targeted campaigns.
+
+The following table lists some of the custom attributes you can use:
+
+Custom Attribute	Description
+yotpo_point_balance	Customer's current available points balance.
+yotpo_loyalty_vip_tier_name	Customer's current loyalty tier name.
+yotpo_loyalty_next_tier_points_needed	Points a customer must earn to move up to the next tier.
+yotpo_loyalty_birthday_date	Customer's birthday.
+yotpo_loyalty_referral_link	A customer's unique referral link.
+
+Example Journeys & Messages
+
+Here are some examples of messages you can send using the Yotpo Loyalty & Referrals integration.
+
+Points Earned Journey
+
+Send a message that updates a customer on their new point balance.
+
+Hey {{subscriber.firstName | default: 'there'}}, good news! You just earned {{triggerEvent.custom['perk']['reward_points']}} points! 🎉 Your new balance is {{triggerEvent.custom['customer']['points_balance']}}.
+
+Tier Earned Journey
+
+Congratulate a customer on reaching a new VIP tier.
+
+Congrats, {{subscriber.firstName}}! You've just been upgraded to {{subscriber.custom['yotpo_loyalty_vip_tier_name']}} status. Enjoy your new exclusive perks and rewards!
+
+Birthday Journey
+
+Send a special birthday message with a reward.
+
+Happy birthday, {{subscriber.firstName}}! We're celebrating you with a special gift. Head to our site to redeem your birthday points and treat yourself!
+
+Questions?
+
+If you have questions about setting up your loyalty program rules or specific Yotpo features, please contact the Yotpo support team for assistance. For Attentive-related questions, our support team is ready to help.

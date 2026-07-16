@@ -1,0 +1,93 @@
+Source URL: https://help.postscript.io/en/articles/13564274-set-up-your-yotpo-integration
+
+Set Up Your Yotpo Integration
+June 12, 2026
+Table of contents
+Who gets this?
+To enable this integration, please reach out to your Customer Success Manager
+​
+Postscript integrates with Yotpo, allowing you to reference reward points in SMS automations.
+​
+About Yotpo
+Yotpo allows stores to reward their customers with points, discounts, or free products when they write reviews for their merchandise. Yotpo helps increase repeat customers and build trust with future customers using user-generated content.
+​
+Why You Should Set Up Yotpo
+Build rewards & referrals programs to engage existing customers and reach new ones.
+Collect and showcase user-generated content.
+Create an incentive strategy that meets the unique needs of your brand.
+Locate Your Yotpo API Key
+From your
+Yotpo dashboard
+, select
+Settings
+.
+Locate your
+API Key
+and
+GUID
+. Copy these or write them down. You will need to enter this information in Postscript.
+Enable Yotpo in Postscript
+Select
+Integrations
+in the side menu of your
+Postscript dashboard
+.
+Locate and select
+Yotpo
+.
+Paste your
+Yotpo GUID
+and
+Yotpo API Key
+in the corresponding fields.
+Select
+Save Integration
+in the top-right corner of the page.
+Create a Yotpo Legacy Automation
+You can
+create an automation
+message that updates customers on their point balance. You could set the trigger as order created, once an order has been delivered, or, in this case, when there is an abandoned cart.
+​
+Select
+Messaging
+and then select
+Automations
+from the dashboard.
+Select Legacy Automations above the list of automations (Note: This feature is only available in legacy automations). Open an existing automation or create a new one.
+Place your cursor where you want to insert a tag to include in the message.
+Select the
+More
+button above the message text input box
+Select the
+Add Tag
+from the drop-down menu.
+In the drop-down menu that appears below, select Yotpo
+Point Balance
+and then select the
+Insert
+button.
+You can see the tag in the message field and can preview how it will display to your subscriber in the dynamic phone preview on the right side of the page.
+You should now be all set to get started with Yotpo!
+​
+Get Support
+Have questions?
+Please feel free to reach out to our wonderful Support team at
+[email protected]
+or via live chat. You can also submit a support request
+here
+!
+Need ongoing channel strategy guidance?
+Please
+fill out this form
+and we'll connect you to one of our certified partners.
+Related Articles
+Set Up Your Toki Integration
+Set Up Your Rivo Integration
+Set Up Your LoyaltyLion Integration
+Set Up Your Junip Integration
+Setting Up Your Advanced Yotpo Integration
+Did this answer your question?
+😞
+😐
+😃
+Table of contents

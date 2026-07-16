@@ -1,0 +1,12 @@
+{
+  "name": "esp-loyalty-helper-frontend",
+  "version": "1.0.0",
+  "description": "Yotpo ESP Loyalty Helper Frontend",
+  "scripts": {
+    "dev": "tailwindcss -i ./styles.css -o ./dist/output.css --watch",
+    "build": "tailwindcss -i ./styles.css -o ./dist/output.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.1"
+  }
+}

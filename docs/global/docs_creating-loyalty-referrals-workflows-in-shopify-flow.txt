@@ -1,0 +1,93 @@
+Source URL: https://support.yotpo.com/docs/creating-loyalty-referrals-workflows-in-shopify-flow
+
+Products
+Loyalty & Referrals
+Supported plans
+Premium, Enterprise
+eCommerce Platform
+Shopify Plus
+With the release of the Shopify Flow and Yotpo Loyalty & Referrals
+connector
+, it's easier than ever to reward your customers with points for completing any combination of actions, conditions, and triggers made on Shopify.
+In this article, you’ll learn how to set up a Loyalty & Referrals workflow using Shopify Flow, including an example workflow that rewards shoppers for subscribing to your newsletter.
+Before You Start
+If you haven’t used the Flow app yet,
+head to the Shopify app store to install it
+.
+Setting up a Shopify Workflow
+To set up a Shopify workflow:
+From your Shopify admin, go to
+Apps
+.
+Launch the
+Flow
+app.
+Click
+Create Workflow
+.
+Select
+Add trigger
+to start your workflow. This is the event you want to use to reward customers at the end of the workflow.
+Example Flow: Rewarding Points for Email Subscriptions
+For example, let’s say you want to reward shoppers when they subscribe to email marketing.
+In
+Shopify Flow
+, select the trigger:
+Customer subscribed to email marketing
+.
+(Optional) Add conditions if you’d like to further target the action. For example, you can add conditions for customer tags or segment membership.
+Next, click
++Add Action
+and select:
+Yotpo Loyalty & Referrals → Reward Points
+.
+Fill out the fields on the right:
+Name of completed action
+– Choose a descriptive name, such as
+email_sub
+. You’ll use this again in the Custom Action campaign in Yotpo Loyalty & Referrals.
+Email address of customer
+– Use
+{{customer.email}}
+, since Yotpo uses the email address to identify the customer in Loyalty & Referrals.
+What type of campaign?
+– Set this to CustomAction.
+How many points to award?
+– Enter the number of points customers will earn for signing up.
+Description for customer’s history (optional)
+– You can add a description here (e.g., “Email sign-up reward”). If left blank, it will use the
+Action text
+from your custom action rule.
+Connecting the flow to Yotpo Loyalty & Referrals
+To connect the flow to Yotpo, you need to
+create a custom action earning rule
+:
+In your Yotpo Loyalty admin, go to
+Rewards Program > Create earning rule
+.
+Select
+Custom Action
+and click
+Next
+.
+Configure the rule:
+Under
+Action Name
+, enter the exact name you used in the Shopify Flow (for example,
+email_sub
+).
+Set the number of points you want to reward and add an
+Action text
+.
+Complete the setup by defining any restrictions in the
+Advanced settings
+.
+Tip
+Configure the rule to award points only once per customer, so shoppers aren’t rewarded multiple times if their subscription status changes.
+Create
+the rule.
+You're all set.
+Anytime customers trigger this flow, they will receive the designated points you’ve set in Yotpo Loyalty & Referrals.
+Note
+Rewards are based only on Shopify’s native email subscription field.
+If you’re using Klaviyo or another ESP, make sure subscription events are forwarded to Shopify so that Yotpo can capture them. For Klaviyo, the “Forward to Shopify“ setting must be enabled.

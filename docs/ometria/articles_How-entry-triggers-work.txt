@@ -1,0 +1,121 @@
+Source URL: https://support.ometria.com/hc/en-gb/articles/360015855818
+
+An entry trigger (or triggering event') is the event that enrols a contact in a flow, e.g. contact abandons a basket, makes a second purchase, browsed a specific product, etc.)
+Mouse-over the
+Trigger
+tile and select the cog icon to configure.
+See
+Automation campaign triggers
+for a full list of available triggers.
+Opt-in rules
+See also:
+Howdoes Ometria subscribe and unsubscribe contacts?
+Automation campaign
+entry triggers
+enter contacts based on how their opt-in status relates to the send nodes in your campaign. For example, if your campaign contains emailsend nodes, it will only enter contacts opted in to email unless you have set the campaign to ignore opt ins.
+Opt-in status is checked again when a contact reaches a
+Send email
+,
+Send push notification
+or <a href="https://support.ometria.com/hc/en-gb/articles/360011315958" target="_blank" rel="noopener noreferrer">
+Send SMS
+action, so any contacts who are not opted-in to receive those marketing communications from you will leave the campaign.
+See:
+Setting up a multi-channel campaign based on opt-in
+If your campaign
+doesn't use any send actions at all
+, e.g. only
+sync segments
+,
+add to list
+,
+remove from list
+,
+update contact data
+, etc. then
+all contacts can enter
+regardless of opt-in status.
+Note:
+If you have a
+Send email action
+which is marked
+Send as transactional
+, all of the contacts who reach this action will get sent an email.
+Mixing transactional and marketing sends
+When a send node is marked
+Send as transactional
+, its opt-in is not checked at entry. This means in a multi-channel campaign with both transactional and marketing sends, only the marketing channels decide who enters.
+When a campaign includes a
+Send SMS
+action, contacts must meet two conditions to enter the flow:
+They have a valid phone number on their contact record.
+They have SMS marketing consent.
+Contacts who do not meet both conditions are filtered out at entry and do not appear in the campaign.
+Example: Jane has SMS marketing consent but no phone number on her record. She does not enter the campaign, because Ometria cannot send her an SMS.Roy has a phone number on his record but has not given SMS marketing consent. He also does not enter the campaign.
+Opt-in status is re-checked at the
+Send SMS
+action itself, so any contact whose consent changes between entry and the send node leaves the campaign at that point.
+Be aware:
+If you want every contact who meets the trigger to enter, regardless of opt-in status, tick
+Enter contacts ignoringoptin
+in
+Edit Campaign Settings
+. Without it, contacts opted out of the marketing channel won'tenter, even if you only want to send them the transactional message.
+See:
+Transactional automation and broadcast emails
+Which email address is used
+A contact can hold more than one email address or phone number. When a contact enters an automation campaign, the email address or phone number that
+triggered
+their entry, for example the address on the order or event that enrolled them, is the address used for any emails sent during that journey. If the trigger has no email address, sends fall back to the contact's
+primary email address
+, which is the main email address Ometria holds for them.
+See
+Merging contact profiles in Ometria
+for how a contact can come to have more than one email or phone number.
+Entry limit
+The maximum number of contacts entering an automation flow in one go is 1000.
+Ometria checks for contacts that satisfy an automation trigger every few minutes.
+When these contacts are identified, Ometria will enter up to 1000 in the flow.
+If you're mass uploading your contacts to a segment, be aware that the campaign won't trigger to morethan 1000 contacts at a time, and
+the remaining contacts will be ignored
+.
+To avoid this, upload your contacts in batches of 1000 at a time.
+If you'd like to increase the entry limit for your automation campaigns please get in touch with your Customer Success Representative.
+Four hour limit
+All events recorded in Ometria have a timestamp.
+An event with a timestamp
+more than four hours in the past
+will not enter
+the contact into the automation flow unless you use an
+entry wait node
+to extend this period.
+ 
+ 
+Recently viewed articles
+Yotpo Loyalty & Referrals: Supported events
+Setting up Yotpo Loyalty & Referrals
+</ul>
+ 
+ 
+ 
+ 
+Related articles
+ 
+ 
+Automation campaign triggers
+ 
+Entry wait nodes
+ 
+Multi-language for broadcast campaigns
+ 
+Testing mode
+ 
+Automation campaigns overview
+ 
+ 
+ 
+ 
+ 
+ 
+Article is closed for comments.
+ 

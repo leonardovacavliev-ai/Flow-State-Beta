@@ -1,0 +1,71 @@
+Source URL: https://marketing.help.dotdigital.com/en/articles/8198950-triggered-campaigns-overview
+
+Triggered campaigns overview
+Generate leads and increase conversions with triggered campaigns for birthdays, preferences, seasons, and more.
+Written by
+Gareth Burroughes
+Updated over 3 weeks ago
+Table of contents
+You can automate your emails and SMS messages, which means your marketing is working even when you're not, turning your lead and conversion generation into an automated production line.
+Triggered campaigns can be used for a variety of reasons. Examples include customers' birthdays, buying patterns and preferences, seasons and holiday dates, and life cycle milestones.
+Before you start
+You must set up triggered or automated campaigns in your account if you want to use
+the program builder
+. This allows you to develop detailed automated programs.
+Automation
+To find your triggered email campaigns and automation requirements, go to
+Automation
+.
+From here, you can access:
+Programs
+Triggered emails:
+email campaigns for use in automation
+Triggered SMS:
+SMS campaigns for use in automation
+Types of triggered campaigns and automation tools
+There are several ways to use triggered campaigns and automation tools within the system:
+Program builder
+Create detailed automations using the program builder.
+List triggers
+Every time someone
+joins
+or
+unsubscribes
+from one of your lists, you can set a particular campaign to be sent to them automatically.
+Date triggers
+You can create one trigger or a series of triggers based on date fields within your lists. For example, if you hold the date of birth for your contacts, you could send a campaign automatically wishing them a happy birthday using the program builder.
+Default auto responder
+You can trigger a default response if a recipient replies to any one of your
+email
+or
+SMS
+campaigns, perhaps letting them know that they've replied to an unmonitored email address or a number and providing alternative contact details.
+Specific auto responders for specific campaigns
+or SMS trigger words
+Trigger a specific auto-response for a
+particular email campaign
+or to a
+particular word or phrase in an inbound SMS message
+.
+Verified double opt-in confirmation
+You can set up a triggered email to
+confirm your contacts really do want to receive your email
+.
+Resubscribe confirmation
+When a contact chooses to resubscribe after having previously unsubscribed, a
+triggered email is sent to them
+to ask them to confirm their resubscription.
+The first step in using any of these triggers is to make sure the campaign sent as a result of the trigger is created as a
+triggered campaign
+.
+Related Articles
+Email campaigns overview
+Convert a standard campaign into a triggered campaign
+Get started with automation
+Send a triggered campaign on WhatsApp
+Send triggered MMS messages
+Did this answer your question?
+😞
+😐
+😃
+Table of contents

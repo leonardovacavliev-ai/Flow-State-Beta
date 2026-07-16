@@ -1,0 +1,151 @@
+Source URL: https://marketing.help.dotdigital.com/en/articles/8198854-campaign-setup
+
+Campaign setup
+Provide some initial campaign setup details in the first step of the campaign creation process.
+Written by
+Laura Russell
+Updated today
+Table of contents
+The campaign creation process guides you through campaign creation to campaign send.
+Throughout the campaign creation process, the particular step you're on is highlighted in the breadcrumb menu in the top right.
+You can select
+any step
+in the breadcrumb menu to go to that step.
+This article takes you through Step 1 of the process:
+Create
+. This involves setting up your initial campaign details.
+Set up your campaign details
+On the
+Campaign details
+page you can set:
+Subject line
+This is the subject line of the email as it appears in your contacts' email client. We recommend trying to get the most important information in the first 60 characters of the subject line.
+If your account has the feature enabled, then as you begin typing our AI assistant provides subject line suggestions for you. Select one of the
+suggestions
+to use it.
+You can add emojis to your subject line. Select the
+smiley face icon
+next to the subject line to open the emoji picker. Just remember that not all emojis get rendered correctly or consistently in your recipients' inboxes. This depends on their email client, device, and operating system. If you want to make use of emojis in subject lines, then we recommend you
+test them thoroughly
+.
+You can also include
+personalisation in a subject line
+.
+​
+Preheader text
+Preheader text is a small snippet of text that appears below the subject line of your email in your recipients’ inbox preview. Use preheader text to build interest and entice your contacts to open and interact with your campaign.
+Preheader text behaviour
+If you usually use a standard text box at the top of your campaigns to act as your preheader, then text added to the
+Preheader text
+field during campaign setup would appear in addition to the content of the text box. You should remove the text box from your email design to prevent duplication.
+If you want to include Liquid markup in your preheader content, use the text box option.
+If you have
+included an invisible preheader
+in your campaign, then text added to the
+Preheader text
+field during campaign setup overrides the previously set invisible preheader.
+Friendly from name
+This is the name that appears in your recipients’ inboxes as the sender of the email. It’s often used to build trust and recognition. For example, instead of a generic brand name, you might use
+Chris from Dotdigital
+to make the identity feel more personal.
+You can personalise the friendly from name
+using data fields or dynamic content
+, which is especially useful in one-to-one style campaigns.
+From address
+New accounts have a default from address assigned to them. Until you add a
+custom from address
+to your account, only the default one is available to you here. If multiple
+from addresses
+are available, you can select the one you want from the drop-down menu.
+When you add values to the above fields, you can see a preview of how your email details should display in your contacts’ inbox at the bottom of the page.
+Reply-to address
+If someone replies to your campaign, the reply is stored in the campaign
+replies report
+.
+You can also add a reply-to address, so that any replies to your campaign are sent directly to an inbox of your choice from the recipient email address. It’s important to check replies to your campaigns, as sometimes contacts send unsubscribe requests this way, in addition to other requests for help or support, so this address should be one that you’re easily able to monitor.
+The reply-to address you add can be customised to each contact using a data field. For example, if you store an email address for your employees in an @ACCOUNT_MANAGER_EMAIL@ data field, you could use this as your reply-to address.
+On send, the data field value is populated, and the reply-to for each contact becomes
+manager.name@mycompany.com
+, allowing you to send replies direct to each contact’s account manager.
+It’s possible to
+set a reply-to address on an account level for each custom from address
+(CFA) you have. If set at this level, the appropriate reply-to address is pre-populated for you when you create a campaign.
+You can replace the reply-to address with a different one when setting up your campaign if you want to. The campaign-level address is used instead of the reply-to address set for the CFA.
+If you leave the reply-to address field empty when creating your campaign, then replies are
+not
+sent to you. They are still forwarded if you have added a forwarding address.
+Forwarding address
+Entering a forwarding address is optional, but if you do enter an email address here, any replies to this campaign are forwarded to the address you entered.
+Forwarded replies are sent to the address you enter from a Dotdigital system email address, rather than from the contact’s email address. To receive replies directly from your contacts, use a
+reply-to address
+.
+If you add the same email address as a reply-to and forwarding address, you receive the reply twice. Once direct from the contact, and once forwarded by Dotdigital.
+Campaign tags
+Enter a tag
+or multiple tags to categorise your campaign, for example,
+Newsletter
+or
+Offer
+. Tags enable you to group campaigns together, allowing you to filter your reports and listings by campaign tags to view statistics for specific sets of campaigns.
+If you're assigning a tag that you've created previously, the autocomplete function matches what you enter with existing tags to help speed things up and keep your tagging organised.
+Link tracking
+Select either
+Default
+or
+Campaign specific
+:
+Default
+settings use the
+tracking parameters set at account level
+.
+Campaign specific
+allows you to
+customise tracking parameters and values for the individual campaign
+.
+Additional campaign options
+The campaign setup page allows you to access a few more features that you might want to use for your campaigns.
+Split test settings
+You can
+set up a split test
+to send multiple versions of your campaign out to a small section of your intended audience, and based on their interaction with the campaign, have the best version sent to the rest of your list automatically.
+To access, select
+Split test settings
+in the top right.
+Campaign settings
+To access, select
+Campaign settings
+in the top right. You can then configure:
+Format
+Choose whether you want to create an email campaign with both HTML and text versions, or create a plain text only version with no HTML content.
+Type
+Choose whether you want to create a standard or triggered email campaign. Triggered campaigns are used in automated processes, for example in programs or to send automatically on completion of a form.
+Dynamic content
+You can
+use dynamic content rules
+to determine what subject line and from name a contact should see, based on data you hold about them. For example, you might want to show a different subject line based on a contact’s geographical location.
+Encoding
+By default, the encoding type for campaigns is set to
+Unicode (UTF-8)
+. If you need to change this to
+use a different character set
+, for example Cyrillic or Chinese, then expand the
+Encoding
+drop-down menu and select the
+encoding type
+you want to use.
+When you're happy with all of your campaign settings, select
+Save & continue
+to start working on your campaign content and design.
+Next steps
+Create your campaign in EasyEditor
+Related Articles
+Build your campaign in EasyEditor
+Test your campaign
+Review and send your campaign
+Email campaign preheaders
+Replies to your email campaign
+Did this answer your question?
+😞
+😐
+😃
+Table of contents

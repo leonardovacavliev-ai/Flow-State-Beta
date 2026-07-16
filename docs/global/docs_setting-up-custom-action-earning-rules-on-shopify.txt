@@ -1,0 +1,115 @@
+Source URL: https://support.yotpo.com/docs/setting-up-custom-action-earning-rules-on-shopify
+
+Products
+Loyalty & Referrals
+Supported plans
+Premium, Enterprise
+eCommerce Platform
+Shopify, Shopify Plus
+Goals and Outcomes
+The Custom Action is an
+advanced earning rule
+that enables you to reward customers for performing specific actions. This feature allows you to design unique earning rules that align with your business goals.
+Key Benefits
+:
+Create custom earning rules tailored to your customers, such as
+weekly draws, donation-based rewards, form submissions,
+and
+online gaming events
+.
+Integrate with third-party applications to reward customers for completing actions on external platforms.
+Custom Action earning rules provide a creative way to engage customers and incentivize meaningful interactions with your brand. In this article, you’ll learn how to set them up on Shopify.
+Important
+Custom Action earning rules require technical expertise and the use of API.
+Is this article for me?
+If you’re not using Shopify or Shopify Plus, follow this
+Custom Action earning rule guide
+for other e-commerce platforms.
+Creating a Custom Action Earning Rule
+To create a Custom Action earning rule on Shopify and Shopify Plus, follow these steps:
+From your Yotpo admin, go to
+Manage Program
+>
+Rewards Program
+.
+Under
+Ways to earn
+, click
+Create earning rule
+.
+Go to the
+Advanced
+section and select
+Custom Action
+.
+Click
+Next
+.
+Configuring a Custom Action Earning Rule
+General Settings
+Custom Action settings
+- use Yotpo’s API to create the earning rule setup. Keep in mind that this earning rule can only be triggered via API.
+Action name
+- the name you’ll use in the API call to trigger the earning rule.
+Reward type
+- choose whether to reward customers with points or a discount for meeting the rule criteria. Use the
+Advanced settings
+to customize who the rule will apply to.
+Rewards history text
+- the text that will appear in the customers’ rewards history.
+Advanced Settings
+Target audience
+Restrict by customer
+- Configure the lists and segments to determine which customers are eligible for the earning rule or should be excluded from it.
+Minimum times completed
+- The minimum number of times a customer must perform this action to receive a reward.
+If you select a number higher than 1, you can set a waiting period between each action completion. For example, if you select 1 week, the customer will have to wait that long before they can do the action again.
+Maximum times completed
+- The maximum number of times each customer can participate in this earning rule.
+If you select a number higher than 1, you can set a waiting period between rewards, meaning the customer will have to wait this long (e.g., 2 weeks) to be able to complete the rule again and earn another reward. If they attempt to complete the rule during the waiting period, they won’t receive a reward.
+Restrict by VIP tiers
+VIP tiers
+- select which
+VIP tiers
+the Custom Action earning rule will apply to.
+Schedule rule
+- configure how long the rule will run for. It can be an ongoing campaign or a limited-time promotion.
+Setting up the API
+To reward customers for completing an action outside your Yotpo loyalty program, you need to establish a communication of action completion either by
+manually sending an API call
+OR by automating the API call.
+Important
+API calls must be made
+server-side
+or through a
+proxy server
+.
+If attempted from the
+client side
+, a
+CORS error
+will occur, as this could expose sensitive data.
+To automate the API call, you need to use this
+API endpoint
+and follow the steps below:
+Decide on the action to be performed and assign its action name.
+Create the automation that triggers the API call to Yotpo. This requires your developer to add a code snippet where the event fires (e.g., on a form’s "Submit" button).
+Sample code snippet format
+To adjust the code below, do the following:
+Replace
+CustomAction
+with the desired action name (e.g., completed_form).
+Replace
+guid
+with your unique identifier, found in Settings.
+Replace
+x-api-key
+with your API key, also found in Settings.
+For complete directions, refer to
+our dev documentation
+.
+Need to find your API Key?
+For instructions on how to find your Merchant ID and Yotpo Loyalty & Referrals API Key, click
+here
+.
+Once you've set up the API, you can configure your Custom Action earning rule using the action name you created.

@@ -1,0 +1,107 @@
+Source URL: https://support.yotpo.com/docs/klaviyo-oauth-integration-yotpo-loyalty-referrals
+
+Products
+Loyalty & Referrals
+Supported plans
+All plans
+eCommerce Platform
+Shopify, Shopify Plus, BigCommerce, Salesforce Commerce Cloud, Adobe Commerce (Magento), Custom
+Is this article for me?
+This article is for merchants who want to migrate to or are already using the OAuth-based Klaviyo integration with Yotpo Loyalty & Referrals.
+If you’re looking for information about the API-based integration, please refer to Yotpo’s
+legacy Klaviyo integration guide
+.
+Goals and Outcomes
+Integrate Yotpo Loyalty & Referrals with Klaviyo to automatically sync loyalty program data into your Klaviyo account. This allows you to create highly personalized email and SMS campaigns and automated flows based on customer loyalty behavior.
+With this integration, you can use Klaviyo to:
+Send redemption reminders to
+increase repeat purchases
+.
+Trigger referral share emails to
+drive customer acquisition
+.
+Segment audiences using loyalty insights
+such as points balance, tier status, and referral activity.
+Personalize campaigns
+using real-time loyalty data.
+In this article, you’ll learn how to set up the Yotpo Loyalty & Referrals integration with Klaviyo using OAuth.
+Integration Overview
+To connect Yotpo Loyalty & Referrals with Klaviyo, you’ll need:
+An active Klaviyo account
+Access to your Yotpo Loyalty & Referrals admin
+The integration enables you to:
+Sync loyalty and referral data from Yotpo to Klaviyo
+Trigger email and SMS flows based on loyalty events
+Build advanced segments using customer loyalty properties
+View branded events and metrics in Klaviyo
+Connecting Yotpo Loyalty & Referrals with Klaviyo
+To connect Yotpo to Klaviyo using OAuth:
+From your Yotpo Loyalty admin, go to
+Integrations Center
+.
+Locate the
+Klaviyo OAuth tile
+and click it.
+Click
+Connect Klaviyo OAuth
+.
+When prompted, allow Klaviyo to access your Yotpo Loyalty account and use customer data by clicking
+Next
+.
+Click the
+Connect
+button. You’ll be redirected to Klaviyo to verify your credentials.
+Approve the connection
+in Klaviyo within 5 minutes to complete the setup.
+Important
+The authorization window expires after 5 minutes of inactivity. Make sure to authorize the connection within that time. If it expires, uninstall and reinstall the integration to restart the process.
+You’re all set. Once connected, your loyalty and referral data will begin syncing to Klaviyo automatically.
+Information Shared in the Integration
+There are two types of information that Loyalty & Referrals syncs to Klaviyo:
+Events
+Webhook events that can be used to trigger automated flows, such as:
+Customers earning points
+Customers redeeming rewards
+Customers entering a new loyalty tier
+These events allow you to send timely, behavior-based communications, such as congratulating a customer on reaching a higher tier.
+See a full list of events here
+.
+Customer properties
+Customer-specific loyalty attributes that can be used for segmentation and personalization, including:
+Points balance
+Loyalty tier
+Birthday
+These properties help you build targeted segments and create personalized campaigns.
+See a full list of customer properties here
+.
+Migrating from the Legacy (API-Based) Klaviyo Integration to OAuth
+Note
+The legacy integration is labeled
+Klaviyo (API key)
+The new OAuth integration is labeled
+Klaviyo
+If you’re currently using the legacy Klaviyo integration (API key) and want to switch to OAuth:
+Locate the Klaviyo OAuth integration
+tile in the Yotpo Integrations Center or in Klaviyo’s Marketplace, and
+click
+it.
+Follow the
+setup steps
+in Yotpo.
+Enter your
+Klaviyo credentials
+when prompted.
+Approve Yotpo Loyalty’s access to your Klaviyo account
+to complete the connection and sync your data.
+Important
+The
+Klaviyo (API key)
+integration will appear in your Integrations Center
+only if it’s currently installed in your accoun
+t.
+Once the OAuth integration is active, the legacy integration will no longer appear in your list of active integrations in Yotpo.
+Your existing Klaviyo settings, flows, segments, and historical data will not be lost during the migration.
+Next Steps
+After completing the integration, set up your Klaviyo email flows to start engaging customers using loyalty data. To learn how to create and customize the different emails, see our
+loyalty emails setup guide for Klaviyo
+.

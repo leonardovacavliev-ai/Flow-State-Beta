@@ -1,0 +1,146 @@
+{
+  "klaviyo": [
+    {
+      "url": "https://support.yotpo.com/docs/loyalty-emails-setup-guide-for-klaviyo",
+      "filename": "docs_loyalty-emails-setup-guide-for-klaviyo.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/klaviyo/docs_loyalty-emails-setup-guide-for-klaviyo.txt"
+    },
+    {
+      "url": "https://help.klaviyo.com/hc/en-us/articles/115002774932",
+      "filename": "articles_115002774932.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/klaviyo/articles_115002774932.txt"
+    },
+    {
+      "url": "https://help.klaviyo.com/hc/en-us/articles/40939669530011",
+      "filename": "articles_40939669530011.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/klaviyo/articles_40939669530011.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/klaviyo-oauth-integration-yotpo-loyalty-referrals",
+      "filename": "docs_klaviyo-oauth-integration-yotpo-loyalty-referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/klaviyo/docs_klaviyo-oauth-integration-yotpo-loyalty-referrals.txt"
+    }
+  ],
+  "dotdigital": [
+    {
+      "url": "https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-dotdigital",
+      "filename": "docs_integrating-yotpo-loyalty-referrals-with-dotdigital.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/docs_integrating-yotpo-loyalty-referrals-with-dotdigital.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8199355-easyeditor-extensions-app-blocks-overview",
+      "filename": "articles_8199355-easyeditor-extensions-app-blocks-overview.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8199355-easyeditor-extensions-app-blocks-overview.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8198850-email-campaigns-overview",
+      "filename": "articles_8198850-email-campaigns-overview.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8198850-email-campaigns-overview.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8198854-campaign-setup",
+      "filename": "articles_8198854-campaign-setup.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8198854-campaign-setup.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8198950-triggered-campaigns-overview",
+      "filename": "articles_8198950-triggered-campaigns-overview.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8198950-triggered-campaigns-overview.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8198952-convert-a-standard-campaign-into-a-triggered-campaign",
+      "filename": "articles_8198952-convert-a-standard-campaign-into-a-triggered-campaign.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8198952-convert-a-standard-campaign-into-a-triggered-campaign.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8199790-use-review-data-from-integrations-in-marketing",
+      "filename": "articles_8199790-use-review-data-from-integrations-in-marketing.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8199790-use-review-data-from-integrations-in-marketing.txt"
+    },
+    {
+      "url": "https://marketing.help.dotdigital.com/en/articles/8199358-add-yotpo-reviews-to-campaigns-pages-and-forms",
+      "filename": "articles_8199358-add-yotpo-reviews-to-campaigns-pages-and-forms.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/dotdigital/articles_8199358-add-yotpo-reviews-to-campaigns-pages-and-forms.txt"
+    }
+  ],
+  "other_webhook": [],
+  "attentive": [
+    {
+      "url": "https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-attentive",
+      "filename": "docs_integrating-yotpo-loyalty-referrals-with-attentive.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/attentive/docs_integrating-yotpo-loyalty-referrals-with-attentive.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/integrating-yotpo-reviews-with-attentive",
+      "filename": "docs_integrating-yotpo-reviews-with-attentive.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/attentive/docs_integrating-yotpo-reviews-with-attentive.txt"
+    },
+    {
+      "url": "https://help.attentivemobile.com/hc/en-us/articles/41480509454740-Yotpo-Loyalty-Referrals#h_01K5T1K8JKGD6GK6H9E1XA868S",
+      "filename": "articles_41480509454740-Yotpo-Loyalty-Referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/attentive/articles_41480509454740-Yotpo-Loyalty-Referrals.txt"
+    }
+  ],
+  "global": [
+    {
+      "url": "local://Yotpo New Rules of Loyalty Strategies.pdf",
+      "filename": "yotpo_new_rules_of_loyalty_strategies.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/yotpo_new_rules_of_loyalty_strategies.txt"
+    },
+    {
+      "url": "https://loyaltyapi.yotpo.com/reference/record-a-customer-action",
+      "filename": "reference_record-a-customer-action.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/reference_record-a-customer-action.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/setting-up-custom-action-earning-rules-on-shopify",
+      "filename": "docs_setting-up-custom-action-earning-rules-on-shopify.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/docs_setting-up-custom-action-earning-rules-on-shopify.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/creating-loyalty-referrals-workflows-in-shopify-flow",
+      "filename": "docs_creating-loyalty-referrals-workflows-in-shopify-flow.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/docs_creating-loyalty-referrals-workflows-in-shopify-flow.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/yotpo-loyalty-referrals-and-shopifys-new-customer-accounts-faq",
+      "filename": "docs_yotpo-loyalty-referrals-and-shopifys-new-customer-accounts-faq.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/docs_yotpo-loyalty-referrals-and-shopifys-new-customer-accounts-faq.txt"
+    }
+  ],
+  "listrak": [],
+  "ometria": [
+    {
+      "url": "https://support.yotpo.com/docs/ometria-integration-guide-for-loyalty-referrals",
+      "filename": "docs_ometria-integration-guide-for-loyalty-referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/ometria/docs_ometria-integration-guide-for-loyalty-referrals.txt"
+    },
+    {
+      "url": "https://support.ometria.com/hc/en-gb/articles/4800701859997-Setting-up-Yotpo-Loyalty-Referrals",
+      "filename": "articles_Setting-up-Yotpo-Loyalty-Referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/ometria/articles_Setting-up-Yotpo-Loyalty-Referrals.txt"
+    },
+    {
+      "url": "https://support.ometria.com/hc/en-gb/articles/30378613995933-Yotpo-Loyalty-Referrals-Supported-events",
+      "filename": "articles_Yotpo-Loyalty-Referrals-Supported-events.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/ometria/articles_Yotpo-Loyalty-Referrals-Supported-events.txt"
+    },
+    {
+      "url": "https://support.ometria.com/hc/en-gb/articles/360015855818-How-entry-triggers-work",
+      "filename": "articles_How-entry-triggers-work.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/ometria/articles_How-entry-triggers-work.txt"
+    }
+  ],
+  "postscript": [
+    {
+      "url": "https://support.yotpo.com/docs/postscript-integration-guide-for-yotpo-loyalty-referrals",
+      "filename": "docs_postscript-integration-guide-for-yotpo-loyalty-referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/postscript/docs_postscript-integration-guide-for-yotpo-loyalty-referrals.txt"
+    },
+    {
+      "url": "https://help.postscript.io/en/articles/13564274-set-up-your-yotpo-integration",
+      "filename": "articles_13564274-set-up-your-yotpo-integration.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/postscript/articles_13564274-set-up-your-yotpo-integration.txt"
+    }
+  ]
+}
