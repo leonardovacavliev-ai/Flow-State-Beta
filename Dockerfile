@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 COPY backend ./backend
 COPY frontend ./frontend
 COPY docs ./docs
-COPY "ESP_Support_Links - Sheet1.csv" ./
+COPY esp_support_links.csv ./
 
 # Create necessary directories
 RUN mkdir -p backend/chroma_db

@@ -232,7 +232,7 @@ def get_esps():
 @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
 def get_esp_links(esp_name):
     """Get links for a specific ESP with crawl status"""
-    csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+    csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
     metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
     # Get all links from CSV
@@ -298,7 +298,7 @@ def add_esp_link(esp_name):
 
     try:
         # Read CSV
-        csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
 
         with open(csv_path, 'r') as f:
             content = f.read()
@@ -355,7 +355,7 @@ def create_esp():
     os.makedirs(esp_path, exist_ok=True)
 
     # Update CSV
-    csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+    csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
 
     with open(csv_path, 'a', newline='') as f:
         f.write(f'\n\n{esp_name.title()} Integration URLs\n')
@@ -459,7 +459,7 @@ def delete_esp_links(esp_name):
         import json
 
         # Remove from CSV
-        csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
         with open(csv_path, 'r') as f:
             lines = f.readlines()
 
@@ -508,7 +508,7 @@ def refresh_all():
 
     try:
         # Re-crawl
-        csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
         docs_path = os.path.join(BASE_PATH, 'docs')
         crawl_and_save(csv_path, docs_path)
 
@@ -733,7 +733,7 @@ def restore_from_backup():
 @app.route('/api/admin/global-knowledge/links', methods=['GET'])
 def get_global_knowledge_links():
     """Get links for global knowledge base"""
-    csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+    csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
     metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
     csv_links = []
@@ -794,7 +794,7 @@ def add_global_knowledge_link():
         return jsonify({'error': 'No URL provided'}), 400
 
     try:
-        csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
 
         with open(csv_path, 'r') as f:
             content = f.read()
@@ -922,7 +922,7 @@ def delete_global_knowledge_links():
         import json
 
         # Remove from CSV
-        csv_path = os.path.join(BASE_PATH, 'ESP_Support_Links - Sheet1.csv')
+        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
         with open(csv_path, 'r') as f:
             lines = f.readlines()
 
