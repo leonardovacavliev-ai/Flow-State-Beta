@@ -15,9 +15,8 @@ COPY esp_support_links.csv ./
 # Create necessary directories
 RUN mkdir -p backend/chroma_db
 
-# Expose port (cloud platforms will override with PORT env var)
-EXPOSE 8080
-ENV PORT=8080
+# Expose port (Railway will set PORT via environment variables)
+EXPOSE 5000
 
 # Run application
 CMD ["python", "backend/app.py"]
