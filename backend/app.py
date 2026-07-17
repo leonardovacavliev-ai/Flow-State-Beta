@@ -350,9 +350,12 @@ def get_esp_links(esp_name):
             try:
                 url_vectorized = vectorizer.url_exists(url, esp_name.lower())
                 status = 'crawled' if url_vectorized else 'pending'
+                print(f"  Status for {url[:60]}...: {status} (vectorized={url_vectorized})")
             except Exception as e:
-                print(f"Error checking URL {url}: {e}")
-                status = 'checking'  # Unknown state
+                print(f"  ⚠️ Error checking URL {url[:60]}...: {e}")
+                import traceback
+                traceback.print_exc()
+                status = 'pending'  # Default to pending on error (safer than 'checking')
 
             links_with_status.append({
                 'url': url,
