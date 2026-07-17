@@ -247,6 +247,34 @@ def get_esps():
 
     return jsonify({'esps': esps})
 
+@app.route('/api/admin/debug/pinecone-sample', methods=['GET'])
+def debug_pinecone_sample():
+    """Debug endpoint to see what's actually in Pinecone"""
+    try:
+        # Get a sample vector to inspect metadata structure
+        dummy_query = [0.0] * 384
+        results = vectorizer.index.query(
+            vector=dummy_query,
+            top_k=5,
+            include_metadata=True
+        )
+
+        samples = []
+        for match in results.get('matches', []):
+            samples.append({
+                'id': match['id'],
+                'metadata': match.get('metadata', {}),
+                'score': match.get('score', 0)
+            })
+
+        return jsonify({
+            'provider': os.getenv('VECTOR_DB_PROVIDER', 'chromadb'),
+            'total_vectors': vectorizer.get_collection_count(),
+            'sample_vectors': samples
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
 def get_esp_links(esp_name):
     """Get links for a specific ESP with crawl status"""

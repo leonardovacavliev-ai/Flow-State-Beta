@@ -227,6 +227,8 @@ class PineconeAdapter(VectorAdapter):
             # We use a dummy query vector since we just want to filter by metadata
             dummy_query = [0.0] * 384  # Match embedding dimension
 
+            print(f"\n[url_exists] Checking: esp={esp_name}, url={url[:80]}...")
+
             results = self.index.query(
                 vector=dummy_query,
                 filter={
@@ -237,7 +239,30 @@ class PineconeAdapter(VectorAdapter):
                 include_metadata=True
             )
 
-            return len(results.get('matches', [])) > 0
+            matches = results.get('matches', [])
+            found = len(matches) > 0
+
+            if found:
+                print(f"  ✓ Found {len(matches)} match(es)")
+                if matches:
+                    print(f"  Sample metadata: {matches[0].get('metadata', {})}")
+            else:
+                print(f"  ✗ No matches found")
+                # Try a broader search to debug
+                debug_results = self.index.query(
+                    vector=dummy_query,
+                    filter={"esp": {"$eq": esp_name}},
+                    top_k=1,
+                    include_metadata=True
+                )
+                if debug_results.get('matches'):
+                    sample = debug_results['matches'][0].get('metadata', {})
+                    print(f"  Debug: Found ESP '{esp_name}' with different URL")
+                    print(f"  Sample URL in DB: {sample.get('source_url', 'N/A')[:80]}...")
+
+            return found
         except Exception as e:
             print(f"Error checking URL existence: {e}")
+            import traceback
+            traceback.print_exc()
             return False
