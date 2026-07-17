@@ -5,6 +5,7 @@ beautifulsoup4
 requests
 google-generativeai
 anthropic
+openai
 pinecone
 sentence-transformers
 psycopg2-binary

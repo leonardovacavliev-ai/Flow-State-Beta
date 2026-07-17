@@ -20,10 +20,11 @@ class ConfigManager:
         if not os.path.exists(self.config_file):
             default_config = {
                 'ai_model': {
-                    'provider': 'gemini',  # 'gemini' or 'claude'
-                    'model_name': 'gemini-flash-latest',  # or 'claude-3-5-sonnet-20241022'
+                    'provider': 'gemini',  # 'gemini', 'claude', or 'openai'
+                    'model_name': 'gemini-flash-latest',  # or 'claude-3-5-sonnet-20241022' or 'gpt-4o'
                     'api_key_set': bool(os.environ.get('GEMINI_API_KEY')),
-                    'claude_api_key_set': bool(os.environ.get('ANTHROPIC_API_KEY'))
+                    'claude_api_key_set': bool(os.environ.get('ANTHROPIC_API_KEY')),
+                    'openai_api_key_set': bool(os.environ.get('OPENAI_API_KEY'))
                 },
                 'system_prompt': """You are an email marketing specialist and a loyalty retention specialist at once.
 
@@ -157,6 +158,9 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
         elif provider == 'claude':
             env_var_name = 'ANTHROPIC_API_KEY'
             current_config['ai_model']['claude_api_key_set'] = True
+        elif provider == 'openai':
+            env_var_name = 'OPENAI_API_KEY'
+            current_config['ai_model']['openai_api_key_set'] = True
         else:
             return False
 

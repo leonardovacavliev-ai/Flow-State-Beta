@@ -1,6 +1,6 @@
 """
 AI Client Manager
-Handles communication with different AI providers (Gemini and Claude)
+Handles communication with different AI providers (Gemini, Claude, and OpenAI)
 """
 
 import os
@@ -18,6 +18,8 @@ class AIClient:
             self._configure_gemini()
         elif provider == 'claude':
             self._configure_claude()
+        elif provider == 'openai':
+            self._configure_openai()
 
     def _configure_gemini(self):
         """Configure Gemini AI"""
@@ -43,6 +45,21 @@ class AIClient:
                 self.configured = False
         else:
             print("Warning: ANTHROPIC_API_KEY not set")
+
+    def _configure_openai(self):
+        """Configure OpenAI"""
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if api_key:
+            try:
+                from openai import OpenAI
+                self.client = OpenAI(api_key=api_key)
+                self.configured = True
+                print(f"✓ OpenAI configured with model: {self.model_name}")
+            except ImportError:
+                print("Error: openai package not installed. Run: pip install openai")
+                self.configured = False
+        else:
+            print("Warning: OPENAI_API_KEY not set")
 
     def check_status(self) -> Dict[str, Any]:
         """Check if the AI service is configured and working"""
@@ -85,6 +102,24 @@ class AIClient:
                         'provider': 'claude',
                         'model': self.model_name
                     }
+            elif self.provider == 'openai':
+                # Try listing models to verify API key
+                try:
+                    # Simple check - if client is instantiated, API key is valid
+                    self.client.models.list()
+                    return {
+                        'status': 'ok',
+                        'message': 'OpenAI API is working',
+                        'provider': 'openai',
+                        'model': self.model_name
+                    }
+                except Exception as e:
+                    return {
+                        'status': 'error',
+                        'message': f'OpenAI API error: {str(e)}',
+                        'provider': 'openai',
+                        'model': self.model_name
+                    }
         except Exception as e:
             return {
                 'status': 'error',
@@ -118,6 +153,8 @@ class AIClient:
                 return self._generate_gemini(message, context, conversation_history)
             elif self.provider == 'claude':
                 return self._generate_claude(message, context, conversation_history)
+            elif self.provider == 'openai':
+                return self._generate_openai(message, context, conversation_history)
             else:
                 return f"Unknown provider: {self.provider}"
         except Exception as e:
@@ -194,6 +231,42 @@ class AIClient:
 
         return response.content[0].text
 
+    def _generate_openai(
+        self,
+        message: str,
+        context: str,
+        conversation_history: List[Dict[str, str]]
+    ) -> str:
+        """Generate response using OpenAI"""
+        # Build messages for OpenAI format
+        messages = [
+            {"role": "system", "content": self.system_prompt}
+        ]
+
+        # Add conversation history
+        for msg in conversation_history:
+            messages.append({
+                "role": msg['role'],
+                "content": msg['content']
+            })
+
+        # Add current message with context
+        user_message = f"{context}\n\n# User Question:\n{message}"
+        messages.append({
+            "role": "user",
+            "content": user_message
+        })
+
+        # Call OpenAI API
+        response = self.client.chat.completions.create(
+            model=self.model_name,
+            messages=messages,
+            max_tokens=4096,
+            temperature=0.7
+        )
+
+        return response.choices[0].message.content
+
     @staticmethod
     def get_available_models() -> Dict[str, List[Dict[str, str]]]:
         """Get list of available models for each provider"""
@@ -209,5 +282,12 @@ class AIClient:
                 {'name': 'claude-3-opus-20240229', 'display': 'Claude 3 Opus'},
                 {'name': 'claude-3-sonnet-20240229', 'display': 'Claude 3 Sonnet'},
                 {'name': 'claude-3-haiku-20240307', 'display': 'Claude 3 Haiku'}
+            ],
+            'openai': [
+                {'name': 'gpt-4o', 'display': 'GPT-4o (Optimized)'},
+                {'name': 'gpt-4o-mini', 'display': 'GPT-4o Mini (Fast & Cheap)'},
+                {'name': 'gpt-4-turbo', 'display': 'GPT-4 Turbo'},
+                {'name': 'gpt-4', 'display': 'GPT-4'},
+                {'name': 'gpt-3.5-turbo', 'display': 'GPT-3.5 Turbo'}
             ]
         }

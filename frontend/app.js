@@ -1475,7 +1475,7 @@ window.addEventListener('click', (e) => {
 
 // ========== GENERAL SETTINGS FUNCTIONS ==========
 
-let availableModels = { gemini: [], claude: [] };
+let availableModels = { gemini: [], claude: [], openai: [] };
 
 async function loadGeneralSettings() {
     await Promise.all([
@@ -1500,7 +1500,12 @@ async function loadAIModelConfig() {
         const status = data.status;
 
         // Update current status display
-        document.getElementById('currentProvider').textContent = currentConfig.provider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude';
+        const providerNames = {
+            'gemini': 'Google Gemini',
+            'claude': 'Anthropic Claude',
+            'openai': 'OpenAI'
+        };
+        document.getElementById('currentProvider').textContent = providerNames[currentConfig.provider] || currentConfig.provider;
         document.getElementById('currentModel').textContent = availableModels[currentConfig.provider]?.find(m => m.name === currentConfig.model_name)?.display || currentConfig.model_name;
 
         // Update status badge
@@ -1624,7 +1629,12 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
     const apiKey = document.getElementById('newApiKey').value.trim();
 
     // Show confirmation dialog with email input
-    const userEmail = prompt(`You are about to change the AI configuration to:\n\nProvider: ${provider === 'gemini' ? 'Google Gemini' : 'Anthropic Claude'}\nModel: ${availableModels[provider]?.find(m => m.name === modelName)?.display || modelName}${apiKey ? '\nAPI Key: [will be updated]' : ''}\n\nThis will affect all users immediately.\n\nEnter your email address to confirm:`);
+    const providerNames = {
+        'gemini': 'Google Gemini',
+        'claude': 'Anthropic Claude',
+        'openai': 'OpenAI'
+    };
+    const userEmail = prompt(`You are about to change the AI configuration to:\n\nProvider: ${providerNames[provider] || provider}\nModel: ${availableModels[provider]?.find(m => m.name === modelName)?.display || modelName}${apiKey ? '\nAPI Key: [will be updated]' : ''}\n\nThis will affect all users immediately.\n\nEnter your email address to confirm:`);
 
     if (!userEmail) {
         // User cancelled or didn't enter email
