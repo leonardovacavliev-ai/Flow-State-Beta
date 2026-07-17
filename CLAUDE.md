@@ -85,16 +85,18 @@ Response → Frontend
 
 ### Current Limitations for Cloud
 
-❌ **Stateful components**:
-- ChromaDB persistent client (local file storage)
-- SQLite database (single file, no concurrency)
-- In-memory conversation history (lost on restart)
-- Batch write queue (in-process threading)
+✅ **RESOLVED** (Phases 1-3):
+- ~~ChromaDB persistent client~~ → **Pinecone (cloud)**
+- ~~SQLite database~~ → **PostgreSQL (cloud)**
+- ~~In-memory conversation history~~ → **Redis (cloud)**
 
-❌ **Single-instance architecture**:
-- No horizontal scaling
-- File-based persistence (not cloud-native)
-- Local IP-to-country lookups (rate-limited)
+⚠️ **Remaining**:
+- Batch write queue (in-process threading) - minor, works with single instance
+- No authentication/multi-tenancy yet
+
+✅ **RESOLVED** (Phase 3):
+- ~~No horizontal scaling~~ → **Now supports multiple API instances**
+- ~~File-based persistence~~ → **Cloud-native (Pinecone + PostgreSQL + Redis)**
 
 ❌ **Security issues**:
 - Hardcoded admin password
@@ -226,16 +228,37 @@ This migration implements an **abstraction layer pattern** for analytics databas
 
 **To switch to PostgreSQL**: Change `.env` → `DATABASE_PROVIDER=postgres`
 
-**Next**: Choose Phase 3 direction (see options below).
+### ✅ COMPLETED: Session Store Abstraction Layer
 
-### Phase 2: Redis Session Store
-  
-- [ ] Set up Redis (ElastiCache/Memorystore)
-  - Store conversation history (session_id → messages)
-  - Add TTL (30 minutes default)
-  - Update [app.py](backend/app.py) to read/write Redis
+**See [PHASE_3_SESSION_STORE.md](PHASE_3_SESSION_STORE.md) for complete guide.**
 
-### Phase 2: Containerize Application
+This migration implements an **abstraction layer pattern** for session storage:
+- Supports both in-memory (local) and Redis (cloud) session storage
+- Allows switching providers via environment variables (no code changes)
+- Enables horizontal scaling (shared session data across API instances)
+- Automatic session expiration via Redis TTL
+
+#### Phase 3: Session Store Abstraction Layer ✅ COMPLETE
+- [x] Create `backend/adapters/session/` structure
+- [x] Implement `SessionAdapter` base interface
+- [x] Create `MemorySessionAdapter` (local dev)
+- [x] Create `RedisSessionAdapter` (cloud prod)
+- [x] Create `session_manager.py` factory function
+- [x] Update `app.py` to use session adapter
+- [x] Add `redis` to requirements.txt
+- [x] Update `.env` with session config vars
+- [x] Documentation
+
+**Your Session Setup**:
+- Local: `SESSION_PROVIDER=memory` (no Redis needed)
+- Cloud: `SESSION_PROVIDER=redis` (Railway auto-provides REDIS_URL)
+- Status: ✅ Ready to test and deploy
+
+**To switch to Redis**: Change `.env` → `SESSION_PROVIDER=redis`
+
+**Next**: Choose Phase 4 direction (Containerization OR Authentication).
+
+### Phase 4: Containerize Application
 - [ ] Create Dockerfile
   - Multi-stage build (dependencies + app)
   - No local databases in container
@@ -256,7 +279,7 @@ This migration implements an **abstraction layer pattern** for analytics databas
   - Vectorization worker: S3 upload event → chunk → embed → upsert vector DB
   - Admin UI: trigger crawls, view queue status, manage ESPs
 
-### Phase 3: Add Authentication & Multi-Tenancy
+### Phase 5: Add Authentication & Multi-Tenancy
 - [ ] Implement JWT authentication
   - Auth0/Clerk integration
   - Middleware to validate tokens
@@ -267,7 +290,7 @@ This migration implements an **abstraction layer pattern** for analytics databas
   - Namespace vector searches by tenant
   - Rate limiting per tenant
 
-### Phase 4: Frontend Migration
+### Phase 6: Frontend Migration
 - [ ] Build process (optional)
   - Vite or Create React App (if modernizing)
   - Or keep vanilla JS + minification
@@ -280,7 +303,7 @@ This migration implements an **abstraction layer pattern** for analytics databas
   - CORS configuration for production domain
   - API versioning (/api/v1/)
 
-### Phase 5: Production Hardening
+### Phase 7: Production Hardening
 - [ ] Secret management (Secrets Manager)
 - [ ] Monitoring & alerting
 - [ ] Log aggregation

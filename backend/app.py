@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from adapters.vector.vector_manager import get_vector_adapter
+from adapters.session.session_manager import get_session_adapter
 from crawler import crawl_and_save
 from analytics import (
     create_session, track_message, track_esp_selection,
@@ -27,6 +28,9 @@ DB_PATH = os.path.join(BASE_PATH, "backend/chroma_db")
 
 # Use factory to get vector adapter based on environment
 vectorizer = get_vector_adapter(persist_directory=DB_PATH)
+
+# Use factory to get session adapter based on environment
+session_adapter = get_session_adapter()
 
 # Admin password - from environment variable for security
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
@@ -93,15 +97,22 @@ def chat():
     data = request.json
     message = data.get('message', '')
     esp = data.get('esp', 'klaviyo')
-    conversation_history = data.get('history', [])
     session_id = data.get('session_id')
 
     if not message:
         return jsonify({'error': 'No message provided'}), 400
 
-    # Track user message
-    if session_id:
-        track_message(session_id, 'user', message, esp)
+    if not session_id:
+        return jsonify({'error': 'No session_id provided'}), 400
+
+    # Get conversation history from session store
+    conversation_history = session_adapter.get_conversation_history(session_id)
+
+    # Track user message in analytics
+    track_message(session_id, 'user', message, esp)
+
+    # Add user message to session history
+    session_adapter.add_message(session_id, 'user', message)
 
     # Search vector database for relevant context
     # Normalize ESP name for database lookup
@@ -157,9 +168,11 @@ def chat():
             conversation_history=conversation_history
         )
 
-        # Track assistant message
-        if session_id:
-            track_message(session_id, 'assistant', assistant_message, esp)
+        # Add assistant message to session history
+        session_adapter.add_message(session_id, 'assistant', assistant_message)
+
+        # Track assistant message in analytics
+        track_message(session_id, 'assistant', assistant_message, esp)
 
         return jsonify({
             'response': assistant_message,
