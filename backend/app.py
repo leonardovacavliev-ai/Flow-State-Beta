@@ -56,6 +56,30 @@ USE_DATABASE_ESP_ROUTES = True
 if USE_DATABASE_ESP_ROUTES:
     from app_admin_esp_routes import register_esp_admin_routes
     register_esp_admin_routes(app, BASE_PATH, vectorizer)
+    print("[DEBUG] ESP database routes registered successfully")
+
+# Debug endpoint to test ESP routes
+@app.route('/api/debug/esps', methods=['GET'])
+def debug_esps():
+    """Debug endpoint to verify ESP database connection"""
+    try:
+        from esp_manager import get_esp_manager
+        esp_mgr = get_esp_manager()
+        esps = esp_mgr.list_esps()
+        return jsonify({
+            'status': 'success',
+            'esp_count': len(esps),
+            'esps': [esp['name'] for esp in esps],
+            'database_provider': os.environ.get('DATABASE_PROVIDER', 'not set'),
+            'use_database_routes': USE_DATABASE_ESP_ROUTES
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e),
+            'database_provider': os.environ.get('DATABASE_PROVIDER', 'not set'),
+            'use_database_routes': USE_DATABASE_ESP_ROUTES
+        }), 500
 
 # Serve frontend
 FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
