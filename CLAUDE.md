@@ -256,9 +256,42 @@ This migration implements an **abstraction layer pattern** for session storage:
 
 **To switch to Redis**: Change `.env` → `SESSION_PROVIDER=redis`
 
-**Next**: Choose Phase 4 direction (Containerization OR Authentication).
+### ✅ COMPLETED: Database-Backed ESP Management
 
-### Phase 4: Containerize Application
+**See [PHASE_4_ESP_DATABASE.md](backend/PHASE_4_ESP_DATABASE.md) and [PHASE_4_QUICK_START.md](PHASE_4_QUICK_START.md) for complete guide.**
+
+**Problem Solved**: ESPs added via admin panel now persist across deployments (stored in PostgreSQL, not filesystem).
+
+This phase implements **PostgreSQL-based ESP persistence**:
+- ESPs and document URLs stored in database tables
+- Survives deployments (no more re-adding ESPs manually)
+- Crawl status tracking in database
+- Backward compatible with filesystem (crawler unchanged)
+
+#### Phase 4: ESP Database Management ✅ COMPLETE
+- [x] Create PostgreSQL schema (`esps` + `esp_documents` tables)
+- [x] Implement ESP manager module for database CRUD
+- [x] Create database-backed admin routes
+- [x] Update `app.py` to use database routes
+- [x] Migration script to move existing data
+- [x] Documentation
+
+**Implementation**:
+- Database: `esps` table (metadata), `esp_documents` table (URLs + status)
+- ESP Manager: `get_esp_manager()` singleton for CRUD operations
+- Admin Routes: All `/api/admin/esp/*` endpoints use PostgreSQL
+- Migration: `migrate_esps_to_db.py` script
+
+**Security Note**: Per your request, API keys remain in environment variables (NOT in database or admin UI).
+
+**Status**: ✅ Code complete and pushed to GitHub
+
+**Next Steps**:
+1. Apply schema to Railway PostgreSQL
+2. Run migration script
+3. Test: Add ESP → Redeploy → Verify persistence
+
+### Phase 5: Containerize Application
 - [ ] Create Dockerfile
   - Multi-stage build (dependencies + app)
   - No local databases in container
@@ -279,7 +312,7 @@ This migration implements an **abstraction layer pattern** for session storage:
   - Vectorization worker: S3 upload event → chunk → embed → upsert vector DB
   - Admin UI: trigger crawls, view queue status, manage ESPs
 
-### Phase 5: Add Authentication & Multi-Tenancy
+### Phase 6: Add Authentication & Multi-Tenancy
 - [ ] Implement JWT authentication
   - Auth0/Clerk integration
   - Middleware to validate tokens
@@ -290,7 +323,7 @@ This migration implements an **abstraction layer pattern** for session storage:
   - Namespace vector searches by tenant
   - Rate limiting per tenant
 
-### Phase 6: Frontend Migration
+### Phase 7: Frontend Migration
 - [ ] Build process (optional)
   - Vite or Create React App (if modernizing)
   - Or keep vanilla JS + minification
@@ -303,7 +336,7 @@ This migration implements an **abstraction layer pattern** for session storage:
   - CORS configuration for production domain
   - API versioning (/api/v1/)
 
-### Phase 7: Production Hardening
+### Phase 8: Production Hardening
 - [ ] Secret management (Secrets Manager)
 - [ ] Monitoring & alerting
 - [ ] Log aggregation
