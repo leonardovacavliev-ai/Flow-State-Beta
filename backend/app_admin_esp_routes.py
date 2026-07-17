@@ -3,25 +3,29 @@ Admin ESP Routes - Database-backed version
 
 These routes replace the filesystem-based ESP management in app.py
 Import these routes into app.py to enable database-backed ESP management.
+
+IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 """
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
 from crawler import crawl_and_save
-from adapters.vector.vector_manager import get_vector_adapter
 import os
-
-# Get singleton instances
-esp_mgr = get_esp_manager()
 
 
 def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     """Register all ESP admin routes with the Flask app."""
 
+    # Lazy initialization - only connect to database when route is actually called
+    def get_mgr():
+        """Get ESP manager instance (lazy initialization)."""
+        return get_esp_manager()
+
     @app.route('/api/admin/esps', methods=['GET'])
     def get_esps():
         """Get list of ESPs from database."""
         try:
+            esp_mgr = get_mgr()
             esps = esp_mgr.list_esps()
             return jsonify({'esps': esps})
         except Exception as e:
@@ -31,6 +35,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def get_esp_links(esp_name):
         """Get links for a specific ESP from database."""
         try:
+            esp_mgr = get_mgr()
             docs = esp_mgr.list_documents(esp_name)
 
             # Convert to frontend format
@@ -51,6 +56,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def add_esp_link(esp_name):
         """Add a new link to an ESP."""
         try:
+            esp_mgr = get_mgr()
             data = request.json
             url = data.get('url', '').strip()
 
@@ -74,6 +80,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def create_esp():
         """Create a new ESP."""
         try:
+            esp_mgr = get_mgr()
             data = request.json
             name = data.get('name', '').strip()
             display_name = data.get('display_name', '').strip()
@@ -106,6 +113,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def crawl_esp_selected(esp_name):
         """Crawl selected URLs for an ESP and update database."""
         try:
+            esp_mgr = get_mgr()
             data = request.json
             urls = data.get('urls', [])
 
@@ -124,6 +132,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 try:
                     # Get document from database
                     esp = esp_mgr.get_esp_by_name(esp_name)
+                    if not esp:
+                        results['failed'].append({
+                            'url': url,
+                            'error': f"ESP '{esp_name}' not found"
+                        })
+                        continue
+
                     doc = esp_mgr.get_document_by_url(esp['id'], url)
 
                     if not doc:
@@ -142,20 +157,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         content_hash = esp_mgr.calculate_content_hash(content)
 
                         # Vectorize the content
-                        vector_ids = []
                         try:
-                            # Delete old vectors if they exist
-                            if doc.get('vector_ids'):
-                                # TODO: Implement vector deletion in vector adapter
-                                pass
-
                             # Refresh ESP in vector DB (will pick up the new file)
                             vectorizer.refresh_esp(esp_name)
-
-                            # Note: We don't have direct access to vector IDs from refresh_esp
-                            # This is a limitation of the current vectorizer design
-                            # For now, we'll mark as completed without storing vector IDs
-
                         except Exception as ve:
                             print(f"Vectorization warning: {ve}")
 
@@ -164,7 +168,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             doc['id'],
                             status='completed',
                             content_hash=content_hash,
-                            vector_ids=None  # Will add in future when vectorizer returns IDs
+                            vector_ids=None
                         )
 
                         results['success'].append({
@@ -210,6 +214,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
         try:
+            esp_mgr = get_mgr()
             data = request.json
             urls = data.get('urls', [])
 
@@ -218,9 +223,6 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
             # Delete from database
             deleted_count = esp_mgr.delete_documents_by_urls(esp_name, urls)
-
-            # Note: Files in docs/ folder are not deleted for safety
-            # Vectorizer will handle them on next refresh
 
             return jsonify({
                 'success': True,
@@ -235,6 +237,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def get_esp_stats(esp_name):
         """Get statistics for an ESP."""
         try:
+            esp_mgr = get_mgr()
             stats = esp_mgr.get_esp_stats(esp_name)
             if not stats:
                 return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
