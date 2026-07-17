@@ -311,371 +311,373 @@ def debug_pinecone_sample():
             'traceback': traceback.format_exc()
         }), 500
 
-@app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
-def get_esp_links(esp_name):
-    """Get links for a specific ESP with crawl status"""
-    csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
-    metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
-    print(f"\n=== get_esp_links called for: {esp_name} ===")
-    print(f"CSV path: {csv_path}")
-    print(f"CSV exists: {os.path.exists(csv_path)}")
-
-    # Get all links from CSV
-    csv_links = []
-    try:
-        with open(csv_path, 'r') as f:
-            lines = f.readlines()
-
-        # Normalize ESP name for comparison (handle "Other/Webhook" -> "other")
-        esp_normalized = esp_name.lower().replace('_', ' ').replace('/', ' ').split()[0]
-        print(f"Normalized ESP name: {esp_normalized}")
-        in_section = False
-
-        for line in lines:
-            line_stripped = line.strip()
-            line_lower = line_stripped.lower()
-
-            # Check if this line is a section header for our ESP
-            if 'integration urls' in line_lower or 'knowledge urls' in line_lower:
-                # Extract ESP name from header (e.g., "Klaviyo Integration URLs" -> "klaviyo")
-                header_esp = line_lower.split()[0]
-                print(f"Found header: '{line_stripped}' -> ESP: '{header_esp}'")
-                if header_esp == esp_normalized or (esp_name.lower() == 'global' and 'knowledge' in line_lower):
-                    in_section = True
-                    print(f"  ✓ Matched! in_section=True")
-                    continue
-                else:
-                    # Switched to a different ESP section
-                    if in_section:
-                        print(f"  Switching to different ESP, stopping")
-                        break
-                    in_section = False
-            elif in_section and not line_stripped:
-                # Empty lines are OK within a section
-                continue
-            elif in_section and (line_stripped.startswith('http') or line_stripped.startswith('local://')):
-                csv_links.append(line_stripped)
-                print(f"  Added URL: {line_stripped[:60]}...")
-
-        print(f"Total CSV links found: {len(csv_links)}")
-    except Exception as e:
-        print(f"Error reading CSV: {e}")
-        import traceback
-        traceback.print_exc()
-
-    # Check actual vectorization status from vector DB
-    links_with_status = []
-    seen = set()
-    for url in csv_links:
-        if url not in seen:
-            seen.add(url)
-
-            # Check if URL actually exists in vector database
-            try:
-                url_vectorized = vectorizer.url_exists(url, esp_name.lower())
-                status = 'crawled' if url_vectorized else 'pending'
-                print(f"  Status for {url[:60]}...: {status} (vectorized={url_vectorized})")
-            except Exception as e:
-                print(f"  ⚠️ Error checking URL {url[:60]}...: {e}")
-                import traceback
-                traceback.print_exc()
-                status = 'pending'  # Default to pending on error (safer than 'checking')
-
-            links_with_status.append({
-                'url': url,
-                'status': status
-            })
-
-    return jsonify({'links': links_with_status})
-
-@app.route('/api/admin/esp/<esp_name>/add-link', methods=['POST'])
-def add_esp_link(esp_name):
-    """Add a new link to an ESP"""
-    data = request.json
-    password = data.get('password', '')
-    url = data.get('url', '')
-
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
-
-    if not url:
-        return jsonify({'error': 'No URL provided'}), 400
-
-    try:
-        # Read CSV
+    # Additional ESP admin routes (filesystem-based)
+    @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
+    def get_esp_links(esp_name):
+        """Get links for a specific ESP with crawl status"""
         csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
+        metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
-        with open(csv_path, 'r') as f:
-            content = f.read()
+        print(f"\n=== get_esp_links called for: {esp_name} ===")
+        print(f"CSV path: {csv_path}")
+        print(f"CSV exists: {os.path.exists(csv_path)}")
 
-        # Find the ESP section and add the URL
-        lines = content.split('\n')
-        esp_section_found = False
-        insert_index = -1
+        # Get all links from CSV
+        csv_links = []
+        try:
+            with open(csv_path, 'r') as f:
+                lines = f.readlines()
 
-        # Normalize esp_name for matching
-        esp_normalized = esp_name.lower().replace('_', ' ')
+            # Normalize ESP name for comparison (handle "Other/Webhook" -> "other")
+            esp_normalized = esp_name.lower().replace('_', ' ').replace('/', ' ').split()[0]
+            print(f"Normalized ESP name: {esp_normalized}")
+            in_section = False
 
-        for i, line in enumerate(lines):
-            if 'integration urls' in line.lower() and esp_normalized in line.lower():
-                esp_section_found = True
-                # Find the next empty line or next section
-                for j in range(i + 1, len(lines)):
-                    if lines[j].strip() == '' or 'integration urls' in lines[j].lower():
-                        insert_index = j
-                        break
-                if insert_index == -1:
-                    insert_index = len(lines)
-                break
+            for line in lines:
+                line_stripped = line.strip()
+                line_lower = line_stripped.lower()
 
-        if esp_section_found:
-            lines.insert(insert_index, url)
+                # Check if this line is a section header for our ESP
+                if 'integration urls' in line_lower or 'knowledge urls' in line_lower:
+                    # Extract ESP name from header (e.g., "Klaviyo Integration URLs" -> "klaviyo")
+                    header_esp = line_lower.split()[0]
+                    print(f"Found header: '{line_stripped}' -> ESP: '{header_esp}'")
+                    if header_esp == esp_normalized or (esp_name.lower() == 'global' and 'knowledge' in line_lower):
+                        in_section = True
+                        print(f"  ✓ Matched! in_section=True")
+                        continue
+                    else:
+                        # Switched to a different ESP section
+                        if in_section:
+                            print(f"  Switching to different ESP, stopping")
+                            break
+                        in_section = False
+                elif in_section and not line_stripped:
+                    # Empty lines are OK within a section
+                    continue
+                elif in_section and (line_stripped.startswith('http') or line_stripped.startswith('local://')):
+                    csv_links.append(line_stripped)
+                    print(f"  Added URL: {line_stripped[:60]}...")
 
-            # Write back to CSV
-            with open(csv_path, 'w') as f:
-                f.write('\n'.join(lines))
+            print(f"Total CSV links found: {len(csv_links)}")
+        except Exception as e:
+            print(f"Error reading CSV: {e}")
+            import traceback
+            traceback.print_exc()
 
-            return jsonify({'success': True})
-        else:
-            return jsonify({'error': 'ESP section not found in CSV'}), 404
+        # Check actual vectorization status from vector DB
+        links_with_status = []
+        seen = set()
+        for url in csv_links:
+            if url not in seen:
+                seen.add(url)
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+                # Check if URL actually exists in vector database
+                try:
+                    url_vectorized = vectorizer.url_exists(url, esp_name.lower())
+                    status = 'crawled' if url_vectorized else 'pending'
+                    print(f"  Status for {url[:60]}...: {status} (vectorized={url_vectorized})")
+                except Exception as e:
+                    print(f"  ⚠️ Error checking URL {url[:60]}...: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    status = 'pending'  # Default to pending on error (safer than 'checking')
 
-@app.route('/api/admin/esp/create', methods=['POST'])
-def create_esp():
-    """Create a new ESP directory"""
-    data = request.json
-    password = data.get('password', '')
-    esp_name = data.get('name', '').lower()
-
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
-
-    if not esp_name:
-        return jsonify({'error': 'No ESP name provided'}), 400
-
-    # Create directory
-    esp_path = os.path.join(BASE_PATH, 'docs', esp_name)
-    os.makedirs(esp_path, exist_ok=True)
-
-    # Update CSV
-    csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
-
-    with open(csv_path, 'a', newline='') as f:
-        f.write(f'\n\n{esp_name.title()} Integration URLs\n')
-
-    return jsonify({'success': True})
-
-@app.route('/api/admin/esp/<esp_name>/crawl-selected', methods=['POST'])
-def crawl_selected_links(esp_name):
-    """Crawl selected links for a specific ESP"""
-    data = request.json
-    password = data.get('password', '')
-    urls = data.get('urls', [])
-
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
-
-    if not urls:
-        return jsonify({'error': 'No URLs provided'}), 400
-
-    try:
-        from crawler import extract_main_content
-        from urllib.parse import urlparse
-        import json
-        import time
-
-        docs_path = os.path.join(BASE_PATH, 'docs')
-        esp_folder = os.path.join(docs_path, esp_name.lower())
-        os.makedirs(esp_folder, exist_ok=True)
-
-        results = []
-        for url in urls:
-            print(f"Crawling {url}...")
-            content = extract_main_content(url)
-
-            if content:
-                # Generate filename from URL
-                parsed = urlparse(url)
-                path_parts = parsed.path.strip('/').split('/')
-                filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-                filename = filename.replace('.html', '').replace('.htm', '')
-                if not filename:
-                    filename = 'index'
-                filename = f"{filename}.txt"
-
-                # Save to folder
-                filepath = os.path.join(esp_folder, filename)
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    f.write(f"Source URL: {url}\n\n")
-                    f.write(content)
-
-                results.append({
+                links_with_status.append({
                     'url': url,
-                    'filename': filename,
-                    'filepath': filepath
+                    'status': status
                 })
 
-                print(f"  Saved to {filepath}")
+        return jsonify({'links': links_with_status})
 
-            time.sleep(1)
+    @app.route('/api/admin/esp/<esp_name>/add-link', methods=['POST'])
+    def add_esp_link(esp_name):
+        """Add a new link to an ESP"""
+        data = request.json
+        password = data.get('password', '')
+        url = data.get('url', '')
 
-        # Update metadata
-        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
-        metadata = {}
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': 'Invalid password'}), 403
 
-        if esp_name.lower() not in metadata:
-            metadata[esp_name.lower()] = []
+        if not url:
+            return jsonify({'error': 'No URL provided'}), 400
 
-        # Remove old entries for these URLs and add new ones
-        existing_urls = {doc['url'] for doc in metadata[esp_name.lower()]}
-        metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] not in urls]
-        metadata[esp_name.lower()].extend(results)
+        try:
+            # Read CSV
+            csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
 
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2)
+            with open(csv_path, 'r') as f:
+                content = f.read()
 
-        # Re-vectorize this ESP
-        vectorizer.refresh_esp(esp_name.lower(), docs_path)
+            # Find the ESP section and add the URL
+            lines = content.split('\n')
+            esp_section_found = False
+            insert_index = -1
 
-        return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
+            # Normalize esp_name for matching
+            esp_normalized = esp_name.lower().replace('_', ' ')
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+            for i, line in enumerate(lines):
+                if 'integration urls' in line.lower() and esp_normalized in line.lower():
+                    esp_section_found = True
+                    # Find the next empty line or next section
+                    for j in range(i + 1, len(lines)):
+                        if lines[j].strip() == '' or 'integration urls' in lines[j].lower():
+                            insert_index = j
+                            break
+                    if insert_index == -1:
+                        insert_index = len(lines)
+                    break
 
-@app.route('/api/admin/esp/<esp_name>/paste-content', methods=['POST'])
-def paste_content(esp_name):
-    """Manually add content for a link that can't be crawled"""
-    data = request.json
-    password = data.get('password', '')
-    url = data.get('url', '')
-    content = data.get('content', '')
+            if esp_section_found:
+                lines.insert(insert_index, url)
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+                # Write back to CSV
+                with open(csv_path, 'w') as f:
+                    f.write('\n'.join(lines))
 
-    if not url or not content:
-        return jsonify({'error': 'URL and content are required'}), 400
+                return jsonify({'success': True})
+            else:
+                return jsonify({'error': 'ESP section not found in CSV'}), 404
 
-    try:
-        from urllib.parse import urlparse
-        import json
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
-        docs_path = os.path.join(BASE_PATH, 'docs')
-        esp_folder = os.path.join(docs_path, esp_name.lower())
-        os.makedirs(esp_folder, exist_ok=True)
+    @app.route('/api/admin/esp/create', methods=['POST'])
+    def create_esp():
+        """Create a new ESP directory"""
+        data = request.json
+        password = data.get('password', '')
+        esp_name = data.get('name', '').lower()
 
-        # Generate filename from URL
-        parsed = urlparse(url)
-        path_parts = parsed.path.strip('/').split('/')
-        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-        filename = filename.replace('.html', '').replace('.htm', '')
-        if not filename:
-            filename = 'index'
-        filename = f"{filename}.txt"
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': 'Invalid password'}), 403
 
-        # Save content to file
-        filepath = os.path.join(esp_folder, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(f"Source URL: {url}\n\n")
-            f.write(content)
+        if not esp_name:
+            return jsonify({'error': 'No ESP name provided'}), 400
 
-        # Update metadata
-        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
-        metadata = {}
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
+        # Create directory
+        esp_path = os.path.join(BASE_PATH, 'docs', esp_name)
+        os.makedirs(esp_path, exist_ok=True)
 
-        if esp_name.lower() not in metadata:
-            metadata[esp_name.lower()] = []
-
-        # Remove old entry for this URL if exists
-        metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] != url]
-
-        # Add new entry
-        metadata[esp_name.lower()].append({
-            'url': url,
-            'filename': filename,
-            'filepath': filepath
-        })
-
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f, indent=2)
-
-        # Re-vectorize this ESP to include the new content
-        vectorizer.refresh_esp(esp_name.lower(), docs_path)
-
-        return jsonify({
-            'success': True,
-            'message': 'Content saved and vectorized successfully',
-            'filename': filename
-        })
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/esp/<esp_name>/delete-links', methods=['POST'])
-def delete_esp_links(esp_name):
-    """Delete selected links for a specific ESP"""
-    data = request.json
-    password = data.get('password', '')
-    urls = data.get('urls', [])
-
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
-
-    if not urls:
-        return jsonify({'error': 'No URLs provided'}), 400
-
-    try:
-        import json
-
-        # Remove from CSV
+        # Update CSV
         csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
-        with open(csv_path, 'r') as f:
-            lines = f.readlines()
 
-        new_lines = [line for line in lines if line.strip() not in urls]
+        with open(csv_path, 'a', newline='') as f:
+            f.write(f'\n\n{esp_name.title()} Integration URLs\n')
 
-        with open(csv_path, 'w') as f:
-            f.writelines(new_lines)
+        return jsonify({'success': True})
 
-        # Remove from metadata
-        metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
+    @app.route('/api/admin/esp/<esp_name>/crawl-selected', methods=['POST'])
+    def crawl_selected_links(esp_name):
+        """Crawl selected links for a specific ESP"""
+        data = request.json
+        password = data.get('password', '')
+        urls = data.get('urls', [])
 
-            if esp_name.lower() in metadata:
-                # Remove entries and delete files
-                docs_to_remove = [doc for doc in metadata[esp_name.lower()] if doc['url'] in urls]
-                for doc in docs_to_remove:
-                    # Delete file if exists
-                    if os.path.exists(doc['filepath']):
-                        os.remove(doc['filepath'])
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': 'Invalid password'}), 403
 
-                # Update metadata
-                metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] not in urls]
+        if not urls:
+            return jsonify({'error': 'No URLs provided'}), 400
 
-                with open(metadata_path, 'w') as f:
-                    json.dump(metadata, f, indent=2)
+        try:
+            from crawler import extract_main_content
+            from urllib.parse import urlparse
+            import json
+            import time
 
-        # Refresh vector database for this ESP
-        docs_path = os.path.join(BASE_PATH, 'docs')
-        vectorizer.refresh_esp(esp_name.lower(), docs_path)
+            docs_path = os.path.join(BASE_PATH, 'docs')
+            esp_folder = os.path.join(docs_path, esp_name.lower())
+            os.makedirs(esp_folder, exist_ok=True)
 
-        return jsonify({'success': True, 'message': f'Deleted {len(urls)} links'})
+            results = []
+            for url in urls:
+                print(f"Crawling {url}...")
+                content = extract_main_content(url)
 
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+                if content:
+                    # Generate filename from URL
+                    parsed = urlparse(url)
+                    path_parts = parsed.path.strip('/').split('/')
+                    filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+                    filename = filename.replace('.html', '').replace('.htm', '')
+                    if not filename:
+                        filename = 'index'
+                    filename = f"{filename}.txt"
 
-# ========== END OF OLD FILESYSTEM-BASED ESP ROUTES ==========
+                    # Save to folder
+                    filepath = os.path.join(esp_folder, filename)
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        f.write(f"Source URL: {url}\n\n")
+                        f.write(content)
+
+                    results.append({
+                        'url': url,
+                        'filename': filename,
+                        'filepath': filepath
+                    })
+
+                    print(f"  Saved to {filepath}")
+
+                time.sleep(1)
+
+            # Update metadata
+            metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+            metadata = {}
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+
+            if esp_name.lower() not in metadata:
+                metadata[esp_name.lower()] = []
+
+            # Remove old entries for these URLs and add new ones
+            existing_urls = {doc['url'] for doc in metadata[esp_name.lower()]}
+            metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] not in urls]
+            metadata[esp_name.lower()].extend(results)
+
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
+            # Re-vectorize this ESP
+            vectorizer.refresh_esp(esp_name.lower(), docs_path)
+
+            return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/admin/esp/<esp_name>/paste-content', methods=['POST'])
+    def paste_content(esp_name):
+        """Manually add content for a link that can't be crawled"""
+        data = request.json
+        password = data.get('password', '')
+        url = data.get('url', '')
+        content = data.get('content', '')
+
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': 'Invalid password'}), 403
+
+        if not url or not content:
+            return jsonify({'error': 'URL and content are required'}), 400
+
+        try:
+            from urllib.parse import urlparse
+            import json
+
+            docs_path = os.path.join(BASE_PATH, 'docs')
+            esp_folder = os.path.join(docs_path, esp_name.lower())
+            os.makedirs(esp_folder, exist_ok=True)
+
+            # Generate filename from URL
+            parsed = urlparse(url)
+            path_parts = parsed.path.strip('/').split('/')
+            filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+            filename = filename.replace('.html', '').replace('.htm', '')
+            if not filename:
+                filename = 'index'
+            filename = f"{filename}.txt"
+
+            # Save content to file
+            filepath = os.path.join(esp_folder, filename)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(f"Source URL: {url}\n\n")
+                f.write(content)
+
+            # Update metadata
+            metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+            metadata = {}
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+
+            if esp_name.lower() not in metadata:
+                metadata[esp_name.lower()] = []
+
+            # Remove old entry for this URL if exists
+            metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] != url]
+
+            # Add new entry
+            metadata[esp_name.lower()].append({
+                'url': url,
+                'filename': filename,
+                'filepath': filepath
+            })
+
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
+            # Re-vectorize this ESP to include the new content
+            vectorizer.refresh_esp(esp_name.lower(), docs_path)
+
+            return jsonify({
+                'success': True,
+                'message': 'Content saved and vectorized successfully',
+                'filename': filename
+            })
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/admin/esp/<esp_name>/delete-links', methods=['POST'])
+    def delete_esp_links(esp_name):
+        """Delete selected links for a specific ESP"""
+        data = request.json
+        password = data.get('password', '')
+        urls = data.get('urls', [])
+
+        if password != ADMIN_PASSWORD:
+            return jsonify({'error': 'Invalid password'}), 403
+
+        if not urls:
+            return jsonify({'error': 'No URLs provided'}), 400
+
+        try:
+            import json
+
+            # Remove from CSV
+            csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
+            with open(csv_path, 'r') as f:
+                lines = f.readlines()
+
+            new_lines = [line for line in lines if line.strip() not in urls]
+
+            with open(csv_path, 'w') as f:
+                f.writelines(new_lines)
+
+            # Remove from metadata
+            metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
+            if os.path.exists(metadata_path):
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+
+                if esp_name.lower() in metadata:
+                    # Remove entries and delete files
+                    docs_to_remove = [doc for doc in metadata[esp_name.lower()] if doc['url'] in urls]
+                    for doc in docs_to_remove:
+                        # Delete file if exists
+                        if os.path.exists(doc['filepath']):
+                            os.remove(doc['filepath'])
+
+                    # Update metadata
+                    metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] not in urls]
+
+                    with open(metadata_path, 'w') as f:
+                        json.dump(metadata, f, indent=2)
+
+            # Refresh vector database for this ESP
+            docs_path = os.path.join(BASE_PATH, 'docs')
+            vectorizer.refresh_esp(esp_name.lower(), docs_path)
+
+            return jsonify({'success': True, 'message': f'Deleted {len(urls)} links'})
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    # ========== END OF OLD FILESYSTEM-BASED ESP ROUTES ==========
 
 @app.route('/api/admin/refresh', methods=['POST'])
 def refresh_all():
