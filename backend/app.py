@@ -49,6 +49,11 @@ ai_client = AIClient(
     system_prompt=system_prompt
 )
 
+# Register database-backed ESP admin routes (Phase 4)
+# Comment out to revert to filesystem-based routes
+from app_admin_esp_routes import register_esp_admin_routes
+register_esp_admin_routes(app, BASE_PATH, vectorizer)
+
 # Serve frontend
 FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
 
