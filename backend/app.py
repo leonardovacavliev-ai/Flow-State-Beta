@@ -50,9 +50,12 @@ ai_client = AIClient(
 )
 
 # Register database-backed ESP admin routes (Phase 4)
-# Comment out to revert to filesystem-based routes
-from app_admin_esp_routes import register_esp_admin_routes
-register_esp_admin_routes(app, BASE_PATH, vectorizer)
+# Set to False to revert to filesystem-based routes
+USE_DATABASE_ESP_ROUTES = True
+
+if USE_DATABASE_ESP_ROUTES:
+    from app_admin_esp_routes import register_esp_admin_routes
+    register_esp_admin_routes(app, BASE_PATH, vectorizer)
 
 # Serve frontend
 FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
@@ -236,9 +239,13 @@ def verify_admin():
 
     return jsonify({'valid': password == ADMIN_PASSWORD})
 
-@app.route('/api/admin/esps', methods=['GET'])
-def get_esps():
-    """Get list of ESPs"""
+# ========== OLD FILESYSTEM-BASED ESP ROUTES (Phase 4: Disabled by default) ==========
+# These routes are replaced by database-backed routes in app_admin_esp_routes.py
+# Set USE_DATABASE_ESP_ROUTES = False above to re-enable these routes
+if not USE_DATABASE_ESP_ROUTES:
+    @app.route('/api/admin/esps', methods=['GET'])
+    def get_esps():
+        """Get list of ESPs"""
     docs_path = os.path.join(BASE_PATH, 'docs')
     esps = []
 
@@ -667,6 +674,8 @@ def delete_esp_links(esp_name):
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ========== END OF OLD FILESYSTEM-BASED ESP ROUTES ==========
 
 @app.route('/api/admin/refresh', methods=['POST'])
 def refresh_all():
