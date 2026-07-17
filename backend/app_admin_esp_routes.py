@@ -39,10 +39,12 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             docs = esp_mgr.list_documents(esp_name)
 
             # Convert to frontend format
+            # Map database crawl_status to frontend status field
             links = [{
                 'url': doc['url'],
                 'filename': doc['filename'],
-                'crawl_status': doc['crawl_status'],
+                'status': 'crawled' if doc['crawl_status'] == 'completed' else 'pending',  # Frontend expects 'status'
+                'crawl_status': doc['crawl_status'],  # Keep for backward compat
                 'last_crawled_at': doc['last_crawled_at'],
                 'error_message': doc.get('error_message'),
                 'crawled': doc['crawl_status'] == 'completed'
