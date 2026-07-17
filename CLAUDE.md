@@ -14,9 +14,9 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 
 ### Tech Stack
 - **Backend**: Flask REST API (Python)
-- **AI**: Google Gemini Flash / Claude 3.5 Sonnet (configurable)
-- **Vector Database**: ChromaDB (local persistent storage)
-- **Analytics Database**: SQLite (local file)
+- **AI**: OpenAI GPT-4o (default) / Google Gemini Flash / Claude 3.5 Sonnet (configurable)
+- **Vector Database**: ChromaDB (local) / Pinecone (cloud)
+- **Analytics Database**: SQLite (local) / PostgreSQL (cloud)
 - **Frontend**: Vanilla JavaScript (served via Python HTTP server)
 
 ### Key Components

@@ -3,6 +3,8 @@
 ## Overview
 Successfully integrated OpenAI API support into the ESP Loyalty Helper app, enabling administrators to switch between **Gemini**, **Claude**, and **OpenAI** models via the Admin UI.
 
+**🎯 Default Provider**: OpenAI with `gpt-4o` model (optimized for production use)
+
 ---
 
 ## Changes Made

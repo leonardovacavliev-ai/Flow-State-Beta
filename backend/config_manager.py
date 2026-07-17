@@ -20,8 +20,8 @@ class ConfigManager:
         if not os.path.exists(self.config_file):
             default_config = {
                 'ai_model': {
-                    'provider': 'gemini',  # 'gemini', 'claude', or 'openai'
-                    'model_name': 'gemini-flash-latest',  # or 'claude-3-5-sonnet-20241022' or 'gpt-4o'
+                    'provider': 'openai',  # 'gemini', 'claude', or 'openai'
+                    'model_name': 'gpt-4o',  # or 'gemini-flash-latest' or 'claude-3-5-sonnet-20241022'
                     'api_key_set': bool(os.environ.get('GEMINI_API_KEY')),
                     'claude_api_key_set': bool(os.environ.get('ANTHROPIC_API_KEY')),
                     'openai_api_key_set': bool(os.environ.get('OPENAI_API_KEY'))
