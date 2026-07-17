@@ -6,10 +6,14 @@ Automatically selects the correct adapter based on DATABASE_PROVIDER environment
 
 import os
 from typing import Optional
+from dotenv import load_dotenv
 
 from .base import DatabaseAdapter
 from .sqlite_adapter import SQLiteAdapter
 from .postgres_adapter import PostgresAdapter
+
+# Load environment variables
+load_dotenv()
 
 
 def get_database_adapter(provider: Optional[str] = None) -> DatabaseAdapter:

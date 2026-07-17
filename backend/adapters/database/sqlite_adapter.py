@@ -141,6 +141,33 @@ class SQLiteAdapter(DatabaseAdapter):
         """Close database connection (no persistent connection for SQLite)."""
         pass
 
+    def execute_query(self, query: str, params: tuple = None, fetch: bool = False):
+        """
+        Execute a raw SQL query (for ESP manager).
+
+        Args:
+            query: SQL query string
+            params: Query parameters tuple
+            fetch: If True, return results; if False, commit and return None
+
+        Returns:
+            List of tuples if fetch=True, None otherwise
+        """
+        # Convert PostgreSQL placeholders (%s) to SQLite placeholders (?)
+        query = query.replace('%s', '?')
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params or ())
+
+            if fetch:
+                result = cursor.fetchall()
+                # Convert Row objects to tuples for consistency with PostgreSQL
+                return [tuple(row) for row in result]
+            else:
+                conn.commit()
+                return None
+
     def _get_country_from_ip(self, ip_address: str) -> str:
         """Get country from IP address using ipapi.co."""
         if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:

@@ -159,6 +159,35 @@ class PostgresAdapter(DatabaseAdapter):
             self._connection_pool.closeall()
             self._connection_pool = None
 
+    def execute_query(self, query: str, params: tuple = None, fetch: bool = False):
+        """
+        Execute a raw SQL query (for ESP manager).
+
+        Args:
+            query: SQL query string
+            params: Query parameters tuple
+            fetch: If True, return results; if False, commit and return None
+
+        Returns:
+            List of tuples if fetch=True, None otherwise
+        """
+        conn = self._get_connection()
+        try:
+            cursor = conn.cursor()
+            cursor.execute(query, params or ())
+
+            if fetch:
+                result = cursor.fetchall()
+                # Commit even when fetching (for INSERT...RETURNING, UPDATE...RETURNING)
+                conn.commit()
+                return result
+            else:
+                conn.commit()
+                return None
+        finally:
+            cursor.close()
+            self._put_connection(conn)
+
     def _get_country_from_ip(self, ip_address: str) -> str:
         """Get country from IP address using ipapi.co."""
         if not ip_address or ip_address in ['127.0.0.1', 'localhost', '::1']:
