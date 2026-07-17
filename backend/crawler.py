@@ -6,7 +6,15 @@ import time
 from urllib.parse import urlparse
 
 def extract_main_content(url):
-    """Fetch URL and extract main text content"""
+    """
+    Fetch URL and extract main text content with preserved structure
+
+    Improvements over old version:
+    - Preserves HTML headers as markdown headers (h1 -> ##, h2 -> ###, etc.)
+    - Converts lists to markdown format (- Item)
+    - Keeps code blocks intact
+    - Maintains document hierarchy for better chunking
+    """
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -22,15 +30,69 @@ def extract_main_content(url):
 
         # Try to find main content area
         main_content = soup.find('main') or soup.find('article') or soup.find('div', class_=['content', 'main-content', 'article-body'])
+        if not main_content:
+            main_content = soup
 
-        if main_content:
-            text = main_content.get_text(separator='\n', strip=True)
-        else:
-            text = soup.get_text(separator='\n', strip=True)
+        # Convert HTML structure to markdown-like text
+        # This preserves document structure for better chunking
 
-        # Clean up excessive whitespace
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        cleaned_text = '\n'.join(lines)
+        # 1. Convert headers to markdown format
+        for tag in main_content.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
+            level = int(tag.name[1])
+            # Use ## for h1, ### for h2, etc. (avoid single # which might be confused with other text)
+            markdown_header = '\n\n' + ('#' * (level + 1)) + ' ' + tag.get_text(strip=True) + '\n\n'
+            tag.replace_with(markdown_header)
+
+        # 2. Convert unordered lists to markdown
+        for ul in main_content.find_all('ul'):
+            for li in ul.find_all('li', recursive=False):
+                li_text = li.get_text(strip=True)
+                li.replace_with(f'\n- {li_text}')
+            ul.unwrap()  # Remove <ul> tag but keep content
+
+        # 3. Convert ordered lists to markdown
+        for ol in main_content.find_all('ol'):
+            for idx, li in enumerate(ol.find_all('li', recursive=False), 1):
+                li_text = li.get_text(strip=True)
+                li.replace_with(f'\n{idx}. {li_text}')
+            ol.unwrap()  # Remove <ol> tag but keep content
+
+        # 4. Preserve code blocks
+        for code in main_content.find_all(['code', 'pre']):
+            code_text = code.get_text(strip=False)
+            # Wrap in markdown code block markers
+            code.replace_with(f'\n```\n{code_text}\n```\n')
+
+        # 5. Add double line breaks after paragraphs for clear separation
+        for p in main_content.find_all('p'):
+            p_text = p.get_text(strip=True)
+            p.replace_with(f'{p_text}\n\n')
+
+        # 6. Extract final text
+        text = main_content.get_text(separator='', strip=False)
+
+        # Clean up excessive whitespace while preserving structure
+        # Remove lines with only whitespace
+        lines = []
+        for line in text.split('\n'):
+            stripped = line.strip()
+            if stripped:
+                lines.append(stripped)
+            elif lines and lines[-1]:  # Preserve blank lines between content
+                lines.append('')
+
+        # Remove excessive consecutive blank lines (max 1)
+        cleaned_lines = []
+        prev_blank = False
+        for line in lines:
+            if line:
+                cleaned_lines.append(line)
+                prev_blank = False
+            elif not prev_blank:
+                cleaned_lines.append(line)
+                prev_blank = True
+
+        cleaned_text = '\n'.join(cleaned_lines)
 
         return cleaned_text
 

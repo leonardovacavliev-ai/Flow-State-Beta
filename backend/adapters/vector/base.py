@@ -84,24 +84,85 @@ class VectorAdapter(ABC):
         """
         pass
 
-    def chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
+    def chunk_text(self, text: str, chunk_size: int = 300, overlap: int = 100) -> List[str]:
         """
-        Split text into overlapping chunks (common implementation)
+        Split text into semantically meaningful chunks (improved implementation)
+
+        Strategy:
+        - Respects document structure (headers, sections, lists)
+        - Keeps related content together (property definitions, code blocks)
+        - Smaller chunks (300 words) for better retrieval precision
+        - More overlap (100 words) to prevent information loss
 
         Args:
             text: Text to chunk
-            chunk_size: Number of words per chunk
-            overlap: Number of words to overlap between chunks
+            chunk_size: Max number of words per chunk (default: 300, reduced from 500)
+            overlap: Number of words to overlap between chunks (default: 100, increased from 50)
 
         Returns:
-            List of text chunks
+            List of semantically meaningful text chunks
         """
-        words = text.split()
+        import re
+
         chunks = []
 
-        for i in range(0, len(words), chunk_size - overlap):
-            chunk = ' '.join(words[i:i + chunk_size])
-            if chunk:
-                chunks.append(chunk)
+        # First, try to split on major section boundaries
+        # Look for patterns like:
+        # - "List of customer properties"
+        # - "## Header" or "### Subheader"
+        # - "Properties for X"
+        # - Blank lines followed by capitalized text
+        section_pattern = r'\n(?=(?:##+ |List of |Properties |Customer |Events? |Attributes? |Note:|Important:|Tip:)[A-Z])'
+        sections = re.split(section_pattern, text)
 
-        return chunks
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+
+            # If section is small enough, keep it as one chunk
+            section_words = section.split()
+            if len(section_words) <= chunk_size:
+                chunks.append(section)
+                continue
+
+            # Section is too large, split it intelligently
+            # Try to split on paragraph boundaries first
+            paragraphs = section.split('\n\n')
+            current_chunk = []
+            current_word_count = 0
+
+            for para in paragraphs:
+                para = para.strip()
+                if not para:
+                    continue
+
+                para_words = para.split()
+                para_word_count = len(para_words)
+
+                # If adding this paragraph would exceed chunk_size
+                if current_word_count + para_word_count > chunk_size and current_chunk:
+                    # Save current chunk
+                    chunks.append('\n\n'.join(current_chunk))
+
+                    # Start new chunk with overlap
+                    overlap_words = ' '.join(current_chunk[-1].split()[-overlap:]) if current_chunk else ''
+                    current_chunk = [overlap_words + '\n\n' + para] if overlap_words else [para]
+                    current_word_count = len(overlap_words.split()) + para_word_count
+                else:
+                    # Add paragraph to current chunk
+                    current_chunk.append(para)
+                    current_word_count += para_word_count
+
+            # Don't forget the last chunk
+            if current_chunk:
+                chunks.append('\n\n'.join(current_chunk))
+
+        # Clean up chunks
+        cleaned_chunks = []
+        for chunk in chunks:
+            chunk = chunk.strip()
+            if chunk and len(chunk.split()) >= 20:  # Minimum 20 words per chunk
+                cleaned_chunks.append(chunk)
+
+        return cleaned_chunks if cleaned_chunks else [text.strip()]
