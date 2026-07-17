@@ -254,19 +254,31 @@ def get_esp_links(esp_name):
         with open(csv_path, 'r') as f:
             lines = f.readlines()
 
-        esp_normalized = esp_name.lower().replace('_', ' ')
+        # Normalize ESP name for comparison (handle "Other/Webhook" -> "other")
+        esp_normalized = esp_name.lower().replace('_', ' ').replace('/', ' ').split()[0]
         in_section = False
 
         for line in lines:
-            line = line.strip()
-            if 'integration urls' in line.lower() and esp_normalized in line.lower():
-                in_section = True
+            line_stripped = line.strip()
+            line_lower = line_stripped.lower()
+
+            # Check if this line is a section header for our ESP
+            if 'integration urls' in line_lower or 'knowledge urls' in line_lower:
+                # Extract ESP name from header (e.g., "Klaviyo Integration URLs" -> "klaviyo")
+                header_esp = line_lower.split()[0]
+                if header_esp == esp_normalized or (esp_name.lower() == 'global' and 'knowledge' in line_lower):
+                    in_section = True
+                    continue
+                else:
+                    # Switched to a different ESP section
+                    if in_section:
+                        break
+                    in_section = False
+            elif in_section and not line_stripped:
+                # Empty lines are OK within a section
                 continue
-            elif in_section and line.lower().endswith('urls'):
-                # Stop when we hit any section header (ends with "URLs")
-                break
-            elif in_section and line.startswith('http'):
-                csv_links.append(line)
+            elif in_section and (line_stripped.startswith('http') or line_stripped.startswith('local://')):
+                csv_links.append(line_stripped)
     except Exception as e:
         print(f"Error reading CSV: {e}")
 

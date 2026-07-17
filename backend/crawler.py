@@ -52,13 +52,17 @@ def crawl_and_save(csv_path, base_docs_path):
         if not line:
             continue
 
-        # Detect ESP section headers
-        if 'integration urls' in line.lower():
+        line_lower = line.lower()
+
+        # Detect ESP section headers (handle both "Integration URLs" and "Knowledge URLs")
+        if 'integration urls' in line_lower or 'knowledge urls' in line_lower:
             # Extract ESP name from pattern "[ESP Name] Integration URLs"
-            esp_name = line.lower().replace('integration urls', '').strip()
+            esp_name = line_lower.replace('integration urls', '').replace('knowledge urls', '').strip()
             # Normalize ESP name (remove spaces, special chars)
             if 'other/webhook' in esp_name or 'other webhook' in esp_name:
                 current_esp = 'other_webhook'
+            elif 'global' in esp_name:
+                current_esp = 'global'
             else:
                 current_esp = esp_name.replace(' ', '_').replace('/', '_')
             results[current_esp] = []
