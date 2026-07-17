@@ -333,7 +333,7 @@ function addMessage(role, content) {
     } p-4 shadow-sm`;
 
     const contentDiv = document.createElement('div');
-    contentDiv.className = 'prose prose-sm max-w-none';
+    contentDiv.className = 'prose prose-xs max-w-none';
 
     // Render markdown for assistant messages, plain text for user
     if (role === 'assistant' && typeof marked !== 'undefined') {
@@ -1403,7 +1403,7 @@ function showHistory(esp) {
                         ${assistantMsg ? `
                             <div class="bg-background text-foreground rounded-lg p-3 border border-border">
                                 <div class="text-xs font-medium mb-1 opacity-70 uppercase tracking-wide">Assistant</div>
-                                <div class="text-sm prose prose-sm max-w-none">${assistantContent}</div>
+                                <div class="text-sm prose prose-xs max-w-none">${assistantContent}</div>
                             </div>
                         ` : ''}
                     </div>
