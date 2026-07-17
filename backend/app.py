@@ -251,29 +251,40 @@ def get_esps():
 def debug_pinecone_sample():
     """Debug endpoint to see what's actually in Pinecone"""
     try:
-        # Get a sample vector to inspect metadata structure
-        dummy_query = [0.0] * 384
+        # Use a real query vector instead of dummy zeros
+        from sentence_transformers import SentenceTransformer
+        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        query_vector = embedding_model.encode("sample query").tolist()
+
         results = vectorizer.index.query(
-            vector=dummy_query,
-            top_k=5,
+            vector=query_vector,
+            top_k=10,
             include_metadata=True
         )
 
         samples = []
         for match in results.get('matches', []):
+            metadata = match.get('metadata', {})
             samples.append({
                 'id': match['id'],
-                'metadata': match.get('metadata', {}),
+                'esp': metadata.get('esp', 'N/A'),
+                'filename': metadata.get('filename', 'N/A'),
+                'source_url': metadata.get('source_url', 'N/A'),
                 'score': match.get('score', 0)
             })
 
         return jsonify({
             'provider': os.getenv('VECTOR_DB_PROVIDER', 'chromadb'),
             'total_vectors': vectorizer.get_collection_count(),
+            'sample_count': len(samples),
             'sample_vectors': samples
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
 def get_esp_links(esp_name):

@@ -223,14 +223,14 @@ class PineconeAdapter(VectorAdapter):
     def url_exists(self, url: str, esp_name: str) -> bool:
         """Check if a URL has been vectorized"""
         try:
-            # Query for any vectors matching this URL and ESP
-            # We use a dummy query vector since we just want to filter by metadata
-            dummy_query = [0.0] * 384  # Match embedding dimension
-
             print(f"\n[url_exists] Checking: esp={esp_name}, url={url[:80]}...")
 
+            # Use a real query vector instead of dummy zeros
+            # Query with a generic text to get any matching documents
+            query_vector = self.embedding_model.encode("document content").tolist()
+
             results = self.index.query(
-                vector=dummy_query,
+                vector=query_vector,
                 filter={
                     "esp": {"$eq": esp_name},
                     "source_url": {"$eq": url}
@@ -247,10 +247,10 @@ class PineconeAdapter(VectorAdapter):
                 if matches:
                     print(f"  Sample metadata: {matches[0].get('metadata', {})}")
             else:
-                print(f"  ✗ No matches found")
+                print(f"  ✗ No matches found for exact URL+ESP")
                 # Try a broader search to debug
                 debug_results = self.index.query(
-                    vector=dummy_query,
+                    vector=query_vector,
                     filter={"esp": {"$eq": esp_name}},
                     top_k=1,
                     include_metadata=True
@@ -259,6 +259,8 @@ class PineconeAdapter(VectorAdapter):
                     sample = debug_results['matches'][0].get('metadata', {})
                     print(f"  Debug: Found ESP '{esp_name}' with different URL")
                     print(f"  Sample URL in DB: {sample.get('source_url', 'N/A')[:80]}...")
+                else:
+                    print(f"  Debug: No vectors found for ESP '{esp_name}' at all")
 
             return found
         except Exception as e:
