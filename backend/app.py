@@ -246,31 +246,31 @@ if not USE_DATABASE_ESP_ROUTES:
     @app.route('/api/admin/esps', methods=['GET'])
     def get_esps():
         """Get list of ESPs"""
-    docs_path = os.path.join(BASE_PATH, 'docs')
-    esps = []
+        docs_path = os.path.join(BASE_PATH, 'docs')
+        esps = []
 
-    # Mapping for display names
-    display_names = {
-        'other_webhook': 'Other/Webhook',
-        'klaviyo': 'Klaviyo',
-        'dotdigital': 'DotDigital',
-        'attentive': 'Attentive'
-    }
+        # Mapping for display names
+        display_names = {
+            'other_webhook': 'Other/Webhook',
+            'klaviyo': 'Klaviyo',
+            'dotdigital': 'DotDigital',
+            'attentive': 'Attentive'
+        }
 
-    if os.path.exists(docs_path):
-        for item in os.listdir(docs_path):
-            item_path = os.path.join(docs_path, item)
-            # Exclude 'global' directory as it has its own dedicated section
-            if os.path.isdir(item_path) and not item.startswith('.') and item != 'global':
-                # Count documents
-                doc_count = len([f for f in os.listdir(item_path) if f.endswith('.txt')])
-                esps.append({
-                    'name': item,
-                    'display_name': display_names.get(item, item.title()),
-                    'doc_count': doc_count
-                })
+        if os.path.exists(docs_path):
+            for item in os.listdir(docs_path):
+                item_path = os.path.join(docs_path, item)
+                # Exclude 'global' directory as it has its own dedicated section
+                if os.path.isdir(item_path) and not item.startswith('.') and item != 'global':
+                    # Count documents
+                    doc_count = len([f for f in os.listdir(item_path) if f.endswith('.txt')])
+                    esps.append({
+                        'name': item,
+                        'display_name': display_names.get(item, item.title()),
+                        'doc_count': doc_count
+                    })
 
-    return jsonify({'esps': esps})
+        return jsonify({'esps': esps})
 
 @app.route('/api/admin/debug/pinecone-sample', methods=['GET'])
 def debug_pinecone_sample():
