@@ -1,4 +1,7 @@
-const API_URL = 'http://localhost:5001/api';
+// Auto-detect API URL based on environment
+const API_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:5001/api'
+    : `${window.location.protocol}//${window.location.host}/api`;
 
 let selectedESP = 'klaviyo';
 let adminPassword = '';

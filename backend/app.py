@@ -248,6 +248,10 @@ def get_esp_links(esp_name):
     csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
     metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
+    print(f"\n=== get_esp_links called for: {esp_name} ===")
+    print(f"CSV path: {csv_path}")
+    print(f"CSV exists: {os.path.exists(csv_path)}")
+
     # Get all links from CSV
     csv_links = []
     try:
@@ -256,6 +260,7 @@ def get_esp_links(esp_name):
 
         # Normalize ESP name for comparison (handle "Other/Webhook" -> "other")
         esp_normalized = esp_name.lower().replace('_', ' ').replace('/', ' ').split()[0]
+        print(f"Normalized ESP name: {esp_normalized}")
         in_section = False
 
         for line in lines:
@@ -266,12 +271,15 @@ def get_esp_links(esp_name):
             if 'integration urls' in line_lower or 'knowledge urls' in line_lower:
                 # Extract ESP name from header (e.g., "Klaviyo Integration URLs" -> "klaviyo")
                 header_esp = line_lower.split()[0]
+                print(f"Found header: '{line_stripped}' -> ESP: '{header_esp}'")
                 if header_esp == esp_normalized or (esp_name.lower() == 'global' and 'knowledge' in line_lower):
                     in_section = True
+                    print(f"  ✓ Matched! in_section=True")
                     continue
                 else:
                     # Switched to a different ESP section
                     if in_section:
+                        print(f"  Switching to different ESP, stopping")
                         break
                     in_section = False
             elif in_section and not line_stripped:
@@ -279,8 +287,13 @@ def get_esp_links(esp_name):
                 continue
             elif in_section and (line_stripped.startswith('http') or line_stripped.startswith('local://')):
                 csv_links.append(line_stripped)
+                print(f"  Added URL: {line_stripped[:60]}...")
+
+        print(f"Total CSV links found: {len(csv_links)}")
     except Exception as e:
         print(f"Error reading CSV: {e}")
+        import traceback
+        traceback.print_exc()
 
     # Get crawled links from metadata
     crawled_urls = set()
