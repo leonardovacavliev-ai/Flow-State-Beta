@@ -320,14 +320,18 @@ def calculate_daily_aggregates(target_date: datetime):
         total_conversations = cursor.fetchone()['conversation_count']
         avg_messages_per_conversation = total_messages / total_conversations if total_conversations > 0 else 0
 
-        # Average message length
+        # Average conversation length (AI responses per conversation)
         cursor.execute("""
-            SELECT AVG(message_length) as avg_length
-            FROM messages
-            WHERE DATE(timestamp) = ?
+            SELECT AVG(assistant_count) as avg_conv_length
+            FROM (
+                SELECT COUNT(*) as assistant_count
+                FROM messages
+                WHERE DATE(timestamp) = ? AND role = 'assistant'
+                GROUP BY session_id, esp
+            )
         """, (date_str,))
         result = cursor.fetchone()
-        avg_message_length = result['avg_length'] or 0
+        avg_message_length = result['avg_conv_length'] or 0
 
         # Unique users (by IP)
         cursor.execute("""
@@ -506,14 +510,18 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 result = cursor.fetchone()
                 avg_duration = result['avg_duration'] or 0
 
-                # Avg message length
+                # Avg conversation length (AI responses per conversation)
                 cursor.execute(f"""
-                    SELECT AVG(message_length) as avg_length
-                    FROM messages
-                    WHERE {date_filter}
+                    SELECT AVG(assistant_count) as avg_conv_length
+                    FROM (
+                        SELECT COUNT(*) as assistant_count
+                        FROM messages
+                        WHERE {date_filter} AND role = 'assistant'
+                        GROUP BY session_id, esp
+                    )
                 """, params)
                 result = cursor.fetchone()
-                avg_length = result['avg_length'] or 0
+                avg_length = result['avg_conv_length'] or 0
 
                 # Unique users (by IP)
                 cursor.execute(f"""
