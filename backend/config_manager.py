@@ -146,19 +146,25 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
     def update_api_key(self, provider: str, api_key: str, user_email: str) -> bool:
         """
         Update API key for a provider
-        Note: This updates environment variable for current session only
-        For persistent storage, consider using a .env file
+        Persists to .env file and updates current environment
         """
         current_config = self.get_config()
 
+        # Determine environment variable name
         if provider == 'gemini':
-            os.environ['GEMINI_API_KEY'] = api_key
+            env_var_name = 'GEMINI_API_KEY'
             current_config['ai_model']['api_key_set'] = True
         elif provider == 'claude':
-            os.environ['ANTHROPIC_API_KEY'] = api_key
+            env_var_name = 'ANTHROPIC_API_KEY'
             current_config['ai_model']['claude_api_key_set'] = True
         else:
             return False
+
+        # Update current process environment
+        os.environ[env_var_name] = api_key
+
+        # Persist to .env file
+        self._update_env_file(env_var_name, api_key)
 
         # Log the change (without storing the actual key)
         self.update_config(
@@ -168,6 +174,33 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
         )
 
         return True
+
+    def _update_env_file(self, key: str, value: str):
+        """
+        Update or add a key-value pair in .env file
+        Creates the file if it doesn't exist
+        """
+        env_file_path = os.path.join(self.base_path, '.env')
+
+        # Read existing .env file
+        env_vars = {}
+        if os.path.exists(env_file_path):
+            with open(env_file_path, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        var_name, var_value = line.split('=', 1)
+                        env_vars[var_name.strip()] = var_value.strip()
+
+        # Update the key
+        env_vars[key] = value
+
+        # Write back to .env file
+        with open(env_file_path, 'w') as f:
+            f.write("# API Keys - Updated by Admin Panel\n")
+            f.write("# SECURITY WARNING: Do not commit this file to version control\n\n")
+            for var_name, var_value in env_vars.items():
+                f.write(f"{var_name}={var_value}\n")
 
     def get_system_prompt(self) -> str:
         """Get current system prompt"""

@@ -130,3 +130,20 @@ class ChromaDBAdapter(VectorAdapter):
     def get_collection_count(self) -> int:
         """Get total number of chunks in the database"""
         return self.collection.count()
+
+    def url_exists(self, url: str, esp_name: str) -> bool:
+        """Check if a URL has been vectorized"""
+        try:
+            results = self.collection.get(
+                where={
+                    "$and": [
+                        {"esp": esp_name},
+                        {"source_url": url}
+                    ]
+                },
+                limit=1
+            )
+            return len(results['ids']) > 0
+        except Exception as e:
+            print(f"Error checking URL existence: {e}")
+            return False

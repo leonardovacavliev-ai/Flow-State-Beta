@@ -957,17 +957,30 @@ async function loadESPManagement() {
             // Build links HTML
             let linksHTML = '';
             if (linksData.links && linksData.links.length > 0) {
-                linksHTML = linksData.links.map(link => `
+                linksHTML = linksData.links.map(link => {
+                    // Determine badge color based on status
+                    let badgeClass = '';
+                    if (link.status === 'crawled') {
+                        badgeClass = 'bg-green-100 text-green-800';
+                    } else if (link.status === 'pending') {
+                        badgeClass = 'bg-yellow-100 text-yellow-800';
+                    } else if (link.status === 'checking') {
+                        badgeClass = 'bg-blue-100 text-blue-800';
+                    }
+
+                    return `
                     <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
                         <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${esp.name}" value="${link.url}" ${link.status === 'pending' ? 'checked' : ''}>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded ${
-                            link.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-green-100 text-green-800'
-                        } uppercase tracking-wide">${link.status}</span>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${link.status}</span>
                         <a href="${link.url}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${link.url}</a>
+                        ${link.status === 'pending' ? `
+                            <button onclick="openPasteModal('${esp.name}', '${link.url.replace(/'/g, "\\'")}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
+                                📋 Paste Content
+                            </button>
+                        ` : ''}
                     </div>
-                `).join('');
+                `;
+                }).join('');
             } else {
                 linksHTML = '<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No links added yet. Add a link below to get started.</div>';
             }
@@ -1764,17 +1777,30 @@ async function loadGlobalKnowledge() {
             return;
         }
 
-        container.innerHTML = data.links.map(link => `
+        container.innerHTML = data.links.map(link => {
+            // Determine badge color based on status
+            let badgeClass = '';
+            if (link.status === 'crawled') {
+                badgeClass = 'bg-green-100 text-green-800';
+            } else if (link.status === 'pending') {
+                badgeClass = 'bg-yellow-100 text-yellow-800';
+            } else if (link.status === 'checking') {
+                badgeClass = 'bg-blue-100 text-blue-800';
+            }
+
+            return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
                 <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${link.url}" ${link.status === 'pending' ? 'checked' : ''}>
-                <span class="text-xs font-medium px-2 py-0.5 rounded ${
-                    link.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-green-100 text-green-800'
-                } uppercase tracking-wide">${link.status}</span>
+                <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${link.status}</span>
                 <a href="${link.url}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${link.url}</a>
+                ${link.status === 'pending' ? `
+                    <button onclick="openPasteModal('global', '${link.url.replace(/'/g, "\\'")}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
+                        📋 Paste Content
+                    </button>
+                ` : ''}
             </div>
-        `).join('');
+        `;
+        }).join('');
 
         // Add checkbox change listeners
         const checkboxes = container.querySelectorAll('.global-link-checkbox');

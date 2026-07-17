@@ -8,10 +8,15 @@ from analytics import (
 )
 from config_manager import ConfigManager
 from ai_client import AIClient
+from dotenv import load_dotenv
 import os
 import csv
 from datetime import datetime
 import uuid
+
+# Load environment variables from .env file (if it exists)
+# This must happen before any code that reads os.environ
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -295,28 +300,24 @@ def get_esp_links(esp_name):
         import traceback
         traceback.print_exc()
 
-    # Get crawled links from metadata
-    crawled_urls = set()
-    try:
-        if os.path.exists(metadata_path):
-            import json
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
-
-            if esp_name.lower() in metadata:
-                crawled_urls = set(doc['url'] for doc in metadata[esp_name.lower()])
-    except Exception as e:
-        print(f"Error reading metadata: {e}")
-
-    # Combine and mark status
+    # Check actual vectorization status from vector DB
     links_with_status = []
     seen = set()
     for url in csv_links:
         if url not in seen:
             seen.add(url)
+
+            # Check if URL actually exists in vector database
+            try:
+                url_vectorized = vectorizer.url_exists(url, esp_name.lower())
+                status = 'crawled' if url_vectorized else 'pending'
+            except Exception as e:
+                print(f"Error checking URL {url}: {e}")
+                status = 'checking'  # Unknown state
+
             links_with_status.append({
                 'url': url,
-                'status': 'crawled' if url in crawled_urls else 'pending'
+                'status': status
             })
 
     return jsonify({'links': links_with_status})
@@ -476,6 +477,78 @@ def crawl_selected_links(esp_name):
         vectorizer.refresh_esp(esp_name.lower(), docs_path)
 
         return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/esp/<esp_name>/paste-content', methods=['POST'])
+def paste_content(esp_name):
+    """Manually add content for a link that can't be crawled"""
+    data = request.json
+    password = data.get('password', '')
+    url = data.get('url', '')
+    content = data.get('content', '')
+
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': 'Invalid password'}), 403
+
+    if not url or not content:
+        return jsonify({'error': 'URL and content are required'}), 400
+
+    try:
+        from urllib.parse import urlparse
+        import json
+
+        docs_path = os.path.join(BASE_PATH, 'docs')
+        esp_folder = os.path.join(docs_path, esp_name.lower())
+        os.makedirs(esp_folder, exist_ok=True)
+
+        # Generate filename from URL
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip('/').split('/')
+        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+        filename = filename.replace('.html', '').replace('.htm', '')
+        if not filename:
+            filename = 'index'
+        filename = f"{filename}.txt"
+
+        # Save content to file
+        filepath = os.path.join(esp_folder, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(f"Source URL: {url}\n\n")
+            f.write(content)
+
+        # Update metadata
+        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+        metadata = {}
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+
+        if esp_name.lower() not in metadata:
+            metadata[esp_name.lower()] = []
+
+        # Remove old entry for this URL if exists
+        metadata[esp_name.lower()] = [doc for doc in metadata[esp_name.lower()] if doc['url'] != url]
+
+        # Add new entry
+        metadata[esp_name.lower()].append({
+            'url': url,
+            'filename': filename,
+            'filepath': filepath
+        })
+
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+
+        # Re-vectorize this ESP to include the new content
+        vectorizer.refresh_esp(esp_name.lower(), docs_path)
+
+        return jsonify({
+            'success': True,
+            'message': 'Content saved and vectorized successfully',
+            'filename': filename
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -792,28 +865,24 @@ def get_global_knowledge_links():
     except Exception as e:
         print(f"Error reading CSV: {e}")
 
-    # Get crawled links from metadata
-    crawled_urls = set()
-    try:
-        if os.path.exists(metadata_path):
-            import json
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
-
-            if 'global' in metadata:
-                crawled_urls = set(doc['url'] for doc in metadata['global'])
-    except Exception as e:
-        print(f"Error reading metadata: {e}")
-
-    # Combine and mark status
+    # Check actual vectorization status from vector DB
     links_with_status = []
     seen = set()
     for url in csv_links:
         if url not in seen:
             seen.add(url)
+
+            # Check if URL actually exists in vector database
+            try:
+                url_vectorized = vectorizer.url_exists(url, 'global')
+                status = 'crawled' if url_vectorized else 'pending'
+            except Exception as e:
+                print(f"Error checking URL {url}: {e}")
+                status = 'checking'  # Unknown state
+
             links_with_status.append({
                 'url': url,
-                'status': 'crawled' if url in crawled_urls else 'pending'
+                'status': status
             })
 
     return jsonify({'links': links_with_status})
@@ -939,6 +1008,78 @@ def crawl_global_knowledge_links():
         vectorizer.refresh_esp('global', docs_path)
 
         return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/global-knowledge/paste-content', methods=['POST'])
+def paste_global_content():
+    """Manually add content for a global knowledge link that can't be crawled"""
+    data = request.json
+    password = data.get('password', '')
+    url = data.get('url', '')
+    content = data.get('content', '')
+
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': 'Invalid password'}), 403
+
+    if not url or not content:
+        return jsonify({'error': 'URL and content are required'}), 400
+
+    try:
+        from urllib.parse import urlparse
+        import json
+
+        docs_path = os.path.join(BASE_PATH, 'docs')
+        global_folder = os.path.join(docs_path, 'global')
+        os.makedirs(global_folder, exist_ok=True)
+
+        # Generate filename from URL
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip('/').split('/')
+        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+        filename = filename.replace('.html', '').replace('.htm', '')
+        if not filename:
+            filename = 'index'
+        filename = f"{filename}.txt"
+
+        # Save content to file
+        filepath = os.path.join(global_folder, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(f"Source URL: {url}\n\n")
+            f.write(content)
+
+        # Update metadata
+        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+        metadata = {}
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+
+        if 'global' not in metadata:
+            metadata['global'] = []
+
+        # Remove old entry for this URL if exists
+        metadata['global'] = [doc for doc in metadata['global'] if doc['url'] != url]
+
+        # Add new entry
+        metadata['global'].append({
+            'url': url,
+            'filename': filename,
+            'filepath': filepath
+        })
+
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f, indent=2)
+
+        # Re-vectorize global knowledge to include the new content
+        vectorizer.refresh_esp('global', docs_path)
+
+        return jsonify({
+            'success': True,
+            'message': 'Content saved and vectorized successfully',
+            'filename': filename
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -60,9 +60,15 @@ backend/config_audit_log.json
 
 # Large files
 *.pdf
+
+# Images (excluding frontend assets)
 *.png
 *.jpg
 *.jpeg
+!frontend/*.png
+!frontend/*.jpg
+!frontend/*.jpeg
+!frontend/*.svg
 
 # Temporary files
 tmp/

@@ -70,6 +70,20 @@ class VectorAdapter(ABC):
         """Get total number of chunks in the database"""
         pass
 
+    @abstractmethod
+    def url_exists(self, url: str, esp_name: str) -> bool:
+        """
+        Check if a URL has been vectorized
+
+        Args:
+            url: The source URL to check
+            esp_name: ESP name to filter by
+
+        Returns:
+            True if URL has vectorized content, False otherwise
+        """
+        pass
+
     def chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
         """
         Split text into overlapping chunks (common implementation)

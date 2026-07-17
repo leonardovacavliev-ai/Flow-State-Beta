@@ -219,3 +219,25 @@ class PineconeAdapter(VectorAdapter):
         """Get total number of vectors in the index"""
         stats = self.index.describe_index_stats()
         return stats.get('total_vector_count', 0)
+
+    def url_exists(self, url: str, esp_name: str) -> bool:
+        """Check if a URL has been vectorized"""
+        try:
+            # Query for any vectors matching this URL and ESP
+            # We use a dummy query vector since we just want to filter by metadata
+            dummy_query = [0.0] * 384  # Match embedding dimension
+
+            results = self.index.query(
+                vector=dummy_query,
+                filter={
+                    "esp": {"$eq": esp_name},
+                    "source_url": {"$eq": url}
+                },
+                top_k=1,
+                include_metadata=True
+            )
+
+            return len(results.get('matches', [])) > 0
+        except Exception as e:
+            print(f"Error checking URL existence: {e}")
+            return False
