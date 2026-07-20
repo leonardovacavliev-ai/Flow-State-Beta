@@ -150,8 +150,8 @@ def chat():
     # Normalize ESP name for database lookup
     esp_normalized = esp.lower().replace('/', '_') if esp else 'klaviyo'
 
-    # Search ESP-specific docs (3 results)
-    esp_results = vectorizer.search(message, esp_filter=esp_normalized, n_results=3)
+    # Search ESP-specific docs (6 results)
+    esp_results = vectorizer.search(message, esp_filter=esp_normalized, n_results=6)
 
     # Search global knowledge (2 results)
     global_results = vectorizer.search(message, esp_filter='global', n_results=2)
