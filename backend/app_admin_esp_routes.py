@@ -212,6 +212,79 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
+    @app.route('/api/admin/esp/<esp_name>/paste-content', methods=['POST'])
+    def paste_esp_content(esp_name):
+        """Manually add content for a link that can't be crawled."""
+        try:
+            esp_mgr = get_mgr()
+            data = request.json
+            password = data.get('password', '')
+            url = data.get('url', '')
+            content = data.get('content', '')
+
+            # Verify admin password
+            ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
+            if password != ADMIN_PASSWORD:
+                return jsonify({'error': 'Invalid password'}), 403
+
+            if not url or not content:
+                return jsonify({'error': 'URL and content are required'}), 400
+
+            # Get or create ESP
+            esp = esp_mgr.get_esp_by_name(esp_name)
+            if not esp:
+                return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
+
+            # Get or create document
+            doc = esp_mgr.get_document_by_url(esp['id'], url)
+            if not doc:
+                doc = esp_mgr.add_document(esp_name, url)
+
+            # Generate filename from URL
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            path_parts = parsed.path.strip('/').split('/')
+            filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+            filename = filename.replace('.html', '').replace('.htm', '')
+            if not filename:
+                filename = 'index'
+            filename = f"{filename}.txt"
+
+            # Save content to file
+            docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
+            os.makedirs(docs_path, exist_ok=True)
+            file_path = os.path.join(docs_path, filename)
+
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(f"Source URL: {url}\n\n")
+                f.write(content)
+
+            # Calculate content hash
+            content_hash = esp_mgr.calculate_content_hash(f"Source URL: {url}\n\n{content}")
+
+            # Vectorize the content
+            try:
+                vectorizer.refresh_esp(esp_name)
+            except Exception as ve:
+                print(f"Vectorization warning: {ve}")
+
+            # Update database
+            esp_mgr.update_document_crawl_status(
+                doc['id'],
+                status='completed',
+                content_hash=content_hash,
+                vector_ids=None
+            )
+
+            return jsonify({
+                'success': True,
+                'message': 'Content saved and vectorized successfully',
+                'filename': filename
+            })
+
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/admin/esp/<esp_name>/delete-links', methods=['POST'])
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
