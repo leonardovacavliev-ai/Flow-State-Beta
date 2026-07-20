@@ -153,11 +153,12 @@ def chat():
     # Enhance query with conversation context for better follow-up question handling
     enhanced_query = message
     if len(conversation_history) > 0:
-        # Extract recent context from last assistant message (up to 200 chars)
-        # This helps preserve technical terms (property names, API endpoints) for follow-ups
+        # Include FULL previous assistant message (no char limit)
+        # Token cost is negligible (~400-650 tokens) vs context window (128k)
+        # This preserves ALL property names, technical terms, and context for follow-ups
         recent_messages = [msg['content'] for msg in conversation_history[-2:] if msg['role'] == 'assistant']
         if recent_messages:
-            recent_context = " ".join(recent_messages)[:200]
+            recent_context = " ".join(recent_messages)
             enhanced_query = f"{message} {recent_context}"
 
     # Search ESP-specific docs (10 results)
