@@ -72,6 +72,15 @@ async function submitPasteContent() {
             })
         });
 
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Non-JSON response:', text);
+            alert(`❌ Server error: Expected JSON response but got ${contentType || 'unknown content type'}\n\nEndpoint: ${endpoint}\n\nThis usually means the endpoint doesn't exist or returned an error page.`);
+            return;
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -82,6 +91,7 @@ async function submitPasteContent() {
             alert('❌ Error: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
+        console.error('Paste content error:', error);
         alert('❌ Error saving content: ' + error.message);
     } finally {
         // Restore button state
