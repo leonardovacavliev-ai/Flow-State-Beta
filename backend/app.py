@@ -150,11 +150,21 @@ def chat():
     # Normalize ESP name for database lookup
     esp_normalized = esp.lower().replace('/', '_') if esp else 'klaviyo'
 
-    # Search ESP-specific docs (6 results)
-    esp_results = vectorizer.search(message, esp_filter=esp_normalized, n_results=6)
+    # Enhance query with conversation context for better follow-up question handling
+    enhanced_query = message
+    if len(conversation_history) > 0:
+        # Extract recent context from last assistant message (up to 200 chars)
+        # This helps preserve technical terms (property names, API endpoints) for follow-ups
+        recent_messages = [msg['content'] for msg in conversation_history[-2:] if msg['role'] == 'assistant']
+        if recent_messages:
+            recent_context = " ".join(recent_messages)[:200]
+            enhanced_query = f"{message} {recent_context}"
 
-    # Search global knowledge (2 results)
-    global_results = vectorizer.search(message, esp_filter='global', n_results=2)
+    # Search ESP-specific docs (6 results)
+    esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=6)
+
+    # Search global knowledge (2 results) - also use enhanced query
+    global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
 
     # Build context from search results
     context = "# Relevant Documentation:\n\n"
