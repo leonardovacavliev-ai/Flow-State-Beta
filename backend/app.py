@@ -161,6 +161,12 @@ def chat():
             recent_context = " ".join(recent_messages)
             enhanced_query = f"{message} {recent_context}"
 
+    # Boost query for property-related questions to retrieve definitions
+    # This helps when users ask about multiple properties in one query
+    property_keywords = ['property', 'properties', 'field', 'fields', 'variable', 'variables', 'data', 'attribute']
+    if any(keyword in message.lower() for keyword in property_keywords):
+        enhanced_query = f"{enhanced_query} property definition list documentation"
+
     # Search ESP-specific docs (10 results)
     esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=10)
 
