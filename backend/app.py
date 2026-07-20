@@ -160,8 +160,8 @@ def chat():
             recent_context = " ".join(recent_messages)[:200]
             enhanced_query = f"{message} {recent_context}"
 
-    # Search ESP-specific docs (6 results)
-    esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=6)
+    # Search ESP-specific docs (10 results)
+    esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=10)
 
     # Search global knowledge (2 results) - also use enhanced query
     global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
