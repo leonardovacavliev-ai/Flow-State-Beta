@@ -89,6 +89,60 @@ def debug_esps():
             'use_database_routes': USE_DATABASE_ESP_ROUTES
         }), 500
 
+# Helper function: Filter vector search results by relevance score
+def filter_by_relevance(results, min_score=0.60, result_type=''):
+    """
+    Filter vector search results by minimum relevance score.
+    Removes low-quality chunks that could cause hallucinations.
+
+    Args:
+        results: Vector search results dict with 'documents', 'metadatas', 'distances'
+        min_score: Minimum similarity score (0-1, default 0.60)
+        result_type: Label for logging (e.g., 'ESP', 'Global')
+
+    Returns:
+        Filtered results dict
+    """
+    # If no distance info, return as-is
+    if 'distances' not in results or not results['distances'] or not results['distances'][0]:
+        return results
+
+    # Check if we have matching documents and metadatas
+    if not results['documents'] or not results['documents'][0]:
+        return results
+    if not results['metadatas'] or not results['metadatas'][0]:
+        return results
+
+    filtered_docs = []
+    filtered_metadatas = []
+    original_count = len(results['documents'][0])
+
+    for doc, metadata, distance in zip(
+        results['documents'][0],
+        results['metadatas'][0],
+        results['distances'][0]
+    ):
+        # ChromaDB uses L2 distance (lower = more similar)
+        # Convert to similarity score: 1 / (1 + distance)
+        similarity = 1 / (1 + distance)
+
+        if similarity >= min_score:
+            filtered_docs.append(doc)
+            filtered_metadatas.append(metadata)
+
+    filtered_count = len(filtered_docs)
+
+    # Log filtering stats
+    if filtered_count < original_count:
+        print(f"[RELEVANCE FILTER] {result_type} results: {original_count} → {filtered_count} "
+              f"(removed {original_count - filtered_count} low-relevance chunks)")
+
+    # Return filtered results
+    return {
+        'documents': [filtered_docs],
+        'metadatas': [filtered_metadatas]
+    }
+
 # Serve frontend
 FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
 
@@ -178,8 +232,14 @@ def chat():
     # Search ESP-specific docs (10 results)
     esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=10)
 
+    # Filter ESP results by relevance score to reduce hallucinations
+    esp_results = filter_by_relevance(esp_results, min_score=0.60, result_type='ESP')
+
     # Search global knowledge (2 results) - also use enhanced query
     global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
+
+    # Filter global results by relevance score
+    global_results = filter_by_relevance(global_results, min_score=0.60, result_type='Global')
 
     # Build context from search results
     context = "# Relevant Documentation:\n\n"
@@ -207,6 +267,8 @@ def chat():
 
     if source_index == 1:
         context += "No specific documentation found. Provide general guidance based on ESP best practices.\n\n"
+    elif source_index <= 4:  # Very few sources (3 or fewer)
+        context += "\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n"
 
     # Combine results for source display
     all_metadatas = []
