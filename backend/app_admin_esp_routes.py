@@ -127,8 +127,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 'failed': []
             }
 
-            docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
-            os.makedirs(docs_path, exist_ok=True)
+            base_docs_path = os.path.join(BASE_PATH, 'docs')
+            esp_docs_path = os.path.join(base_docs_path, esp_name)
+            os.makedirs(esp_docs_path, exist_ok=True)
 
             for url in urls:
                 try:
@@ -152,7 +153,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
                     if filename:
                         # Read content to calculate hash
-                        file_path = os.path.join(docs_path, filename)
+                        file_path = os.path.join(esp_docs_path, filename)
                         with open(file_path, 'r', encoding='utf-8') as f:
                             content = f.read()
 
@@ -160,7 +161,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
                         # Update crawl_metadata.json for vectorizer compatibility
                         import json
-                        metadata_path = os.path.join(BASE_PATH, 'docs', 'crawl_metadata.json')
+                        metadata_path = os.path.join(base_docs_path, 'crawl_metadata.json')
                         try:
                             with open(metadata_path, 'r') as f:
                                 metadata = json.load(f)
@@ -187,7 +188,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         # Vectorize the content
                         try:
                             # Refresh ESP in vector DB (will pick up the new file)
-                            vectorizer.refresh_esp(esp_name)
+                            vectorizer.refresh_esp(esp_name, base_docs_path)
                             print(f"[VECTORIZE] Successfully vectorized {filename}")
                         except Exception as ve:
                             print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
@@ -280,9 +281,10 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             filename = f"{filename}.txt"
 
             # Save content to file
-            docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
-            os.makedirs(docs_path, exist_ok=True)
-            file_path = os.path.join(docs_path, filename)
+            base_docs_path = os.path.join(BASE_PATH, 'docs')
+            esp_docs_path = os.path.join(base_docs_path, esp_name)
+            os.makedirs(esp_docs_path, exist_ok=True)
+            file_path = os.path.join(esp_docs_path, filename)
 
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(f"Source URL: {url}\n\n")
@@ -291,11 +293,40 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             # Calculate content hash
             content_hash = esp_mgr.calculate_content_hash(f"Source URL: {url}\n\n{content}")
 
+            # Update crawl_metadata.json for vectorizer compatibility
+            import json
+            metadata_path = os.path.join(base_docs_path, 'crawl_metadata.json')
+            try:
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+            except FileNotFoundError:
+                metadata = {}
+
+            if esp_name not in metadata:
+                metadata[esp_name] = []
+
+            # Add/update document in metadata
+            doc_metadata = {
+                'url': url,
+                'filename': filename,
+                'filepath': file_path
+            }
+
+            # Remove old entry if exists (by URL)
+            metadata[esp_name] = [d for d in metadata[esp_name] if d.get('url') != url]
+            metadata[esp_name].append(doc_metadata)
+
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+
             # Vectorize the content
             try:
-                vectorizer.refresh_esp(esp_name)
+                vectorizer.refresh_esp(esp_name, base_docs_path)
+                print(f"[VECTORIZE] Successfully vectorized pasted content for {filename}")
             except Exception as ve:
-                print(f"Vectorization warning: {ve}")
+                print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
+                import traceback
+                traceback.print_exc()
 
             # Update database
             esp_mgr.update_document_crawl_status(
