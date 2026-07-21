@@ -100,6 +100,52 @@ def extract_main_content(url):
         print(f"Error fetching {url}: {e}")
         return None
 
+def crawl_single_url(url, esp_name, base_path):
+    """
+    Crawl a single URL and save to ESP folder.
+
+    Args:
+        url: URL to crawl
+        esp_name: ESP name (e.g., 'klaviyo', 'listrak')
+        base_path: Base path of the application
+
+    Returns:
+        filename if successful, None if failed
+    """
+    try:
+        print(f"[CRAWLER] Crawling {url}...")
+        content = extract_main_content(url)
+
+        if not content:
+            print(f"[CRAWLER] Failed to extract content from {url}")
+            return None
+
+        # Generate filename from URL
+        parsed = urlparse(url)
+        path_parts = parsed.path.strip('/').split('/')
+        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+        filename = filename.replace('.html', '').replace('.htm', '')
+        if not filename:
+            filename = 'index'
+        filename = f"{filename}.txt"
+
+        # Save to ESP folder
+        docs_path = os.path.join(base_path, 'docs')
+        esp_folder = os.path.join(docs_path, esp_name)
+        os.makedirs(esp_folder, exist_ok=True)
+
+        filepath = os.path.join(esp_folder, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(f"Source URL: {url}\n\n")
+            f.write(content)
+
+        print(f"[CRAWLER] Saved to {filepath}")
+        return filename
+
+    except Exception as e:
+        print(f"[CRAWLER] Error crawling {url}: {e}")
+        return None
+
 def crawl_and_save(csv_path, base_docs_path):
     """Read CSV and crawl all URLs, saving to appropriate folders"""
 

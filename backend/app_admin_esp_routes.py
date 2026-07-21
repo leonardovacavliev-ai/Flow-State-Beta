@@ -9,7 +9,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
-from crawler import crawl_and_save
+from crawler import crawl_single_url
 import os
 
 
@@ -148,7 +148,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         doc = esp_mgr.add_document(esp_name, url)
 
                     # Crawl the URL
-                    filename = crawl_and_save(url, esp_name, BASE_PATH)
+                    filename = crawl_single_url(url, esp_name, BASE_PATH)
 
                     if filename:
                         # Read content to calculate hash
