@@ -53,10 +53,18 @@ ai_client = AIClient(
 # Set to False to revert to filesystem-based routes
 USE_DATABASE_ESP_ROUTES = True
 
+# Feature flag: Async crawl with background jobs (Phase 5)
+USE_ASYNC_CRAWL = os.environ.get('USE_ASYNC_CRAWL', 'false').lower() == 'true'
+
 if USE_DATABASE_ESP_ROUTES:
-    from app_admin_esp_routes import register_esp_admin_routes
-    register_esp_admin_routes(app, BASE_PATH, vectorizer)
-    print("[DEBUG] ESP database routes registered successfully")
+    if USE_ASYNC_CRAWL:
+        from app_admin_esp_routes_async import register_esp_admin_routes_async
+        register_esp_admin_routes_async(app, BASE_PATH, vectorizer)
+        print("[DEBUG] ESP database routes (ASYNC) registered successfully")
+    else:
+        from app_admin_esp_routes import register_esp_admin_routes
+        register_esp_admin_routes(app, BASE_PATH, vectorizer)
+        print("[DEBUG] ESP database routes (SYNC) registered successfully")
 
 # Debug endpoint to test ESP routes
 @app.route('/api/debug/esps', methods=['GET'])
@@ -1247,6 +1255,59 @@ def delete_global_knowledge_links():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ==================== ASYNC CRAWL WORKER SETUP ====================
+# Start background worker threads if async crawl is enabled
+
+crawl_worker = None
+
+if USE_ASYNC_CRAWL:
+    try:
+        from workers.crawl_worker import start_worker_in_background, CrawlWorker
+        from adapters.database.db_manager import get_database_adapter
+        from apscheduler.schedulers.background import BackgroundScheduler
+
+        # Start worker threads
+        max_workers = int(os.environ.get('CRAWL_WORKER_THREADS', '3'))
+        crawl_worker = start_worker_in_background(
+            worker_id=f"flask-{os.getpid()}",
+            max_workers=max_workers,
+            base_path=BASE_PATH
+        )
+        print(f"[ASYNC CRAWL] Worker started with {max_workers} threads")
+
+        # Start stale job cleanup scheduler
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(
+            func=lambda: CrawlWorker.cleanup_stale_jobs(
+                get_database_adapter(),
+                timeout_minutes=10
+            ),
+            trigger='interval',
+            minutes=5,
+            id='cleanup_stale_jobs'
+        )
+        scheduler.start()
+        print("[ASYNC CRAWL] Stale job cleanup scheduler started (every 5 minutes)")
+
+        # Graceful shutdown on exit
+        import atexit
+        def shutdown_worker():
+            if crawl_worker:
+                crawl_worker.stop()
+            if scheduler:
+                scheduler.shutdown()
+        atexit.register(shutdown_worker)
+
+    except ImportError as e:
+        print(f"[WARNING] Could not start async crawl worker: {e}")
+        print("[WARNING] Falling back to synchronous crawl")
+        USE_ASYNC_CRAWL = False
+    except Exception as e:
+        print(f"[ERROR] Failed to start async crawl worker: {e}")
+        import traceback
+        traceback.print_exc()
+        USE_ASYNC_CRAWL = False
 
 if __name__ == '__main__':
     # Support cloud deployment platforms (Heroku, Railway, etc.)

@@ -11,3 +11,4 @@ sentence-transformers
 psycopg2-binary
 python-dotenv
 redis
+apscheduler

@@ -1040,6 +1040,26 @@ function updateGlobalBulkActions() {
     }
 }
 
+// Feature detection: Check if async crawl is enabled on backend
+let USE_ASYNC_CRAWL = false;
+
+async function checkAsyncCrawlSupport() {
+    try {
+        // Try to access the async endpoint - if it exists, async is enabled
+        const response = await fetch(`${API_URL}/admin/crawl-status?job_ids=test`, {
+            method: 'GET'
+        });
+        // If we get 400 (expected for invalid job_ids), async is enabled
+        // If we get 404, async endpoints don't exist
+        USE_ASYNC_CRAWL = response.status !== 404;
+    } catch (error) {
+        USE_ASYNC_CRAWL = false;
+    }
+}
+
+// Check on page load
+checkAsyncCrawlSupport();
+
 async function crawlAllSelected() {
     const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
     const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
@@ -1048,6 +1068,144 @@ async function crawlAllSelected() {
         alert('Please select at least one link to crawl');
         return;
     }
+
+    // Route to async or sync version based on backend support
+    if (USE_ASYNC_CRAWL) {
+        return await crawlAllSelectedAsync();
+    } else {
+        return await crawlAllSelectedSync();
+    }
+}
+
+async function crawlAllSelectedAsync() {
+    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
+    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+
+    // Group URLs by ESP
+    const espGroups = {};
+    espCheckboxes.forEach(cb => {
+        const espName = cb.dataset.esp;
+        const url = cb.value;
+        if (!espGroups[espName]) {
+            espGroups[espName] = [];
+        }
+        espGroups[espName].push(url);
+    });
+
+    // Add global knowledge URLs
+    const globalUrls = Array.from(globalCheckboxes).map(cb => cb.value);
+
+    try {
+        // Disable crawl buttons
+        const crawlButtons = document.querySelectorAll('button[onclick="crawlAllSelected()"]');
+        crawlButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2">
+                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Queueing...</span>
+                </div>
+            `;
+        });
+
+        let allJobIds = [];
+
+        // Queue crawl jobs for each ESP
+        for (const [espName, urls] of Object.entries(espGroups)) {
+            try {
+                const response = await fetch(`${API_URL}/admin/esp/${espName}/crawl-selected`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.job_ids) {
+                    allJobIds = allJobIds.concat(data.job_ids);
+                } else {
+                    console.error(`Failed to queue ${espName}:`, data.error);
+                }
+            } catch (error) {
+                console.error(`Error queueing ${espName}:`, error);
+            }
+        }
+
+        // Queue global knowledge URLs
+        if (globalUrls.length > 0) {
+            try {
+                const response = await fetch(`${API_URL}/admin/global-knowledge/crawl-selected`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ urls: globalUrls })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.job_ids) {
+                    allJobIds = allJobIds.concat(data.job_ids);
+                }
+            } catch (error) {
+                console.error('Error queueing global knowledge:', error);
+            }
+        }
+
+        if (allJobIds.length === 0) {
+            alert('Failed to queue any crawl jobs. Check console for errors.');
+            // Re-enable buttons
+            crawlButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = 'Crawl Selected';
+            });
+            return;
+        }
+
+        // Find or create progress container
+        let progressContainer = document.getElementById('crawl-progress-container');
+        if (!progressContainer) {
+            // Insert progress container after the crawl buttons
+            const espManagement = document.getElementById('esp-management');
+            if (espManagement) {
+                progressContainer = document.createElement('div');
+                progressContainer.id = 'crawl-progress-container';
+                espManagement.insertBefore(progressContainer, espManagement.firstChild);
+            }
+        }
+
+        // Start progress tracker
+        if (progressContainer && typeof CrawlProgressTracker !== 'undefined') {
+            const tracker = new CrawlProgressTracker(allJobIds, progressContainer, API_URL);
+            tracker.start();
+        } else {
+            console.error('CrawlProgressTracker not available');
+            alert(`Queued ${allJobIds.length} URLs for crawling. Refresh the page to see results.`);
+        }
+
+        // Re-enable buttons
+        crawlButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = 'Crawl Selected';
+        });
+
+    } catch (error) {
+        alert('Error starting crawl: ' + error.message);
+        console.error(error);
+
+        // Re-enable buttons
+        const crawlButtons = document.querySelectorAll('button[onclick="crawlAllSelected()"]');
+        crawlButtons.forEach(btn => {
+            btn.disabled = false;
+            btn.innerHTML = 'Crawl Selected';
+        });
+    }
+}
+
+async function crawlAllSelectedSync() {
+    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
+    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
 
     // Get the crawl button and add loading state
     const crawlButtons = document.querySelectorAll('button[onclick="crawlAllSelected()"]');
