@@ -108,7 +108,28 @@
       "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/global/docs_yotpo-loyalty-referrals-and-shopifys-new-customer-accounts-faq.txt"
     }
   ],
-  "listrak": [],
+  "listrak": [
+    {
+      "url": "https://help.listrak.com/en/articles/2465793-listrak-conductor-steps",
+      "filename": "articles_2465793-listrak-conductor-steps.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/listrak/articles_2465793-listrak-conductor-steps.txt"
+    },
+    {
+      "url": "https://help.listrak.com/en/articles/6909272-loyalty-automations-in-listrak-conductor",
+      "filename": "articles_6909272-loyalty-automations-in-listrak-conductor.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/listrak/articles_6909272-loyalty-automations-in-listrak-conductor.txt"
+    },
+    {
+      "url": "https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-listrak",
+      "filename": "docs_integrating-yotpo-loyalty-referrals-with-listrak.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/listrak/docs_integrating-yotpo-loyalty-referrals-with-listrak.txt"
+    },
+    {
+      "url": "https://help.listrak.com/en/articles/2283752-integration-guide-yotpo",
+      "filename": "articles_2283752-integration-guide-yotpo.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/listrak/articles_2283752-integration-guide-yotpo.txt"
+    }
+  ],
   "ometria": [
     {
       "url": "https://support.yotpo.com/docs/ometria-integration-guide-for-loyalty-referrals",
