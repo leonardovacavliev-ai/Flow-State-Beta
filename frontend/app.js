@@ -1093,7 +1093,15 @@ async function crawlAllSelected() {
                 const data = await response.json();
 
                 if (data.success) {
-                    totalCrawled += data.count;
+                    // API returns results.success array, not count
+                    const successCount = data.results?.success?.length || 0;
+                    const failedCount = data.results?.failed?.length || 0;
+                    totalCrawled += successCount;
+
+                    if (failedCount > 0) {
+                        const failedUrls = data.results.failed.map(f => f.url).join(', ');
+                        errors.push(`${espName}: ${failedCount} failed (${failedUrls})`);
+                    }
                 } else {
                     errors.push(`${espName}: ${data.error || 'Unknown error'}`);
                 }
@@ -1116,7 +1124,8 @@ async function crawlAllSelected() {
                 const data = await response.json();
 
                 if (data.success) {
-                    totalCrawled += data.count;
+                    // Global knowledge returns count field
+                    totalCrawled += (data.count || 0);
                 } else {
                     errors.push(`Global Knowledge: ${data.error || 'Unknown error'}`);
                 }

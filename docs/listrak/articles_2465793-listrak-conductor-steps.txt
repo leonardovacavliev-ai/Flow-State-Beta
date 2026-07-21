@@ -1,0 +1,91 @@
+Source URL: https://help.listrak.com/en/articles/2465793-listrak-conductor-steps
+
+## Listrak Conductor Steps
+
+Learn more about the different step types that are available to build automated workflows with Listrak Conductor.
+
+May 10, 2023Table of contentsListrak Conductor allows you to build many different types of automated workflows by combining the steps in different configurations. Learn more about each step type used in Listrak Conductor below.​
+
+## Trigger Step
+
+The trigger step is the first step in any workflow. This step indicates how a contact becomes eligible for the workflow. There are 4 different classifications of triggers:
+
+###
+
+### External Events
+
+An external event is used to tie a contact's action to a trigger step in a Conductor Conversation. Without an external event the connection between the action and trigger step would not occur, regardless if a contact completed the action, resulting in the contact not entering into a Conversation.
+
+There a several ways an external event can be fired, entering a contact into a conversation:
+
+- It can be tied to a subscription point (action would be contact entering email and clicking enter). This is the most common method for a Welcome Series Conversations.
+- It can be manually triggered during a list import. This option is common when launching a loyalty program in Listrak to add existing members to your loyalty list.
+- It can be triggered using an Action Step in a Conversation. This is common to move a contact into another Conversation on the same list.
+- It can be fired during an API call. This is most common for on-going updates from a loyalty partner or used for custom Conversations.
+- An external event can be fired based on the contact's behavior (using JavaScript or API) on your site such as browsing and abandoning a product or their shopping cart, or by making a purchase.
+
+### List Events
+
+List events are also used to tie a contact's action, but are predefined actions set in the trigger step configuration popup. When a contact's profile data is updated, or one of the following action's happen on your site, a contact is entered into a Conversation. List events include:
+
+- Subscribe:A contact is triggered into the conversation upon opting-in to the list. Methods include subscribing via an online subscription point, a list import, or manually subscribed within our platform (Contacts > Subscribe/Unsubscribe).⚠️ This option will trigger a contact into a Conductor ConversationONLY thefirst timethey are added to the list.
+- Segment Update:An existing contact is triggered into the conversation whenanyprofile segmentation data has been updated.
+- Address Change:This action will both enter the new email address into the conversation and unsubscribe the old email address. If the old address is currently in the conversation, it will be removed via termination. Methods to change the address include list hygiene, manually changing within our platform (Contacts > Change a Contact's Address), or by the contact.
+
+### Child Events
+
+Child thread events are actions within a conversation that uses message engagement to trigger a subscriber into a child thread. These triggers are added by clicking the plus sign below a wait and corresponds to the message preceding it. Child thread events include:
+
+- Message Events:Triggered when a contact has completed the specified action of opening or reading the email; or clicked any link in the email or more specifically, clicked the passed along or browser link.
+- Message Links:Triggered when a contact has clicked a specified link in the message.
+
+### CRM Audiences
+
+Listrak CRM Audiences allow you to act on insights you gained from a CRM visualization. Audiences are automatically updated as contacts take new actions that make them eligible/ineligible for an audience. Learn more aboutUsing Listrak CRM Audiences to Trigger Automated Campaigns.⚠️This option is only available to CRM clients.
+
+### 💡 Helpful Tips when using Events
+
+- An external event needs to be configured prior to setting up a conversation.
+- An external event must be added to the Selected Events column for the event to function.
+- Multiple events can be tied to one trigger step.
+- An external event can be manually triggered via the External Event Manager dashboard in the Listrak platform.
+- An event will trigger a contact into a Conductor Conversationeven if they are already subscribedto the list.Example of Trigger setup modal
+
+## Message Step
+
+The message step indicates the specific message a contact will receive as they progress through the workflow.  Messages can be designed directly in Conductor or as a saved message that is then added to Conductor. Building a saved message allows you to send test messages prior to publishing your conversation and allowing customers to receive it.
+
+Messages can incorporate Listrak solutions, such as Product Recommendations and Dynamic Content. In addition, data stored in a contact's profile fields, can be used to personalize the message content or subject line.Note: Profile fields are specific to the list your conversation is built on.
+
+- TIP: Messages can be tailored to how a contact became eligible for a conversation. For example, include a coupon in your Welcome Series if a contact triggered the workflow by subscribing via the pop-up, but not if they triggered the workflow by subscribing via the checkout. Triggering a subscription via the checkout indicates a contact has already made a purchase and would not need the coupon.
+
+## Go To Step
+
+A Go To step allows you to send a contact to another location in a workflow. A Go To step can move all contacts or only those contacts who meet specific criteria. The criteria is determined using Listrak's legacy filtering system.
+
+Move contacts based on profile field data, purchase data, or email engagement.
+
+## Action Step
+
+An action step writes data into a contact's profile or performs an action as a contact progresses through a workflow. Common action steps include: writing a coupon code, placing contacts in a group for a split test, or adding information to a contact's profile.
+
+Learn moreabout the types of action steps.
+
+- TIP: Use action steps to gather information on a contact, such as the date they entered the workflow.
+
+## Wait Step
+
+A wait step pauses a contact's progress through a conversation. Progress can be paused for: a specific duration, until a static date, or until a date based on their profile information.Learn moreabout how to use theAdvanced Wait Stepoption.
+
+- TIP:Create birthday campaigns by collecting a contact's birthday and then holding them in a wait step until the birth date in their profile.
+
+## Terminate Step
+
+The terminate step is a required part of all workflows and indicates a contact has completed the steps in the workflow.
+
+Related Articles
+- Listrak Conductor Glossary: Understanding Listrak Conductor
+- Integrate Google Forms with Listrak Using Zapier
+- Integrate Answerbase with Listrak Using Zapier
+- Importing a List of Contacts into a Listrak Conductor Conversation
+- Loyalty Automations in Listrak ConductorDid this answer your question?😞😐😃Table of contents

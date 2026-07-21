@@ -1,0 +1,93 @@
+Source URL: https://help.listrak.com/en/articles/6909272-loyalty-automations-in-listrak-conductor
+
+## Loyalty Automations in Listrak Conductor
+
+Learn how to set up automated campaigns that trigger when a loyalty member reaches their milestones.
+
+January 23, 2023Table of contentsIntegrating loyalty provider data in Listrak allows data to sync between the provider and Listrak and save the data into profile fields. This data can be used to personalize message content or to determine when a contact should receive an automated message based on loyalty milestones. Listrak Conductor can be used to build these triggered automations and determine what and how many messages a contact should receive.
+
+⚠️ This guide uses Annex Cloud loyalty data in the example. If you are using another loyalty provider, ensure your naming conventions and data reflect your available data.
+
+## About Loyalty Automations
+
+Loyalty Automations can be set up for various milestones related to your loyalty program. When a contact meets these milestone they can then be entered into an automation.
+
+Below are some common automations related to loyalty programs:
+
+- Welcome to Loyalty Program triggered by sign up
+- Loyalty Points Earned
+- Close to Next Loyalty Tier
+- Loyalty Tier Achieved
+- Loyalty Points Expiration
+- Birthday Loyalty Reward💡 Loyalty Automations are created on the loyalty-specific list.
+
+### Entering Contacts into a Loyalty Automation
+
+Contacts are eligible to enter a conversation when an external event tied to the trigger step is fired within the Listrak platform. There are three main ways a contact will enter into a loyalty automation.
+
+1. An external event can be tied to asubscription point. This is the most common method for a loyalty welcome conversation.
+2. An external event can be specified during alist import. This option is common when launching a loyalty program in Listrak to add existing members to your loyalty list.
+3. An external event can be fired during anAPI call. This is most common for on-going updates from your loyalty partner. An API call can be made for any contact with a new purchase to update related loyalty data such as points accrued or redeemed.⚠️ Custom functionality may require additional scoping and work.
+
+### Creating the External Events
+
+External Events specify the event that allows a contact to enter a thread within the Conductor Conversation. External Events can be triggered by the methods described above.
+
+1. Navigate toAutomation >ConductorExternal Events.
+2. ClickNew Eventat the bottom of the page.
+3. Enter anamein the popup that corresponds to the type of activity for the automation. These can be used to represent the specific configuration of your loyalty program such as program or tier name. E.g. LoyaltySignup-Account or BronzeLoyaltyTierEarned
+4. Repeat steps 2 & 3 for any additional tiers, subscription points, or automations you are setting up related to your loyalty program.
+5. If desired, create Groups to help keep your events organized.
+
+### Creating the Conversation
+
+The Conductor Conversation controls the logic of your automation once a contact has entered a thread. This logic can send different messages based on different events, determine if a contact should stop receiving messages, and more. You will set up the logic below.
+
+1. Before beginning, ensure you are on your loyalty list.
+2. Navigate toAutomation >ConductorConversations.
+3. ClickNew Conversationat the bottom of the page.
+4. In the popup:Enter thenameof your Automated Campaign to reflect the specific goals.Leave the template drop-down asDefault.ClickCreate Conversation.
+
+### Trigger Step Properties
+
+The Trigger Step connects the external events created to the logic that will be set up into the next conversation.
+
+1. Click on theTrigger Step (green triangle)in the designer tab.
+2. At the top, give the step an easily identifiablename. This should reflect the type of action or specific configuration of your program. For example, you can have different triggers for each tier of your loyalty program.
+3. Click on theplus signnext to the external event(s) that will be used for the campaign you are creating.
+4. Click on additional plus signs next to external events, if needed. For example, in a Loyalty Welcome campaign you may have multiple external events, one for each way a contact can sign up for the loyalty program.💡 Click  the plus sign under the existing thread to add new trigger steps if needed.
+
+### Create Thread Logic
+
+The thread logic is what determines how many messages are part of the automated series, how long a contact waits between messages, and more. Each conversation will have it's own logic based on it's type and based on the specifics of your loyalty program.
+
+Tips for building Conductor Conversations
+
+- Use the plus sign to add new step types.
+- Consider applying a go-to step with a filter to remove contacts if they should no longer receive messages or be directed to a different message. E.g. Remove contacts who have made a purchase when offering a coupon.
+- Use asaved message optionto import a message into Conductor that you have already render and link tested.
+- Action steps can be used to provide loyalty members witha couponto incentivize purchase. These coupons can then be inserted in a message via profile fields.
+- Multiple threads can be used to send different messages based on loyalty tier, point value etc. Click on the green plus sign at the bottom of the conversation to add a new thread.Learn more about thestep typesavailable in Listrak Conductor. Have questions? Reach out to your Account Manager or the Listrak Technical Support team.
+
+### Publishing the Conversation
+
+Once you are satisfied with the conversation logic, the conversation can be published. Publishing a conversation enables contacts to enter the thread once an external event has been fired in the Listrak platform.
+
+1. Click thePublishbutton in the designer tab.
+2. In the popup,confirmthat you wish to publish a conversation.
+3. The conversation should be ready to accept contacts in a few minutes.
+
+## Entering Contacts into Conductor via API
+
+Once a Conversation is published contacts are able to enter a thread tied to an external event. The most common way to enter loyalty members into a conversation is via Listrak's REST API.
+
+1. First, ensure that you have created anEmail REST API Integrationwithin the Listrak platform.
+2. Navigate toHelp & Support > Help & Support API IDInformation to find the IDs for the external events and any profile fields that should be referenced in the conversation.
+3. Use thelist import APIcall or thecontact APIcall to determine the contacts who should enter a conversation. 💡 The fields, IDs, and events will be dependent on the specific goals of your campaign.
+
+Related Articles
+- Listrak Conductor Steps
+- Listrak Conductor Glossary: Understanding Listrak Conductor
+- Integrate Google Forms with Listrak Using Zapier
+- Importing a List of Contacts into a Listrak Conductor Conversation
+- Optimizing Conductor ConversationsDid this answer your question?😞😐😃Table of contents

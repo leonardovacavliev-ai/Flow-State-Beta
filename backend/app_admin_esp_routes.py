@@ -158,12 +158,41 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
                         content_hash = esp_mgr.calculate_content_hash(content)
 
+                        # Update crawl_metadata.json for vectorizer compatibility
+                        import json
+                        metadata_path = os.path.join(BASE_PATH, 'docs', 'crawl_metadata.json')
+                        try:
+                            with open(metadata_path, 'r') as f:
+                                metadata = json.load(f)
+                        except FileNotFoundError:
+                            metadata = {}
+
+                        if esp_name not in metadata:
+                            metadata[esp_name] = []
+
+                        # Add/update document in metadata
+                        doc_metadata = {
+                            'url': url,
+                            'filename': filename,
+                            'filepath': file_path
+                        }
+
+                        # Remove old entry if exists (by URL)
+                        metadata[esp_name] = [d for d in metadata[esp_name] if d.get('url') != url]
+                        metadata[esp_name].append(doc_metadata)
+
+                        with open(metadata_path, 'w') as f:
+                            json.dump(metadata, f, indent=2)
+
                         # Vectorize the content
                         try:
                             # Refresh ESP in vector DB (will pick up the new file)
                             vectorizer.refresh_esp(esp_name)
+                            print(f"[VECTORIZE] Successfully vectorized {filename}")
                         except Exception as ve:
-                            print(f"Vectorization warning: {ve}")
+                            print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
+                            import traceback
+                            traceback.print_exc()
 
                         # Update database
                         esp_mgr.update_document_crawl_status(

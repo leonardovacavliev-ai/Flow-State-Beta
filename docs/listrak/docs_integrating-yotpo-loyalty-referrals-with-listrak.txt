@@ -1,0 +1,144 @@
+Source URL: https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-listrak
+
+Products
+
+Loyalty
+
+####### Supported plans
+
+Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, Salesforce Commerce Cloud, Custom
+
+Listrak is an Email Service Provider you can use to reach your email marketing goals. For example, increase repeat purchases with a redemption reminder, increase customer acquisition with referral share emails, or segment your audience using loyalty insights.Integrating your Yotpo Loyalty & Referrals with Listrak automatically pushes program-related data directly into your Listrak account.
+
+Tip:
+
+If you have already completed this integration, you can go straight to theEmail Setup Guide for Listrakto see a list of the conversations we recommend setting up.
+
+### How it works
+
+You can use loyalty events and customer properties to automatically generate timely and relevant messages across the customer journey. Use emails to strategically influence purchase intent at the right point in time.
+
+What Information is Shared in the Integration
+
+There are two types of information that Loyalty & Referrals pushes into Listrak. Click to see a full list ofPersonalization Fieldsand a full list ofeventsavailable in this integration.
+
+#### Before you start
+
+You will need an account with Listrak, if you don’t have one yet,create one now. You will also need a user with admin permissions. Click to read more on Listrak’s site abouthow to add a new user.
+
+##### Integration workflow
+
+1. Set up your Listrak lists
+2. Connect Loyalty & Referrals and Listrak
+
+##### Next steps after integration
+
+- Create your core emails
+- Create your highly-recommended emails
+
+### 1. Setting up your Listrak lists
+
+Your lists should consist of aMaster List, aLoyalty List, and aReferrals List(if relevant).
+
+#### Types of lists
+
+Master List
+
+If you already have a Master List, you can skip this and move on to the “Loyalty list.” Your Master List is your list ofall customers who have opted into receiving emails. Loyalty & Referrals does not add anyone to the master list; We only update Loyalty & Referral related attributes.
+
+Loyalty List
+
+This is a dedicated list for loyalty only, we add all customers who are loyalty members, which includes all theopted inmembers. Your Loyalty List should only include customers subscribed to your Yotpo loyalty program, as all loyalty-related events are triggered from here. If you don't already have an existing Loyalty List, create it now.
+
+Referral List
+
+This is a list we populate with all the referred friends. As all referral program-related events are triggered from your Referral List, so it should only include Loyalty & Referrals referred customers - that is, ‘friends’ who were referred to your store by a referring customer. If you don't already have an existing referral list, create it now.
+
+##### Creating a list
+
+1. Log into Listrak.
+2. ClickManage>Lists>List Manager.
+3. ClickNew List.
+4. Name your list.
+5. ClickCreate.Important:
+
+By default, customers who opt into loyalty and/or referral campaigns are not subscribed or unsubscribed from your master list.
+
+### 2. Connecting Loyalty & Referrals and Listrak
+
+After you set up your Lists, the next step is to connect Listrak and Loyalty & Referrals.
+
+Retrieving your Listrak Client ID and Client Secret
+
+You'll need to retrieve your Client ID and Client Secret from Listrak (Listrak admin permissions are required). To retrieve your Listrak Client ID and Client Secret, do the following:
+
+1. ClickManage>Integrations.
+2. ClickNew Integration.
+3. Scroll down to Yotpo Loyalty & Referrals Rewards.
+4. ClickIntegrate.
+5. ClickSetup Integration.
+6. Select your Master List and Loyalty List from the dropdown menus.
+7. ClickSaveto generate your Client ID/Secret.
+8. Copy your Listrak Client ID and Client Secret
+9. Log in to Yotpo Loyalty & Referrals admin.
+10. From the left sidebar, go toIntegrations Center.
+11. Locate theListraktile and click it.
+12. ClickConnectand thenNext.
+13. Enter your Listrak Client ID and Client Secret where prompted.
+14. ClickConnectto start syncing customer lists.
+15. Select your Listrak Master, Referral, and Loyalty lists from the dropdown menu. These need to be the same lists you selected on Listrak before.
+
+### Next steps
+
+After you set up your integration, you need to set up your email flows. Click to see a completeguide to setting up your Listrak emails.
+
+Create your Core Emails
+
+These are 6 core emails we recommend setting up first.
+
+- Program announcement
+- Referral Link Share
+- Referral Share Reminder
+- Referral Completed Thank You
+- Tier Earned
+- Redemption CreatedCreate your Highly-Recommended Emails
+
+- Customer Birthday
+- Points Reminder (Sent to inactive customers who have points but not enough to redeem a reward.)
+- Redemption Reminder (Sent to inactive customers who have enough points sitting in their account to redeem a reward.)
+
+### Safelisting Loyalty & Referrals' IP address
+
+In order for Loyalty & Referrals to securely send information to Listrak's servers, you may need to safelist the Loyalty & Referrals' IP addresses so that Listrak will allow Loyalty & Referrals to send data over.
+
+How to safelist Loyalty & Referrals' IP address in Listrak
+
+1. ClickManage
+2. ClickAccounts
+3. ClickSoap API IP Authorization
+4. Add Loyalty & Referrals' IP addresses & clickAdd IP/NetmaskLoyalty & Referrals IP Addresses:
+- 18.211.49.234
+- 184.73.97.197
+- 3.208.146.76
+- 3.233.194.13
+- 3.82.123.250
+- 34.194.51.213
+- 34.239.23.157
+- 35.173.225.93
+- 35.175.18.253
+- 44.193.150.247
+- 52.6.112.37
+- 54.159.57.141
+- 54.208.164.94
+- 54.227.16.145
+- 75.101.169.217
+- 75.101.219.113
+- 54.208.166.35
+- 52.21.63.9
+- 54.209.107.41
+- 52.1.212.140
+- 52.3.97.85

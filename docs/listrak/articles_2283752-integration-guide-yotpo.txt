@@ -1,0 +1,48 @@
+Source URL: https://help.listrak.com/en/articles/2283752-integration-guide-yotpo
+
+## Integration Guide: Yotpo
+
+Learn more about Listrak's integration with Yotpo and how to get it set up.
+
+January 23, 2023Table of contentsListrak's integration with Yotpo allows you to seamlessly connect your Product Ratings and Reviews to Listrak's database. After this integration is complete, you can dynamically add these ratings and reviews to any of your email campaigns.
+
+Before beginning the integration:
+
+- Be sure to have your login credentials for Yotpo and Listrak.
+- Provide a product feed to Listrak through the data file import tool/eCommerce platform. Learn more about importing data with Listrakhere.Follow the below steps to begin setting up your integration.
+
+### LOCATING YOUR YOTPO APP AND SECRET KEY IN YOTPO
+
+1. Log into yourYotpo Account.
+2. Click theuser iconon the top right-hand corner of the screen.
+3. ClickAccount Settings.
+4. Click theStore tab.
+5. Navigate to theAPI Credentials section.
+6. Copy theApp KeyandSecret Key.
+
+### LISTRAK
+
+Please be sure to have the copied App and Secret Key available for the next steps.
+
+1. Navigate toSolutions>ReviewsSettings.
+2. If you have multiple merchants, select yourMerchantfrom the drop-down menu.
+3. SelectYotpofrom the provider drop-down menu.
+4. Next, paste thecopied AppandSecret Keyin the appropriate settings fields.💡 The App Key is theAPI Key, the Secret Key is theAPI Secret.
+5. ClickTest Connectionto ensure everything is functioning.
+6. If desired, in theFilteringsection, specify the minimum star rating a product must have for a review to appear. TheAdvanced Optionsallow you to customize additional properties, such as how many reviews to show and how reviews are sorted.
+7. ClickSave Settings.
+
+For more information on Listrak's integration with Yotpo, clickhere.
+
+## Setting Up Automations
+
+Once you have fully integrated with Yotpo you can begin using this data in your Listrak account. Automations in Listrak Conductor allow you to send automated messages when a contact reaches a milestone, such as a new tier, or when they will soon reach a milestone, such as points exporing.
+
+Learn more about setting upConductor Automationsfor loyalty.
+
+Related Articles
+- Integration Guide: Ratings and Reviews
+- Integration Guide: Pixlee TurnTo
+- Integration Guide: Magento 2
+- Integration Guide: CrowdTwist
+- Integration Guide: Glew.ioDid this answer your question?😞😐😃Table of contents
