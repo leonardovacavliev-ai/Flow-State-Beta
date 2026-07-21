@@ -1046,10 +1046,10 @@ let USE_ASYNC_CRAWL = false;
 async function checkAsyncCrawlSupport() {
     try {
         // Try to access the async endpoint - if it exists, async is enabled
-        const response = await fetch(`${API_URL}/admin/crawl-status?job_ids=test`, {
+        const response = await fetch(`${API_URL}/admin/crawl-status?job_ids=00000000-0000-0000-0000-000000000000`, {
             method: 'GET'
         });
-        // If we get 400 (expected for invalid job_ids), async is enabled
+        // If we get 200 (even with empty results), async is enabled
         // If we get 404, async endpoints don't exist
         USE_ASYNC_CRAWL = response.status !== 404;
     } catch (error) {

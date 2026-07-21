@@ -297,6 +297,30 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not job_ids:
                 return jsonify({'error': 'No job_ids provided'}), 400
 
+            # Validate UUIDs (PostgreSQL UUID format check)
+            import uuid
+            valid_job_ids = []
+            for job_id in job_ids:
+                try:
+                    uuid.UUID(job_id)  # Validates UUID format
+                    valid_job_ids.append(job_id)
+                except ValueError:
+                    pass  # Skip invalid UUIDs silently
+
+            if not valid_job_ids:
+                return jsonify({
+                    'jobs': [],
+                    'summary': {
+                        'total': 0,
+                        'queued': 0,
+                        'processing': 0,
+                        'completed': 0,
+                        'failed': 0
+                    }
+                }), 200
+
+            job_ids = valid_job_ids
+
             # Build query with proper parameterization
             placeholders = ','.join(['%s'] * len(job_ids))
             query = f"""
