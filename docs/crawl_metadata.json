@@ -163,5 +163,17 @@
       "filename": "articles_13564274-set-up-your-yotpo-integration.txt",
       "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/postscript/articles_13564274-set-up-your-yotpo-integration.txt"
     }
+  ],
+  "omnisend": [
+    {
+      "url": "https://support.yotpo.com/docs/omnisend-integration-guide-for-yotpo-loyalty-referrals",
+      "filename": "docs_omnisend-integration-guide-for-yotpo-loyalty-referrals.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/omnisend/docs_omnisend-integration-guide-for-yotpo-loyalty-referrals.txt"
+    },
+    {
+      "url": "https://support.omnisend.com/en/articles/2851596-integrate-yotpo-product-reviews-with-omnisend",
+      "filename": "articles_2851596-integrate-yotpo-product-reviews-with-omnisend.txt",
+      "filepath": "/Users/leonardo.vacavliev/Downloads/AI ESP Loyalty Helper APP/docs/omnisend/articles_2851596-integrate-yotpo-product-reviews-with-omnisend.txt"
+    }
   ]
 }

@@ -1,0 +1,132 @@
+Source URL: https://support.yotpo.com/docs/omnisend-integration-guide-for-yotpo-loyalty-referrals
+
+Products
+
+Loyalty
+
+####### Supported plans
+
+Pro, Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, Salesforce Commerce Cloud, Custom
+
+Use the Yotpo Loyalty & Referrals and Omnisend integration to send targeted, triggered emails to your customers whenever they earn points, redeem coupons, enter or exit a tier, etc. In this article, you’ll learn how to set up the integration.
+
+### Integration Overview
+
+The integration creates multiple custom events in your Omnisend account using the data from Yotpo Loyalty & Referrals. You will be able to use these triggers in different automation workflows.
+
+Additionally, as soon as an account triggers one of the events, Omnisend will sync all the Loyalty & Referrals data from Yotpo and add it as custom properties to that account.
+
+### Integrating Yotpo and Omnisend
+
+Note
+
+Make sure you have your Yotpo Loyalty admin settings open in a separate tab to complete the integration
+
+To integrate Yotpo Loyalty & Referrals with Omnisend, follow these steps:
+
+1. From yourOmnisend admindashboard, clickAppsin the upper right corner.
+2. Search for theYotpo Loyalty & Referralsapp.
+3. On the app page, clickConnect now.
+4. In the Omnisend app installation guide that appears, copy theWebhook URLfrom step 2.
+5. Open yourYotpo Loyalty adminand navigate toSettings > General Settings.
+6. In theIntegrationssection,paste the linkin theWebhook URLfield.
+7. Go back to Omnisend’s app installation guide and copy theWebhook Authenticationcode from step 3.
+8. Paste the codein theWebhook Authenticationfield on your Loyalty & Referrals settings page, then clickSave.
+9. Go back to Omnisend andmark the checkboxat the bottom to confirm you’ve completed all steps.
+10. ClickConfirm.
+
+### Custom events
+
+Important
+
+Referral-related events are only applicable if you’re using the old referral program. If you’re using the new program, you can trigger referral events via webhooks.Check our API docs here.
+
+Once the integration is complete, a set of new events is created in your Omnisend account using data from Yotpo Loyalty and Referrals.
+
+New custom events created in Omnisend using loyalty data:
+
+- Coupon Earned (Awarded)- This event is triggered any time a customer earns a discount from completing a campaign (e.g. Newsletter Signup). This event is useful for sending an email with the coupon code to the customer.
+- Coupon Earned (Redeemed)- This event is triggered any time a customer redeems points and receives a coupon code. This event is useful for sending an email with the coupon code to the customer.
+- Custom Reward Redeemed- This event is triggered any time a customer redeems their points for a custom reward redemption, or when they are awarded a custom reward when completing a campaign
+- Customer Birthday- This event is triggered on the birthday of a customer. This is great for sending an email to congratulate them and update them if they were awarded points or a coupon according to an existing Birthday Campaign. The Customer Birthday events will be triggered each day at 1 pm UTC.
+- Customer Anniversary- This event is triggered on the anniversary of a customer. This is great for sending an email to congratulate them and update them if they were awarded points or a coupon according to an existing Anniversary Campaign. The Customer Anniversary events will be triggered each day at 11 am UTC.
+- Loyalty Opt-In / Out- This event is triggered when a customer opts in or out of the loyalty program. A customer who is opted in can earn points, get into tiers, redeem points, etc. Opted-out customers can’t participate in any of these loyalty activities.
+- Points Changed- This event is triggered every time a customer’s point balance changes. The event will provide a customer’s previous point balance, current point balance, and how many points it changed by. This event is useful for sending an email letting customers know that their balance has changed, how many points they used to have, and how many they have now.
+- Points Earned- This event is triggered any time a customer earns points. This event is useful for sending an email letting customers know how many points they've earned.
+- Points Reminder- This event is triggered after a certain number of days of inactivity (the number of days can be changed in the Yotpo Loyalty account settings; check the FAQ section for a detailed answer). This is great for sending an email to remind the customer that they're close to earning a reward. The Points Reminder events will be triggered each day at 5 pm UTC.
+- Redemption Reminder- This event is triggered after a certain number of days of inactivity (the number of days can be changed in the Yotpo Loyalty account settings; check the FAQ section for a detailed answer). This is great for sending an email to remind the customer that they have enough points for a reward. The Redemption Reminder events will be triggered each day at 5 pm UTC.
+- Referral Link Share Reminder- This event is triggered after a certain number of days that a referred customer has not made a purchase via the link (the number of days can be changed in the Yotpo Loyalty account settings; check the FAQ section for a detailed answer). This is great for sending an email to remind the referred customer to use their friend's referral link to give both the referring and referred customer a reward.
+- Referral Link Share- This event is triggered when a customer shares their referral link to their friends. This is great for telling new customers that someone they know likes your store.
+- Referral Completed- This event is triggered any time a customer refers a friend that satisfies the referral program requirements. This event is useful for sending an email thanking the customer for the referral.
+- VIP Tier Earned- This event is triggered when a customer meets the requirement for a new tier. This is great for letting a customer know they reached a certain status level.
+- Tier Expiration Reminder- This event is triggered when a customer is about to lose their current tier. Depending on your settings, the event is sent 30, 14, or 7 days before the tier expires; it will only be triggered if the customer has not met the requirements necessary to retain their tier. This is useful for sending reminder emails that encourage customers to keep their tier benefits before expiration.
+- VIP Tier Lost- This event is triggered when a customer fails to meet the requirement for a tier after the specified period of time has passed.
+- Customer Birthday Captured- This event is triggered when a customer sets their birthday through your storefront.
+- Customer Anniversary Captured- This event is triggered when a customer sets their anniversary through your storefront.
+
+### Custom properties
+
+Once the integration is complete, as soon as an account triggers one of the new events, Omnisend will sync all the Loyalty & Referrals data from Yotpo, and add it as custom properties to that account.
+
+Important
+
+Omnisend doesn’t automatically sync custom properties for all customers.This requiresa manual importfrom Yotpo Loyalty and Referrals.
+
+The following custom properties are added:
+
+- yotpo_loyalty_anniversary_day
+- yotpo_loyalty_anniversary_month
+- yotpo_loyalty_birth_day
+- yotpo_loyalty_birth_month
+- yotpo_loyalty_credit_balance (The customer's current available credits. This will equal the dollar value of the customer’s point balance, based on the logic set in the variable coupon.)
+- yotpo_loyalty_credit_balance_in_customer_currency
+- yotpo_loyalty_has_store_account (True/False depending on if the customer has an account with the platform or not.)
+- yotpo_loyalty_is_affiliate
+- yotpo_loyalty_is_member (Only applicable if you’re using Shopify’s Legacy Accounts. If you’reusing Shopify’s new Customer Accounts, the property will displayNoby default.)
+- yotpo_loyalty_is_opt_in (Whether the customer is opted into the loyalty program following the event trigger)
+- yotpo_loyalty_loyalty_opt_in_date (Date when the customer was opted into the loyalty program)
+- yotpo_loyalty_last_purchase_at
+- yotpo_loyalty_last_seen_at
+- yotpo_loyalty_perks_redeemed (Shows the number of earning records the customer has, such as earning a new tier or joining the program, and not the number of redemptions they made.)
+- yotpo_loyalty_points_balance (The customer's current available points balance that they can use now)
+- yotpo_loyalty_points_earned (The customer's total historical points earned)
+- yotpo_loyalty_points_expire_at (Date when the customer’s points are set to expire. If the points expiration method in the Yotpo admin settings is set toDate earned, it will display the closest expiration date.)
+- yotpo_loyalty_referral_amount_cents
+- yotpo_loyalty_referral_average_amount_cents
+- yotpo_loyalty_referral_code
+- yotpo_loyalty_referral_email (The email of the customer to send the referral to the friend)
+- yotpo_loyalty_referral_email_shares
+- yotpo_loyalty_referral_emails_sent
+- yotpo_loyalty_referral_emails_viewed
+- yotpo_loyalty_referral_expired
+- yotpo_loyalty_referral_facebook_shares
+- yotpo_loyalty_referral_link
+- yotpo_loyalty_referral_links_clicked_from_email
+- yotpo_loyalty_referral_links_clicked_from_facebook
+- yotpo_loyalty_referral_links_clicked_from_twitter
+- yotpo_loyalty_referral_orders
+- yotpo_loyalty_referral_shares
+- yotpo_loyalty_referral_total_clicks
+- yotpo_loyalty_referral_twitter_shares
+- yotpo_loyalty_referral_uniqueClicks
+- yotpo_loyalty_total_purchases
+- yotpo_loyalty_total_spend_cents
+- yotpo_loyalty_vip_tier_ends_at (The date this customer's eligibility for the tier ends. Use this data to encourage customers to maintain their VIP tier status and keep their perks)
+- yotpo_loyalty_vip_tier_name
+
+### Importing historical data to Omnisend
+
+If you want to import historical data from Yotpo Loyalty & Referrals for all customers, you need to do this manually. The only cases where Omnisend syncs them automatically is when a customer account triggers one of the new custom events. Begin this process by exporting your customers from Yotpo:
+
+1. In your Yotpo Loyalty admin, go to theCustomerspage.
+2. ClickExportin the top right of the customers table.
+3. UnderWhich customers should we include in the export?dropdown list, chooseAll of my customers.
+4. ClickExport My Customers.
+5. You will receive the customers file to your email shortly after.
+6. To complete the import process in Omnisend, refer to theOmnisend integration guide.Having issues with the integration?
+
+Contact Omnisend atsupport@omnisend.com

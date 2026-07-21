@@ -1,0 +1,109 @@
+Source URL: https://support.omnisend.com/en/articles/2851596-integrate-yotpo-product-reviews-with-omnisend
+
+## Integrate Yotpo Product Reviews with Omnisend
+
+Learn how to integrate Yotpo with your Omnisend account
+
+Written by Edgaras Vaninas April 9, 2026Table of contentsConnectYotpo Product Reviewsto Omnisend to collect customer reviews, automate review request emails, and use review data to segment and personalize your marketing campaigns.
+
+💡Looking for Yotpo Loyalty & Referrals?See the dedicated guide.
+
+### Before You Begin
+
+- Platform compatibility:You must have Yotpo Product Reviews installed in your store.
+- Historical data:Yotpo does not sync past reviews. Only reviews created after integration will appear in Omnisend.
+
+### Benefits
+
+- Automate review request emails after purchase.
+- Segment customers by review score (1–5 stars) for targeted follow-ups.
+- Personalize emails with review content, product names, and URLs.
+- Identify promoters (5-star reviewers) vs. detractors (1-2 stars) for loyalty or support workflows.
+
+### Setup Process
+
+Here is how you can integrate Yotpo with Omnisend:
+
+Step 1.In Omnisend, clickAppsin the top-right corner.
+
+Step 2.Search forYotpo Product Reviewsand clickConnect now.
+
+Step 3.You'll be redirected to Yotpo. Log in and clickConnectto authorize Omnisend.
+
+You'll be redirected back to your Omnisend App Market. A notification will confirm successful integration.
+
+### How It Works
+
+Once Yotpo is connected to Omnisend, each time a customer leaves a product review via Yotpo, Omnisend logs acustom eventin real time. You can use this event to triggerautomation workflowsorsegment contactsfor targeted campaigns.
+
+Note:Yotpo does not sync historical data.
+
+#### Custom Event: Yotpo Review Created
+
+Event fields:
+
+- Review score– Star rating (1–5).
+- Product title– Name of the reviewed product.
+- Product URL– Link to the product page.
+- Review title– Headline of the review.
+- Review content– Full review text.
+
+#### Custom Properties
+
+Omnisend also stores twocustom propertieson each contact:
+
+- Yotpo_latest_review_score– Most recent review score submitted by the customer.
+- Yotpo_number_of_reviews– Total number of reviews submitted by the customer.Note:These properties update in real time. You can use them to filter segments or set workflow conditions.
+
+### Use Cases
+
+#### 1. Thank customers for leaving reviews
+
+- Trigger:Yotpo Review Created event.
+- Action:Send an automated thank-you email. Include the product name and review title using custom event fields:[[event.product_title]][[event.review_title]]Example:"Thanks for reviewing [Product Name]! Here's 10% off your next order."
+
+#### 2. Follow up with low-rated reviews
+
+- Segment:Customers withYotpo_latest_review_score ≤ 2.
+- Action:Send a support outreach email or offer a discount to improve their experience.
+
+#### 3. Reward frequent reviewers
+
+- Segment:Customers withYotpo_number_of_reviews ≥ 5.
+- Action:Send a VIP discount or early access to new products.
+
+#### 4. Showcase 5-star reviews in campaigns
+
+- Segment:Customers withYotpo_latest_review_score = 5.
+- Action:Feature their reviews in a social proof campaign or ask for a testimonial.💡 Beyond Omnisend, you can display Yotpo reviews on Google search results and your Facebook page. Check out Yotpo'sGoogleandFacebookintegrations.
+
+### FAQ
+
+How often does review data sync from Yotpo to Omnisend?
+
+In real time. When a customer submits a review in Yotpo, Omnisend logs the "Yotpo Review Created" event and updates custom properties (```
+Yotpo_latest_review_score
+```,```
+Yotpo_number_of_reviews
+```) within seconds.
+
+Why don't "Yotpo Review Created" events appear in my Automation Workflow triggers?
+
+Custom events display as automation triggers only after the event has passed to Omnisend at least once. If you just completed the integration,  submit a test review or wait for your first live review. Once Omnisend receives the event, it will appear in the Automation triggers dropdown.
+
+Do custom properties update if a customer leaves multiple reviews?
+
+Yes.```
+Yotpo_latest_review_score
+```always reflects the most recent review.```
+Yotpo_number_of_reviews
+```increments with each new review.
+
+Need help?Our award-winning Support Team is here for you—reach out via in-app chat or email us at[email protected].
+
+Related Articles
+- Integrate Mesa with Omnisend
+- Integrate Yotpo Loyalty and Referrals with Omnisend
+- Integrate Yotpo SMSBump with Omnisend
+- Integrate Fera with Omnisend
+- Migrate from Yotpo to OmnisendDid this answer your question?😞😐😃Table of contents
