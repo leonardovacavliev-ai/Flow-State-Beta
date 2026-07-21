@@ -945,19 +945,26 @@ async function loadESPManagement() {
         const container = document.getElementById('espManagement');
         container.innerHTML = '';
 
-        for (const esp of data.esps) {
-            const espDiv = document.createElement('div');
-            espDiv.className = 'bg-muted/50 rounded-lg p-4 border border-border';
-
+        // Fetch all ESP links in parallel (performance optimization)
+        const espPromises = data.esps.map(async esp => {
             const linksResponse = await fetch(`${API_URL}/admin/esp/${esp.name}/links`);
             const linksData = await linksResponse.json();
+            return { esp, links: linksData.links };
+        });
+
+        const espResults = await Promise.all(espPromises);
+
+        // Render all ESPs
+        for (const { esp, links: linksData } of espResults) {
+            const espDiv = document.createElement('div');
+            espDiv.className = 'bg-muted/50 rounded-lg p-4 border border-border';
 
             const displayName = esp.display_name || esp.name;
 
             // Build links HTML
             let linksHTML = '';
-            if (linksData.links && linksData.links.length > 0) {
-                linksHTML = linksData.links.map(link => {
+            if (linksData && linksData.length > 0) {
+                linksHTML = linksData.map(link => {
                     // Determine badge color based on status
                     let badgeClass = '';
                     if (link.status === 'crawled') {
@@ -1861,9 +1868,12 @@ async function addGlobalKnowledgeLink() {
     }
 }
 
-// Update loadESPManagement to also load global knowledge
+// Update loadESPManagement to also load global knowledge (in parallel for better performance)
 const originalLoadESPManagement = loadESPManagement;
 loadESPManagement = async function() {
-    await originalLoadESPManagement();
-    await loadGlobalKnowledge();
+    // Load ESPs and Global Knowledge in parallel instead of sequentially
+    await Promise.all([
+        originalLoadESPManagement(),
+        loadGlobalKnowledge()
+    ]);
 };
