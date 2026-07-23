@@ -1,195 +1,235 @@
 Source URL: https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-dotdigital
 
 Products
+
 Loyalty
-Supported plans
+
+####### Supported plans
+
 Premium, Enterprise
-eCommerce Platform
+
+####### eCommerce Platform
+
 Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, Salesforce Commerce Cloud, Custom
+
 Is this article for me?
-This article is relevant if you’re using the
-Dotdigital-built integration between Yotpo Loyalty & Referrals and Dotdigital
-.
-If you’re using Yotpo’s legacy integration with Dotdigital, please contact
-Dotdigital support
-and refer to their
-migration guide
-.
-Integration Overview
+
+- This article is relevant if you’re using theDotdigital-built integration between Yotpo Loyalty & Referrals and Dotdigital.
+- If you’re using Yotpo’s legacy integration with Dotdigital, please contactDotdigital supportand refer to theirmigration guide.
+
+### Integration Overview
+
 The integration allows you to sync loyalty data from Yotpo Loyalty & Referrals into your Dotdigital account. Once connected, you can:
-Sync customer loyalty attributes (e.g., points balance, tier, referrals, birthday)
-Segment contacts based on loyalty data
-Trigger automated campaigns based on loyalty events
-Personalize emails using loyalty data
-The connection is initiated from your Yotpo Loyalty admin, and the configuration is completed in Dotdigital.
+
+- Sync customer loyalty attributes (e.g., points balance, tier, referrals, birthday)
+- Segment contacts based on loyalty data
+- Trigger automated campaigns based on loyalty events
+- Personalize emails using loyalty dataThe connection is initiated from your Yotpo Loyalty admin, and the configuration is completed in Dotdigital.
+
 In this article, you’ll learn how to connect your Yotpo Loyalty & Referrals account to Dotdigital.
-Before You Begin
+
+#### Before You Begin
+
 Make sure you have access to your:
-Yotpo Loyalty admin
-Dotdigital admin
-Yotpo App Key, API Key, and GUID during setup.
-You can
-take your App Key here
-, and your
-API Key and GUID here
-.
-Step 1: Connect Yotpo Loyalty & Referrals to Dotdigital (Yotpo admin)
-In your Yotpo Loyalty admin, go to
-Integrations Center
-.
-Locate the
-Dotdigital for Yotpo Loyalty
-tile and click to connect the integration.
-Follow the
-connection steps
-on the screen.
-You will be taken to your Dotdigital admin to
-complete the setup
-.
-Step 2: Complete the Integration Setup (Dotdigital admin)
-Authorize the connection in Dotdigital
-After connecting Yotpo Loyalty & Referrals to Dotdigital, you’ll be redirected to authorize the connection in Dotdigital.
-Follow the steps here
-to complete the connection.
-Configure the contact sync settings
-Choose how contacts are synced:
-Sync all Yotpo contacts, or
-Update only existing Dotdigital contacts
-Configure the loyalty opt-in preferences
-Decide which customers are synced:
-Only opted-in loyalty members, or
-All customers (incl. non-opted users)
-Map your data fields
-Choose
-Yes
-if you want to manually select and map specific data fields for your sync. Otherwise, default data field mappings will be used for your integration.
-(Optional)
-Map your campaigns using loyalty events
-You can map Yotpo Loyalty & Referrals events to automated Campaigns and Programs in Dotdigital. When a selected event occurs in Yotpo, Dotdigital can automatically trigger a campaign.
-What Data Is Shared in the Integration
-Yotpo Loyalty & Referrals Customer Attributes
+
+- Yotpo Loyalty admin
+- Dotdigital admin
+- Yotpo App Key, API Key, and GUID during setup.You cantake your App Key here, and yourAPI Key and GUID here.
+
+### Step 1: Connect Yotpo Loyalty & Referrals to Dotdigital (Yotpo admin)
+
+1. In your Yotpo Loyalty admin, go toIntegrations Center.
+2. Locate theDotdigital for Yotpo Loyaltytile and click to connect the integration.
+3. Follow theconnection stepson the screen.
+4. You will be taken to your Dotdigital admin tocomplete the setup.
+
+### Step 2: Complete the Integration Setup (Dotdigital admin)
+
+1. Authorize the connection in DotdigitalAfter connecting Yotpo Loyalty & Referrals to Dotdigital, you’ll be redirected to authorize the connection in Dotdigital.Follow the steps hereto complete the connection.
+2. Configure the contact sync settingsChoose how contacts are synced:Sync all Yotpo contacts, orUpdate only existing Dotdigital contacts
+3. Configure the loyalty opt-in preferencesDecide which customers are synced:Only opted-in loyalty members, orAll customers (incl. non-opted users)
+4. Map your data fieldsChooseYesif you want to manually select and map specific data fields for your sync. Otherwise, default data field mappings will be used for your integration.
+5. (Optional)Map your campaigns using loyalty eventsYou can map Yotpo Loyalty & Referrals events to automated Campaigns and Programs in Dotdigital. When a selected event occurs in Yotpo, Dotdigital can automatically trigger a campaign.
+
+### What Data Is Shared in the Integration
+
+#### Yotpo Loyalty & Referrals Customer Attributes
+
 Attribute
+
 Description
+
 First name
+
 Customer’s first name.
+
 Last name
+
 Customer’s last name.
+
 Has_account
+
 Whether the customer has a store account.
+
 Current_tier
+
 Customer’s current tier name.
+
 Current_tier_ends
+
 Date when the customer’s tier expires.
+
 Points_earned
+
 Number of points earned.
+
 Amount_spent
+
 Annual amount spent by the customer.
+
 Purchases_made
+
 Number of purchases made by the customer.
+
 Referrals_completed
+
 Number of completed referrals by the customer.
+
 Points_balance
+
 Customer’s current points balance.
+
 Points_expire_at
+
 Date when the customer’s points expire.
+
 Referral_code
+
 Customer’s unique referral discount code. Only applicable to code-based referrals.
+
 Amount_needed
+
 Amount needed to maintain the customer’s current tier.
+
 Purchases_needed
+
 Purchases needed to maintain the customer’s current tier.
+
 Points_needed
+
 Points needed to maintain the customer’s current tier.
+
 New_tier_multiplier
+
 Points multiplier applied to the next tier that the customer could achieve.
+
 Nxtpts_expire
+
 Date when a customer's points expire.
+
 Days_to_expiry
+
 Number of days left before the points expire.
+
 Nxtpts_expire_amnt
+
 Number of points that are about to expire.
+
 Next_pts_needed
+
 Points needed to reach next tier.
+
 Next_amnt_needed
+
 Amount needed to reach the next tier.
+
 Next_purch_needed
+
 Number of purchases the customer must complete to reach the next tier.
+
 Next_refer_needed
+
 Number of referrals the customer must make to reach the next tier.
+
 Birthday
+
 Customer’s birthday.
+
 Reward_text
+
 If a customer is gifted a coupon for their birthday reward, this is the coupon code.
+
 Reward_points
+
 If a customer is gifted points for their birthday reward, this is how many points they were gifted.
+
 Referral_link
+
 Customer’s unique referral link.
+
 Credit_balance
+
 Current available credit balance (if points are displayed as credit based on your variable redemption reward settings).
+
 Payout_percent
+
 Payout percentage set for this customer. Only populated if the customer is marked as an affiliate.
+
 Has_tax_details
-If the customer provided tax details for the influencer program and is marked as doing so in the Yotpo Loyalty admin, the value here is 1.
-If they did not provide tax details, this is 0.
-Only populated if the customer is marked as an affiliate.
+
+- If the customer provided tax details for the influencer program and is marked as doing so in the Yotpo Loyalty admin, the value here is 1.
+- If they did not provide tax details, this is 0.Only populated if the customer is marked as an affiliate.
+
 Is_Affiliate
+
 Indicates if the customer is marked as an affiliate.
+
 affiliate_email
+
 If this customer has a separate email for their Paypal/affiliate commission, this will populate with that alternate email address.
+
 total_amnt_earned
+
 If the customer is marked as an affiliate, this will populate with the total amount in commission they've earned with Yotpo Loyalty & Referrals.
-After your customer attributes have been synced, you’ll be able to see them within your
-Contacts
-under
-Data Fields
-.
-Available Loyalty Events for Campaign Mapping
+
+After your customer attributes have been synced, you’ll be able to see them within yourContactsunderData Fields.
+
+#### Available Loyalty Events for Campaign Mapping
+
 Campaign events
-Referral Link Share
-Donation Created
-Redemption Below Threshold
-Points Changed
-Referral Completed
-Program events
-Loyalty Opt-in/out
-Birthday Captured
-Anniversary Captured
-Points Reminder
-Points Expiration Reminder
-Redemption Reminder
-Customer Birthday
-Customer Anniversary
-Tier Earned
-Tier Lost
-Points Earned
-Referral Share Reminder
-Creating a Loyalty & Referrals Campaign in Dotdigital
+
+- Referral Link Share
+- Donation Created
+- Redemption Below Threshold
+- Points Changed
+- Referral CompletedProgram events
+
+- Loyalty Opt-in/out
+- Birthday Captured
+- Anniversary Captured
+- Points Reminder
+- Points Expiration Reminder
+- Redemption Reminder
+- Customer Birthday
+- Customer Anniversary
+- Tier Earned
+- Tier Lost
+- Points Earned
+- Referral Share Reminder
+
+### Creating a Loyalty & Referrals Campaign in Dotdigital
+
 Once your customer attributes and events are synced, you can start building automated campaigns in Dotdigital. Below is a quick overview of how to include Yotpo loyalty attributes (“markers”) in your campaigns.
+
 To create or edit a triggered campaign:
-In Dotdigital, go to the
-Email
-tab.
-Under
-Automation
-, select
-Triggered Email
-.
-Locate the campaign you want to edit and click the
-Edit
-icon.
-You’ll be taken to the
-Content
-section of the campaign.
-To add loyalty personalization:
-Click
-Insert Action
-.
-Select
-Personalize
-to view available customer markers (including synced loyalty attributes).
-Click into the email body where you’d like to insert the marker.
-Select the relevant attribute (e.g., points balance, referral link, tier name).
-Click
-Save & Continue
-when ready.
-You’ve now created a Dotdigital campaign powered by Yotpo Loyalty & Referrals events and attributes.
+
+1. In Dotdigital, go to theEmailtab.
+2. UnderAutomation, selectTriggered Email.
+3. Locate the campaign you want to edit and click theEditicon.
+4. You’ll be taken to theContentsection of the campaign.To add loyalty personalization:
+
+1. ClickInsert Action.
+2. SelectPersonalizeto view available customer markers (including synced loyalty attributes).
+3. Click into the email body where you’d like to insert the marker.
+4. Select the relevant attribute (e.g., points balance, referral link, tier name).
+5. ClickSave & Continuewhen ready.You’ve now created a Dotdigital campaign powered by Yotpo Loyalty & Referrals events and attributes.

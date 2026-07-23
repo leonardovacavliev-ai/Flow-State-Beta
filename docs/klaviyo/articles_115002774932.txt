@@ -1,244 +1,202 @@
 Source URL: https://help.klaviyo.com/hc/en-us/articles/115002774932
 
-Help center
-/
-Flows
-/
-Getting started with flows
-Getting started with flows
-Estimated 12 minute read
-|
-Updated Mar 30, 2026, 12:00 AM EST
-Learn how to use flows, also known as automations or drip campaigns, in Klaviyo for personalized and automated communications to your customers, and learn how to set your first flow live.
-What is a flow?
+Help center/Flows/Getting started with flows
+
+## Getting started with flows
+
+Estimated 12 minute read|Updated Mar 30, 2026, 12:00 AM EST          Learn how to use flows, also known as automations or drip campaigns, in Klaviyo for personalized and automated communications to your customers, and learn how to set your first flow live.
+
+### What is a flow?
+
 A flow is a sequence of automated actions (e.g., sending messages) that is triggered by certain behavior or event.  The trigger could be when someone joins a list or checks out, you fulfill an order, or even a you approach a certain date (such as a person's birthday). Any data syncing to your Klaviyo account can be used to trigger and target automated flows.
+
 For example, a welcome series flow is triggered when someone subscribes to your newsletter. After triggering the flow, they can be sent multiple pre-configured messages over time that introduce them to your brand. Flows can include time delays between actions and multiple paths that split based on different criteria for further customization.
-If you'd like a more in-depth learning experience with the information from this article, sign up for the Klaviyo Academy course on
-getting started with flows
-.
-This content requires
-Functional
-cookies to be enabled.
+
+If you'd like a more in-depth learning experience with the information from this article, sign up for the Klaviyo Academy course ongetting started with flows.
+
+This content requiresFunctionalcookies to be enabled.
+
 Update Cookie Settings
-Need assistance for an existing flow?
-If you've already set up a flow and are looking for assistance with an issue, see our article on
-troubleshooting a flow
-.
-Before you begin
-If you haven't already, make sure that you have completed the
-Setup Wizard
-and are ready to use your Klaviyo account.
-In addition, we recommend that ‌you read through our
-guide to segments
-and
-information on lists
-to ensure that your lists and segments are set up and ready.
-Which flows to set live first
+
+#### Need assistance for an existing flow?
+
+If you've already set up a flow and are looking for assistance with an issue, see our article ontroubleshooting a flow.
+
+### Before you begin
+
+If you haven't already, make sure that you have completed theSetup Wizardand are ready to use your Klaviyo account.
+
+In addition, we recommend that ‌you read through ourguide to segmentsandinformation on liststo ensure that your lists and segments are set up and ready.
+
+### Which flows to set live first
+
 When you first set up your Klaviyo account, there are some impactful flows you will likely want to create and set live first in order to welcome subscribers to your brand and communicate with customers about their transactions. In this section, you will learn about which flows to prioritize in order to get your business started right away.
-Default flows
-After configuring your core company details in the Setup Wizard, you can navigate to the
-Flows
-tab in your account. Here, you will see any best practice flows we have pre-populated for you.
+
+##### Default flows
+
+After configuring your core company details in the Setup Wizard, you can navigate to theFlowstab in your account. Here, you will see any best practice flows we have pre-populated for you.
+
 These flows will contain default templates that provide a suggested layout and example text. Most of these templates will be configured to pull in content through your integration, including dynamic data that can be used to personalize your emails for your audience.
+
 Even if you don't integrate any third-party tools, such as your ecommerce store, you will still get a standard welcome series flow. This flow triggers when new subscribers are added to a list. When editing this flow, you will need to select the list you would like subscribers to be added to in order to trigger the welcome series.
+
 We highly recommend reviewing, customizing, and previewing all default flow messages before turning your flows live to ensure that they align with your brand.
-Suggested flows to create first
+
+##### Suggested flows to create first
+
 The most impactful flows are also the ones you should set live first. In order, they are:
-Welcome series:
-a welcome series flow introduces subscribers to your brand and converts them into first-time customers.
-Abandoned cart:
-an abandoned cart flow converts would-be customers; this flow is customizable based on items in someone's cart and whether they're already a customer.
-Post-purchase:
-a post-purchase flow shows appreciation for customers and lets them know about related products they might be interested in.
-Winback:
-a winback flow re-engages customers who purchased in the past, but haven’t bought again in a while. This flow is customizable based on the products they've purchased and how many purchases they've made.
-For some flows, you may include both email and SMS messages. However, for a welcome series, we recommend having separate flows for email and SMS, since subscribers can opt in to email and SMS separately and each welcome series flow can only be entered once. See the additional resources at the end of the guide for more information.
-Choose a pre-built flow from the library
-To create a new flow, click the
-Flows
-tab in your account's main navigation sidebar and then click the
-Create
-Flow
-button.
-If you aren't sure where to start,
-browse the Flow Library
-for flow ideas that span the customer lifecycle.
-The library provides flows based on your particular marketing goals, ecommerce integration, and messaging channel (SMS, email, or both). Once you navigate to the
-Flows
-tab, you can choose either
-Create Flow
-to be taken to the library directly.
-When you visit the Flow library, you will see a toolbar at the top to refine your search and flow needs. From here, you can choose to search by flow through specific keywords or phrases (for example, “Abandoned Cart Flows”).
-If you want to search for a flow related to a specific ecommerce integration, choose the integration from the dropdown menu. This will then only show flows that work with your ecommerce platform.
-By default, the Flow library will display flows that use multiple channels. If you want to refine your search by a specific channel, choose the channel from the dropdown menu.
-These refined results will display on the Flow library homepage and in any goal or essentials-based collection.
-Once you have chosen which goal-based flow you want to set up, simply click the tile to create this flow.
-Whether you choose to create your flow from scratch or from the Flow library, you'll need to name your flow. The name of your flow should be easily understood by you and your team — as you start to use Klaviyo more and more, the number of flows can add up quickly and clear naming conventions will help you stay organized.
-Understand and choose your trigger and profile filters
+
+1. Welcome series:a welcome series flow introduces subscribers to your brand and converts them into first-time customers.
+2. Abandoned cart:an abandoned cart flow converts would-be customers; this flow is customizable based on items in someone's cart and whether they're already a customer.
+3. Post-purchase:a post-purchase flow shows appreciation for customers and lets them know about related products they might be interested in.
+4. Winback:a winback flow re-engages customers who purchased in the past, but haven’t bought again in a while. This flow is customizable based on the products they've purchased and how many purchases they've made. For some flows, you may include both email and SMS messages. However, for a welcome series, we recommend having separate flows for email and SMS, since subscribers can opt in to email and SMS separately and each welcome series flow can only be entered once. See the additional resources at the end of the guide for more information.
+
+### Choose a pre-built flow from the library
+
+1. To create a new flow, click theFlowstab in your account's main navigation sidebar and then click theCreateFlowbutton.If you aren't sure where to start,browse the Flow Libraryfor flow ideas that span the customer lifecycle.The library provides flows based on your particular marketing goals, ecommerce integration, and messaging channel (SMS, email, or both). Once you navigate to theFlowstab, you can choose eitherCreate Flowto be taken to the library directly.
+1. When you visit the Flow library, you will see a toolbar at the top to refine your search and flow needs. From here, you can choose to search by flow through specific keywords or phrases (for example, “Abandoned Cart Flows”).
+1. If you want to search for a flow related to a specific ecommerce integration, choose the integration from the dropdown menu. This will then only show flows that work with your ecommerce platform.
+2.
+1. By default, the Flow library will display flows that use multiple channels. If you want to refine your search by a specific channel, choose the channel from the dropdown menu.These refined results will display on the Flow library homepage and in any goal or essentials-based collection.
+1. Once you have chosen which goal-based flow you want to set up, simply click the tile to create this flow.
+2. Whether you choose to create your flow from scratch or from the Flow library, you'll need to name your flow. The name of your flow should be easily understood by you and your team — as you start to use Klaviyo more and more, the number of flows can add up quickly and clear naming conventions will help you stay organized.
+
+### Understand and choose your trigger and profile filters
+
 You'll then select a trigger for your new flow — a flow's trigger is what sets the automated series in motion.
+
 You will be able to choose one of 5 options outlined below: list, segment, metric, price drop, or date property.
-List-triggered
-: People will qualify to enter a list-triggered flow when they are added to a specific list. One example is the welcome series.
-Segment-triggered
-: People will qualify to enter a segment-triggered flow when they are added to a specific segment, which is a dynamic grouping of profiles that meet certain criteria.
-Metric-triggered
-: People will qualify to enter a metric-triggered flow when they take a specific action (for example, placing an order). To see all possible metrics that can trigger a flow, check out your account's
-Metrics
-within the
-Analytics
-tab.
-Date property-triggered
-: People will qualify to enter a date property-triggered flow if they have a specific date-based profile property set (for example, a birthday). Date properties linked to custom objects can also trigger flows, see
-custom objects in date-triggered flows
-.
-Price drop-triggered
-: People will qualify if an item they viewed or started checkout with dropped by a set amount or percent.
-How triggers and profile filters qualify subscribers
-Whenever someone takes an action that would trigger a flow, Klaviyo will first check all
-trigger and profile filters
-to determine if they qualify to continue through the flow.
+
+- List-triggered: People will qualify to enter a list-triggered flow when they are added to a specific list. One example is the welcome series.
+- Segment-triggered: People will qualify to enter a segment-triggered flow when they are added to a specific segment, which is a dynamic grouping of profiles that meet certain criteria.
+- Metric-triggered: People will qualify to enter a metric-triggered flow when they take a specific action (for example, placing an order). To see all possible metrics that can trigger a flow, check out your account'sMetricswithin theAnalyticstab.
+- Date property-triggered: People will qualify to enter a date property-triggered flow if they have a specific date-based profile property set (for example, a birthday). Date properties linked to custom objects can also trigger flows, seecustom objects in date-triggered flows.
+- Price drop-triggered: People will qualify if an item they viewed or started checkout with dropped by a set amount or percent.
+
+##### How triggers and profile filters qualify subscribers
+
+Whenever someone takes an action that would trigger a flow, Klaviyo will first check alltrigger and profile filtersto determine if they qualify to continue through the flow.
+
 Klaviyo determines the following when someone triggers a flow:
-Those who do not meet the trigger and profile filters upon triggering the flow will be filtered out immediately and will not be scheduled for any of the following components.
-Everyone who qualifies for the flow's trigger and profile filters will officially enter the flow and be scheduled for the subsequent components based on the delay period you've set.
-Before each component (email, SMS, split, etc.), profile filters will be re-checked to ensure that recipients still meet the criteria of the flow.
-Note that trigger filters are not checked again at send time.
-When each message is scheduled to send, Klaviyo will apply your profile filters again (e.g.,
-has Placed Order zero times since starting this flow
-) and skip anyone who fails these filters at send time. We will walkthrough how to review this Recipient Activity (e.g., if someone is
-Waiting
-,
-Skipped
-, etc.) in the Reviewing the Recipient Activity section later in this tutorial.
-Set up your trigger
+
+- Those who do not meet the trigger and profile filters upon triggering the flow will be filtered out immediately and will not be scheduled for any of the following components.
+- Everyone who qualifies for the flow's trigger and profile filters will officially enter the flow and be scheduled for the subsequent components based on the delay period you've set.
+- Before each component (email, SMS, split, etc.), profile filters will be re-checked to ensure that recipients still meet the criteria of the flow. Note that trigger filters are not checked again at send time.
+
+When each message is scheduled to send, Klaviyo will apply your profile filters again (e.g.,has Placed Order zero times since starting this flow) and skip anyone who fails these filters at send time. We will walkthrough how to review this Recipient Activity (e.g., if someone isWaiting,Skipped, etc.) in the Reviewing the Recipient Activity section later in this tutorial.
+
+##### Set up your trigger
+
 Click on the trigger that you want to use to create your flow.
+
 Note that you will need to refine each trigger. For example, if you choose a list-triggered flow, you'll need to choose which specific list will set your flow in motion.
-Add steps to a flow
+
+### Add steps to a flow
+
 After you select a trigger and add any desired trigger or profile filters, you're ready to add additional components into your flow.
-Understanding flow actions
+
+##### Understanding flow actions
+
 Flow actions come in 3 types:
-Messages
-: a message action performs the task of sending out a message. A message has a status that can be changed to live, manual, or draft. This is covered later in the tutorial.
-Data
-: a data action performs the task of updating data (such as a profile property or a list), or performing another type of data-related action (such as an internal alert or webhook).
-Logic
-: a logic action is evaluated before any subsequent actins are performed. This could be a time delay in order to schedule some action relative to the trigger or another action. A time delay must have a live or manual status action immediately after it in order to function. Logic also includes conditional and trigger splits, which can be used to branch your flow into multiple paths based on specific criteria. A conditional split can branch based on information related to the profile currently in the flow, whereas a trigger split can branch based on information related to the event that triggered the flow.
-Drag and drop or add a flow action
+
+- Messages: a message action performs the task of sending out a message. A message has a status that can be changed to live, manual, or draft. This is covered later in the tutorial.
+- Data: a data action performs the task of updating data (such as a profile property or a list), or performing another type of data-related action (such as an internal alert or webhook).
+- Logic: a logic action is evaluated before any subsequent actins are performed. This could be a time delay in order to schedule some action relative to the trigger or another action. A time delay must have a live or manual status action immediately after it in order to function. Logic also includes conditional and trigger splits, which can be used to branch your flow into multiple paths based on specific criteria. A conditional split can branch based on information related to the profile currently in the flow, whereas a trigger split can branch based on information related to the event that triggered the flow.
+
+##### Drag and drop or add a flow action
+
 There are 2 ways to add a step into your flow:
-You can click on the action in the sidebar and drag it onto the visual canvas. Every "droppable" location for an action will highlight with a blue outline as you drag it onto the canvas, and a light grey drop zone will appear as you get close to a drop point.
-You can click on the '+' buttons located at every node where an action can be added. Clicking on the '+' will open a menu where you can select any action to add it directly to the canvas (these correspond with the same actions found in the sidebar).
-Once an action is added to the canvas, you can configure it in the settings sidebar.
-Learn more about
-Smart Sending
-and
-UTM Tracking
-.
-Schedule a step in a flow
+
+1. You can click on the action in the sidebar and drag it onto the visual canvas. Every "droppable" location for an action will highlight with a blue outline as you drag it onto the canvas, and a light grey drop zone will appear as you get close to a drop point.
+1. You can click on the '+' buttons located at every node where an action can be added. Clicking on the '+' will open a menu where you can select any action to add it directly to the canvas (these correspond with the same actions found in the sidebar).
+2. Once an action is added to the canvas, you can configure it in the settings sidebar.Learn more aboutSmart SendingandUTM Tracking.
+3.
+
+### Schedule a step in a flow
+
 People move through flow steps sequentially, starting at the trigger and moving downwards. When you have multiple actions, especially messages, it is important to add time delays between each action so that they do not all occur at once. For example, adding a 24 hour (or longer) delay between your first email and your second email in a welcome series flow will give someone enough time to receive and read the first email before receiving another.
-Understanding time delays
+
+##### Understanding time delays
+
 Messages and other flow components are scheduled by time delays. You need to specify how much time there should be between each step in a flow. If components are back-to-back, with no time delays, they will all occur simultaneously.
+
 Each time delay creates a waiting period between one component and the next. In this way, emails in a flow series will be scheduled relative to one another.
+
 This means that if "Email #1" in a flow is sent one day after the trigger event, and you drag in a time delay set to 2 days between the first email and the second, "Email #2" will be sent 3 days after the trigger event.
+
 You can set a delay to any number of minutes, hours, or days. To send a message immediately after the previous step, you don't need to drag in a time delay at all.
+
 When you choose to create a waiting period of X days, each day will be calculated as a 24-hour period. If you choose to wait X days but specify a certain time of day, however, each day will be calculated as a calendar day to avoid prolonged wait periods depending on when a recipient enters your flow. For example, if you send "Email #1" on February 1st at 3 p.m. EST and you set a 3 day time delay for "Email #2," "Email #2" will be sent out on February 4th at 3 p.m. EST.
-You can also choose to
-set a delay until a specific time of day or delay until only specific days of the week
-. However, we'll only wait X "calendar days" instead of X "24-hour days" when your time delay includes a specific time of day.
-Set up a time delay
+
+You can also choose toset a delay until a specific time of day or delay until only specific days of the week. However, we'll only wait X "calendar days" instead of X "24-hour days" when your time delay includes a specific time of day.
+
+##### Set up a time delay
+
 If you would like a time delay before the next step in your flow, drag in the ‌time delay component from the settings sidebar or add it from the menu. The example below shows multiple time delays included in the flow.
+
 Note that after you set a delay, you can always adjust it by clicking on the time delay component. Keep in mind that updating a time delay before a message will not impact any already scheduled messages. The updated timing will only impact newly scheduled messages moving forward.
-Time delays can also be set to wait until a specific time of day or a specific day of the week which will change the behavior of how the time delay schedules each recipient. For more detailed information on time delays, please see our article on
-How to add a time delay to a flow
-.
-Set the flow action status
+
+Time delays can also be set to wait until a specific time of day or a specific day of the week which will change the behavior of how the time delay schedules each recipient. For more detailed information on time delays, please see our article onHow to add a time delay to a flow.
+
+### Set the flow action status
+
 Now that your flow is ready with its triggers, filters, and potential time delays, you are ready to set it live.
-Understanding flow statuses
+
+##### Understanding flow statuses
+
 There are 3 possible statuses for an entire flow or individual flow actions: draft, manual, or live.
-Draft: this is the default status for a new message and is the status you should use while you're still configuring your content and adjusting settings. When a message is in draft, nobody will be scheduled to receive it. If you change a message in a live flow to draft, it will be skipped in the sequence.
-Manual: when you’re done configuring a new message but want to test it out before turning it live, you can
-set it to manual status
-. When a message is in manual, it’s active in your flow but no messages will be sent automatically. You will need to manually review and send all scheduled messages. When a contact is scheduled as "needs review," they will then move to the next step. If you have live messages later in the sequence, they can still receive these while waiting for approval to receive manual messages.
-Note that when a flow message is set to manual, you will see all scheduled messages in the Needs Review section within the Analytics snapshot in the sidebar.
-Live: to "turn on" a message in a flow series, you will want to change the message's status to live. A live message is active in your flow and is sent automatically.
-Update the status of individual actions
-You can update the status of individual actions by clicking on the
-status button
-in the corner of each flow action, as shown below.
-Update the status of all actions in bulk
+
+- Draft: this is the default status for a new message and is the status you should use while you're still configuring your content and adjusting settings. When a message is in draft, nobody will be scheduled to receive it. If you change a message in a live flow to draft, it will be skipped in the sequence.
+- Manual: when you’re done configuring a new message but want to test it out before turning it live, you canset it to manual status. When a message is in manual, it’s active in your flow but no messages will be sent automatically. You will need to manually review and send all scheduled messages. When a contact is scheduled as "needs review," they will then move to the next step. If you have live messages later in the sequence, they can still receive these while waiting for approval to receive manual messages.Note that when a flow message is set to manual, you will see all scheduled messages in the Needs Review section within the Analytics snapshot in the sidebar.
+- Live: to "turn on" a message in a flow series, you will want to change the message's status to live. A live message is active in your flow and is sent automatically.
+
+#### Update the status of individual actions
+
+You can update the status of individual actions by clicking on thestatus buttonin the corner of each flow action, as shown below.
+
+#### Update the status of all actions in bulk
+
 To change the status of all your flow actions at once:
-Click
-Review and Turn On
-or
-Update Status
-in the top right of the flow builder.
-From here, choose the status you want to set the whole flow to. If you choose
-Live
-, the entire flow will be immediately set to live.
-Understanding and reviewing your flow analytics
+
+1. ClickReview and Turn OnorUpdate Statusin the top right of the flow builder.
+1. From here, choose the status you want to set the whole flow to. If you chooseLive, the entire flow will be immediately set to live.
+
+### Understanding and reviewing your flow analytics
+
 In order to understand how a flow is performing overall, you will want to view message performance across your whole series. You can show analytics on the visual canvas itself.
-Once inside the builder for a given flow, click the
-Show Analytics
-icon button in the header.
-Then, you'll see all message cards expand to show performance metrics, with an adjustable timeframe located in the top right of the canvas. For each action, you can also view a 30-day performance snapshot on the configuration panel and click in to view analytics around that action step in your series.
-When you click
-View details
-on the action configuration panel, you will be brought to a report where you can explore all recipient activity for your flow message.
-If you switch the status of a message from manual to live, any messages in the Needs Review section will continue to remain there until manually reviewed and handled—these messages will not automatically send when the message's status switches to live.
-From the
-Needs Review
-section within Recipient Activity, you can choose to
-Send All
-or
-Cancel All
-, or alternatively click
-Send Now
-or
-Cancel
-for an individual message.
-If your flow message has a time delay before it, you will also notice individuals queued up in the Waiting section within your message's Recipient Activity. This view shows you who entered your flow and is currently waiting to receive the selected message.
-To dive deeper into flow analytics,
-review our guide to understanding flow analytics
-.
-Outcome
+
+1. Once inside the builder for a given flow, click theShow Analyticsicon button in the header.
+1. Then, you'll see all message cards expand to show performance metrics, with an adjustable timeframe located in the top right of the canvas. For each action, you can also view a 30-day performance snapshot on the configuration panel and click in to view analytics around that action step in your series.
+1. When you clickView detailson the action configuration panel, you will be brought to a report where you can explore all recipient activity for your flow message. If you switch the status of a message from manual to live, any messages in the Needs Review section will continue to remain there until manually reviewed and handled—these messages will not automatically send when the message's status switches to live.
+
+1. From theNeeds Reviewsection within Recipient Activity, you can choose toSend AllorCancel All, or alternatively clickSend NoworCancelfor an individual message.
+1. If your flow message has a time delay before it, you will also notice individuals queued up in the Waiting section within your message's Recipient Activity. This view shows you who entered your flow and is currently waiting to receive the selected message.To dive deeper into flow analytics,review our guide to understanding flow analytics.
+
+### Outcome
+
 Now that you’ve created your first flow in Klaviyo, you can continue to explore new flows to nurture and engage your customer base throughout their lifecycle with your brand.
-Additional resources
-automating the customer journey with flows
-Get started on your first flows:
-How to create an email welcome series
-Learn how to create a sequence of emails sent directly after someone subscribes to hear from your brand. This is a critical moment in the customer lifecycle because it's your opportunity to introduce new, interested prospects to your business and product offering. With a welcome series, you should capitalize on this display of interest.
-How to create an SMS welcome flow
-Learn how to create a welcome flow for your SMS subscribers.
-Learn about more advanced flow features:
-Understanding flow branching
-Learn how flow branching helps you personalize flows so that you can send individuals down different parallel paths depending on what you already know about them.
-Understanding flow triggers and filters
-Learn more about Klaviyo filters which can be used to further narrow triggers or actions in flows. For example, if a flow triggers when someone places an order, a trigger filter could be added to limit this to specific product types. Trigger filters are evaluated alongside the trigger itself to only let certain people into a flow.
-Benchmarks for flow emails reference
-Learn about benchmarks that you can use to compare your flow's performance with those of other Klaviyo customers. After you create a new flow, you may have questions around how it is performing.  We've aggregated data across thousands of customers in different revenue bands to give you insight into areas that are performing well, as well as where you can improve. For tips, check out the guides in the Additional resources section.
-If you are having trouble getting your flow to send, look into these resources:
-Troubleshooting a flow
-Learn how to troubleshoot a flow when you notice it behaving differently from expected.
-How to add past profiles to a flow
-Learn how to add past profiles to a flow, which allows you to retroactively add qualified recipients into a flow that would’ve triggered the flow before it was set to live or manual. This process is formerly known as back-population.
-Understanding flow alerts
-Learn about the different alerts and warning messages you may see when setting up a flow. These messages appear when setup is incomplete or a feature is changing and the setup is not longer valid.
-Was this article helpful?
-Yes
-No
-Use this form only for article feedback.
-Learn how to contact support
-.
-Explore more from Klaviyo
-Community
-Connect with peers, partners, and Klaviyo experts to find inspiration, share insights, and get answers to all of your questions.
-Visit Community
-Partners
-Hire a Klaviyo-certified expert to help you with a specific task, or for ongoing marketing management.
-Hire a partner
-Support
-Access support through your account.
-Email support
-(free trial and paid accounts)
-Available 24/7
-Chat/virtual assistance
-Availability varies by location and plan type
+
+### Additional resources
+
+- automating the customer journey with flowsGet started on your first flows:
+
+- How to create an email welcome seriesLearn how to create a sequence of emails sent directly after someone subscribes to hear from your brand. This is a critical moment in the customer lifecycle because it's your opportunity to introduce new, interested prospects to your business and product offering. With a welcome series, you should capitalize on this display of interest.
+- How to create an SMS welcome flowLearn how to create a welcome flow for your SMS subscribers.Learn about more advanced flow features:
+
+- Understanding flow branchingLearn how flow branching helps you personalize flows so that you can send individuals down different parallel paths depending on what you already know about them.
+- Understanding flow triggers and filtersLearn more about Klaviyo filters which can be used to further narrow triggers or actions in flows. For example, if a flow triggers when someone places an order, a trigger filter could be added to limit this to specific product types. Trigger filters are evaluated alongside the trigger itself to only let certain people into a flow.
+- Benchmarks for flow emails referenceLearn about benchmarks that you can use to compare your flow's performance with those of other Klaviyo customers. After you create a new flow, you may have questions around how it is performing.  We've aggregated data across thousands of customers in different revenue bands to give you insight into areas that are performing well, as well as where you can improve. For tips, check out the guides in the Additional resources section.If you are having trouble getting your flow to send, look into these resources:
+
+- Troubleshooting a flowLearn how to troubleshoot a flow when you notice it behaving differently from expected.
+- How to add past profiles to a flowLearn how to add past profiles to a flow, which allows you to retroactively add qualified recipients into a flow that would’ve triggered the flow before it was set to live or manual. This process is formerly known as back-population.
+- Understanding flow alertsLearn about the different alerts and warning messages you may see when setting up a flow. These messages appear when setup is incomplete or a feature is changing and the setup is not longer valid.  Was this article helpful?YesNoUse this form only for article feedback. Learn how to contact support.
+
+### Explore more from Klaviyo
+
+CommunityConnect with peers, partners, and Klaviyo experts to find inspiration, share insights, and get answers to all of your questions.Visit CommunityPartnersHire a Klaviyo-certified expert to help you with a specific task, or for ongoing marketing management.Hire a partnerSupportAccess support through your account.
+
+Email support(free trial and paid accounts)Available 24/7
+
+Chat/virtual assistanceAvailability varies by location and plan type
+
 Log in

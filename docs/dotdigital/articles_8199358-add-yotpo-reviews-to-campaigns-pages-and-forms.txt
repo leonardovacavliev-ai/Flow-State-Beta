@@ -1,96 +1,74 @@
 Source URL: https://marketing.help.dotdigital.com/en/articles/8199358-add-yotpo-reviews-to-campaigns-pages-and-forms
 
-Add Yotpo reviews to campaigns, pages, and forms
+## Add Yotpo reviews to campaigns, pages, and forms
+
 Showcase the highly rated products available on your store to your contacts and potentially increase your orders.
-Written by
-Gareth Burroughes
-Updated over a week ago
-Table of contents
-Yotpo reviews App blocks allow you to add 5-star product reviews from your store into your email campaigns, pages, and forms using EasyEditor.
-Before you start
-The Yotpo product reviews integration must be installed on your account.
-​
-If the Yotpo integration is already installed on your account but you cannot access Yotpo App blocks in EasyEditor, you might have to delete and reinstall the integration.
-Learn more in
-Integrate Yotpo with Marketing
-.
-​
-Yotpo reviews must be enabled in your account’s EasyEditor extensions.
-​
-Learn more in
-EasyEditor extensions: App blocks overview
-.
-​
-Yotpo reviews App blocks can be used in
-email campaigns
-and
-pages and forms
-.
-​
-Yotpo App blocks can be placed on the base canvas and inside columns. They
-cannot
-be placed in dynamic content blocks. You
-can
-place them inside base Container blocks in the Surveys, pages, and forms EasyEditor.
-App block types
+
+Written by Gareth Burroughes Updated over a week agoTable of contentsYotpo reviews App blocks allow you to add 5-star product reviews from your store into your email campaigns, pages, and forms using EasyEditor.
+
+## Before you start
+
+- The Yotpo product reviews integration must be installed on your account.​If the Yotpo integration is already installed on your account but you cannot access Yotpo App blocks in EasyEditor, you might have to delete and reinstall the integration.Learn more inIntegrate Yotpo with Marketing.​
+- Yotpo reviews must be enabled in your account’s EasyEditor extensions.​Learn more inEasyEditor extensions: App blocks overview.​
+- Yotpo reviews App blocks can be used inemail campaignsandpages and forms.​
+- Yotpo App blocks can be placed on the base canvas and inside columns. Theycannotbe placed in dynamic content blocks. Youcanplace them inside base Container blocks in the Surveys, pages, and forms EasyEditor.
+
+## App block types
+
 The following Yotpo reviews App blocks are available to use in your email campaigns and pages and forms:
+
 App block
+
 Description
+
 Required information
+
 Product: ID
+
 Shows three of the most recent 5-star reviews for a chosen product ID listed in your store.
+
 This block requires you to enter the product’s ID as it is displayed on your store.
+
 Product: Name
+
 Shows three of the most recent 5-star reviews for a chosen product listed in your store.
+
 This block requires you to enter the product’s name as it is displayed on your store.
+
 Recent: 5-star
+
 Shows the three most recent 5-star product reviews from your site.
+
 This block does not require you to enter any product information.
-Add app blocks in EasyEditor
-In EasyEditor, go to
-Build
->
-Yotpo reviews
-.
-Drag a
-Yotpo reviews block
-onto the canvas.
-Select the
-block
-to open the settings side panel.
-Enter your chosen product’s
-Product data
-as it is displayed on your store into the product data box.
-​
-Learn more in
-App block types
-.
-To save, select
-Apply
-.
-Select
-Preview
-to open the preview tool and see what your App block looks like.
-Edit App block styles
-To style the content of your App blocks, on the EasyEditor canvas, select the App block to open the style options, then select
-Style content
-at the bottom of the side panel.
-Block details
+
+## Add app blocks in EasyEditor
+
+1. In EasyEditor, go toBuild>Yotpo reviews.
+2. Drag aYotpo reviews blockonto the canvas.
+3. Select theblockto open the settings side panel.
+4. Enter your chosen product’sProduct dataas it is displayed on your store into the product data box.​Learn more inApp block types.
+5. To save, selectApply.
+6. SelectPreviewto open the preview tool and see what your App block looks like.
+
+## Edit App block styles
+
+To style the content of your App blocks, on the EasyEditor canvas, select the App block to open the style options, then selectStyle contentat the bottom of the side panel.
+
+### Block details
+
 The styles side panel displays basic details that can be customised for each App block.
+
 These details might include names, review counts, or colours used for App block elements. Follow the on-screen guidance to make changes to these details.
-Review star colour picker
+
+### Review star colour picker
+
 To change the colour of your review stars, use the colour picker. You can choose from the colours already used in the campaign or select a completely different colour.
-Learn more about using the Style manager in
-Choose and manage styles
-.
+
+Learn more about using the Style manager inChoose and manage styles.
+
 Related Articles
-Tools: Add a product from your catalog
-Product recommendations in campaigns, pages, or forms
-Add Trustpilot reviews to campaigns, pages, and forms
-Add coupon codes to your campaigns with Uniqodo
-Add Judge.me reviews to campaigns, pages, and forms
-Did this answer your question?
-😞
-😐
-😃
-Table of contents
+- Tools: Add a product from your catalog
+- Product recommendations in campaigns, pages, or forms
+- Add Trustpilot reviews to campaigns, pages, and forms
+- Add coupon codes to your campaigns with Uniqodo
+- Add Judge.me reviews to campaigns, pages, and formsDid this answer your question?😞😐😃Table of contents

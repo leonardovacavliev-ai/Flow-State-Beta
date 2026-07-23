@@ -1,150 +1,128 @@
 Source URL: https://support.yotpo.com/docs/integrating-yotpo-reviews-with-attentive
 
 YotpoProducts
+
 Reviews
-Supported plans
+
+####### Supported plans
+
 Free, Starter, Pro, Premium, Enterprise
-eCommerce Platform
+
+####### eCommerce Platform
+
 Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, WooCommerce, Volusion, Salesforce Commerce Cloud, Custom
-Goals and Outcomes
+
+### Goals and Outcomes
+
 Yotpo’s integration with Attentive helps you connect your Reviews data with personalized SMS and email campaigns. With this integration, you can segment subscribers based on review behavior and trigger automated journeys when review events occur. This enables you to build trust, increase engagement, and drive conversions with authentic customer content.
+
 In this article you will learn how to connect Yotpo Reviews with Attentive and how to use review data to enhance your SMS and email marketing strategy.
-Integration Overview
+
+### Integration Overview
+
 By integrating Yotpo Reviews with Attentive, you can use review activity as a powerful engagement signal in your marketing. For example, you can:
-Create segments of subscribers based on review count, star rating, or sentiment.
-Trigger journeys when reviews are submitted, published, escalated, or unpublished.
-Enrich your campaigns with star ratings and review content to increase social proof.
-Integration Basics
+
+- Create segments of subscribers based on review count, star rating, or sentiment.
+- Trigger journeys when reviews are submitted, published, escalated, or unpublished.
+- Enrich your campaigns with star ratings and review content to increase social proof.
+
+### Integration Basics
+
 To set up the integration, you’ll need access to both your Yotpo Reviews admin and your Attentive admin. The connection is initiated from Yotpo and finalized in Attentive.
-Configuration Instructions
-In your Yotpo Reviews admin, go to
-Integrations
-.
-Locate the
-Attentive
-tile and click
-Connect
-.
-Review the access permissions you are granting Attentive and click
-Next
-.
-Click
-Connect
-.
-Sign in to your Attentive account using your Attentive credentials.
-Click
-Install
-.
-Then click
-Connect
-and wait until the process is completed.
+
+### Configuration Instructions
+
+1. In your Yotpo Reviews admin, go toIntegrations.
+2. Locate theAttentivetile and clickConnect.
+3. Review the access permissions you are granting Attentive and clickNext.
+4. ClickConnect.
+5. Sign in to your Attentive account using your Attentive credentials.
+6. ClickInstall.
+7. Then clickConnectand wait until the process is completed.
+
 Once connected, review events from Yotpo will automatically sync to Attentive.
-Part of the Process
-Creating segments
+
+### Part of the Process
+
+#### Creating segments
+
 You can build Attentive subscriber segments based on review behavior. Examples include:
-Customers who submitted more than 5 reviews.
-Customers with an average rating above 4 stars.
-Customers who recently left a review for a specific product.
-Creating journeys
+
+- Customers who submitted more than 5 reviews.
+- Customers with an average rating above 4 stars.
+- Customers who recently left a review for a specific product.
+
+#### Creating journeys
+
 Journeys in Attentive are automated message sequences triggered by subscriber actions or review events synced from Yotpo, such as submitting, publishing, escalating, or unpublishing a review. They let you deliver timely, personalized messages based on how customers engage with your brand. Examples include:
-Review Submitted
-Thank customers with a discount or free shipping code
-Example: “
-We appreciate your review! Use code THANKS10 for 10% off your next one-time purchase.
-”
-Pro Tip: Adding an incentive increases the chance of repeat conversions.
-Review Published
-Celebrate published reviews with a reward or shipping perk
-Example: “
-Your review just went live
-🎉
-Enjoy 15% off with code THANKYOU15.
-”
-Pro Tip: Published reviews provide a natural moment to re-engage happy customers.
-Review Escalated
-Trigger a support workflow in Attentive to address escalated reviews quickly.
-Review Unpublished
-Encourage customers to submit updated or additional feedback.
-Example: Review Request Journey
+
+- Review SubmittedThank customers with a discount or free shipping codeExample: “We appreciate your review! Use code THANKS10 for 10% off your next one-time purchase.”Pro Tip: Adding an incentive increases the chance of repeat conversions.
+- Review PublishedCelebrate published reviews with a reward or shipping perkExample: “Your review just went live🎉Enjoy 15% off with code THANKYOU15.”Pro Tip: Published reviews provide a natural moment to re-engage happy customers.
+- Review EscalatedTrigger a support workflow in Attentive to address escalated reviews quickly.
+- Review UnpublishedEncourage customers to submit updated or additional feedback.
+
+##### Example: Review Request Journey
+
 You can use Yotpo review data in Attentive to build automated review request journeys. These journeys send review requests after an order milestone and adjust messaging based on whether the customer has already submitted a review.
-This journey is typically triggered by the
-Review Request Eligible (On Fulfillment)
-or
-Review Request Eligible (On Delivery)
-events sent from Yotpo to Attentive when an order reaches those milestones.
+
+This journey is typically triggered by theReview Request Eligible (On Fulfillment)orReview Request Eligible (On Delivery)events sent from Yotpo to Attentive when an order reaches those milestones.
+
 Below is an example journey structure built in Attentive using Yotpo review data.
-Initial wait period:
-After an order is fulfilled, the journey waits
-14 days
-before sending the first message. This delay allows customers enough time to receive and use the product before being asked for feedback.
-First review request message:
-The first message asks the customer to leave a review for their recent purchase. You can personalize the message using dynamic attributes passed from Yotpo, such as the product name and the customer’s unique review link.
-Example:
-“We’d love to hear your feedback on your recent purchase.”
-Review status check:
-Seven days after the first message, the journey checks the customer's review status and branches depending on whether they have submitted any reviews.
-Path A
-: Customer reviewed some products in a multi-product order
-If the customer has reviewed at least one product in a multi-product order, the journey sends a request prompting them to review the remaining products in the order.
-Example:
-“Thanks for your recent order! We'd love your feedback on the other items in your order.”
-Path B:
-Customer has not submitted a review
-If the customer has not submitted a review, the journey sends a reminder encouraging them to leave a review.
-Example:
-“Don’t forget! We’d love your feedback on your recent order.”
-Nested branch logic:
-A nested branch can be used to distinguish between customers who have:
-Reviewed
-all
-products.
-Reviewed
-some
-of the products.
-Customers who have reviewed all products exit the journey without receiving additional messages. Customers who have reviewed none or only some of the products in their order receive a reminder.
-Displaying product ratings & review counts in Attentive emails
+
+Initial wait period:After an order is fulfilled, the journey waits14 daysbefore sending the first message. This delay allows customers enough time to receive and use the product before being asked for feedback.
+
+First review request message:The first message asks the customer to leave a review for their recent purchase. You can personalize the message using dynamic attributes passed from Yotpo, such as the product name and the customer’s unique review link.
+
+Example:“We’d love to hear your feedback on your recent purchase.”
+
+Review status check:Seven days after the first message, the journey checks the customer's review status and branches depending on whether they have submitted any reviews.
+
+- Path A: Customer reviewed some products in a multi-product orderIf the customer has reviewed at least one product in a multi-product order, the journey sends a request prompting them to review the remaining products in the order.Example:“Thanks for your recent order! We'd love your feedback on the other items in your order.”
+- Path B:Customer has not submitted a reviewIf the customer has not submitted a review, the journey sends a reminder encouraging them to leave a review.Example:“Don’t forget! We’d love your feedback on your recent order.”Nested branch logic:A nested branch can be used to distinguish between customers who have:
+
+- Reviewedallproducts.
+- Reviewedsomeof the products.Customers who have reviewed all products exit the journey without receiving additional messages. Customers who have reviewed none or only some of the products in their order receive a reminder.
+
+#### Displaying product ratings & review counts in Attentive emails
+
 You can personalize your Attentive campaigns and journeys by displaying live product ratings and review counts from Yotpo. This lets you highlight best-selling or highly rated products to boost conversions through social proof.
+
 To display product ratings in your emails:
-Create or open an email in Attentive (either a Campaign or a Journey email).
-In the email builder, drag and drop a
-Product Catalog
-,
-Product Recs
-, or
-Dynamic Products block
-.
-Select products that have Yotpo Reviews data.
-In
-Product details
-, enable the
-Product Rating
-option.
-This option won’t appear if Yotpo Reviews data isn’t available for the product.
-Choose how to display ratings:
-Stars only
-Stars + average rating
-Stars + total number of reviews
-Example messages
+
+1. Create or open an email in Attentive (either a Campaign or a Journey email).
+2. In the email builder, drag and drop aProduct Catalog,Product Recs, orDynamic Products block.
+3. Select products that have Yotpo Reviews data.
+4. InProduct details, enable theProduct Ratingoption.- This option won’t appear if Yotpo Reviews data isn’t available for the product.
+5. Choose how to display ratings:- Stars only- Stars + average rating- Stars + total number of reviews
+
+##### Example messages
+
 When using product ratings in your emails, you can add persuasive copy to reinforce the value of the reviews. Here are some ready-to-use examples:
-Recommended
-:
-It’s not hype! We think you will love this collection as much as everyone else. Check out the reviews for {Product Name} here!
-Alternate
-:
-Check out what people are saying about {Product Name}. Spoiler alert… they are raving about it!
-Alternate
-:
-With so many positive reviews, it’s hard to keep {Product Name} stocked. Check it out before it’s gone!
-Best practice
+
+- Recommended:It’s not hype! We think you will love this collection as much as everyone else. Check out the reviews for {Product Name} here!
+- Alternate:Check out what people are saying about {Product Name}. Spoiler alert… they are raving about it!
+- Alternate:With so many positive reviews, it’s hard to keep {Product Name} stocked. Check it out before it’s gone!
+
+##### Best practice
+
 Social proof is one of the strongest drivers of conversion. Use review ratings in your product recommendations to build trust, reduce purchase hesitation, and encourage buyers to act quickly.
-Segmented audiences
+
+#### Segmented audiences
+
 Go beyond basic segmentation by combining reviews with attributes like topics of interest, average star rating, and most recent review. This allows you to personalize campaigns with the right message for each customer.
-Additional Information
+
+### Additional Information
+
 Attentive Support – Yotpo Reviews Integration
+
 Attentive Guide – Yotpo Review Request Journey
+
 Yotpo Reviews Quick Start Guide
-Integration Testing
+
+### Integration Testing
+
 To confirm the integration is working correctly, you can:
-Submit a test review in your store and verify the event appears in Attentive
-Create a test segment (e.g., “Total reviews > More than 0”) and check if test subscribers are added
-Trigger a simple journey (e.g., Review Submitted → thank-you SMS) and confirm delivery to a test number or email
+
+- Submit a test review in your store and verify the event appears in Attentive
+- Create a test segment (e.g., “Total reviews > More than 0”) and check if test subscribers are added
+- Trigger a simple journey (e.g., Review Submitted → thank-you SMS) and confirm delivery to a test number or email

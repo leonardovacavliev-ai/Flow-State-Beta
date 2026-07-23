@@ -279,23 +279,35 @@ async function sendMessage() {
             })
         });
 
-        const data = await response.json();
-
         // Remove loading
         removeLoading(loadingId);
 
+        // Check if response is OK
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Server error response:', errorText);
+            addMessage('assistant', `Server error (${response.status}): The service is temporarily unavailable. Please try again in a moment.`);
+            return;
+        }
+
+        const data = await response.json();
+
         if (data.error) {
             addMessage('assistant', `Error: ${data.error}`);
-        } else {
+        } else if (data.response) {
             addMessage('assistant', data.response);
 
             // Save to conversation history
             addToHistory('user', message);
             addToHistory('assistant', data.response);
+        } else {
+            console.error('Invalid response format:', data);
+            addMessage('assistant', 'Error: Received invalid response from server. Please try again.');
         }
     } catch (error) {
         removeLoading(loadingId);
-        addMessage('assistant', `Error: ${error.message}`);
+        console.error('Network or parsing error:', error);
+        addMessage('assistant', `Connection error: ${error.message}. Please check your connection and try again.`);
     }
 
     sendBtn.disabled = false;
@@ -337,7 +349,18 @@ function addMessage(role, content) {
 
     // Render markdown for assistant messages, plain text for user
     if (role === 'assistant' && typeof marked !== 'undefined') {
-        contentDiv.innerHTML = marked.parse(content);
+        try {
+            // Safety check: ensure content is valid before parsing
+            if (content && typeof content === 'string') {
+                contentDiv.innerHTML = marked.parse(content);
+            } else {
+                console.error('Invalid content for marked.parse:', content);
+                contentDiv.textContent = content || '[Error: Empty response from server]';
+            }
+        } catch (error) {
+            console.error('Markdown parsing error:', error);
+            contentDiv.textContent = content || '[Error: Could not render response]';
+        }
     } else {
         contentDiv.textContent = content;
     }
@@ -1554,9 +1577,22 @@ function showHistory(esp) {
 
             if (userMsg) {
                 const timestamp = new Date(userMsg.timestamp).toLocaleString();
-                const assistantContent = assistantMsg && typeof marked !== 'undefined'
-                    ? marked.parse(assistantMsg.content)
-                    : (assistantMsg ? assistantMsg.content : '');
+                let assistantContent = '';
+
+                if (assistantMsg) {
+                    if (typeof marked !== 'undefined') {
+                        try {
+                            assistantContent = assistantMsg.content && typeof assistantMsg.content === 'string'
+                                ? marked.parse(assistantMsg.content)
+                                : assistantMsg.content || '';
+                        } catch (error) {
+                            console.error('Markdown parsing error in history:', error);
+                            assistantContent = assistantMsg.content || '';
+                        }
+                    } else {
+                        assistantContent = assistantMsg.content || '';
+                    }
+                }
 
                 conversationsHTML += `
                     <div class="bg-muted/50 rounded-lg p-4 mb-4 border border-border">

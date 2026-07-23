@@ -1,53 +1,22 @@
 Source URL: https://marketing.help.dotdigital.com/en/articles/8198952-convert-a-standard-campaign-into-a-triggered-campaign
 
-Convert a standard campaign into a triggered campaign
+## Convert a standard campaign into a triggered campaign
+
 Repurpose your standard campaigns by converting them into triggered campaigns, saving time and resources.
-Written by
-Gareth Burroughes
-Updated over 2 weeks ago
-To convert a standard campaign into a triggered campaign:
-Go to
-Campaigns
->
-Email.
-Find and select
-the campaign
-you want to convert. This opens the campaign in EasyEditor.
-Go to the
-Campaign details
-page by selecting
-Create
-or
-Back
-.
-Select
-Campaign settings
-.
-Under
-Type
-, select
-Triggered
-.
-Select
-Apply
-.
-Select
-Save & continue
-or
-Save
-.
-Your converted campaign now appears in
-Automation
->
-Triggered email
-.
+
+Written by Gareth Burroughes Updated over 3 weeks agoTo convert a standard campaign into a triggered campaign:
+
+1. Go toCampaigns>Email.
+2. Find and selectthe campaignyou want to convert. This opens the campaign in EasyEditor.
+3. Go to theCampaign detailspage by selectingCreateorBack.
+4. SelectCampaign settings.
+5. UnderType, selectTriggered.
+6. SelectApply.
+7. SelectSave & continueorSave.Your converted campaign now appears inAutomation>Triggered email.
+
 Related Articles
-Customise the double opt-in confirmation email
-Create a triggered email campaign
-Convert a triggered email into a standard email campaign
-Set up an auto responder for email campaigns
-Send a triggered campaign on WhatsApp
-Did this answer your question?
-😞
-😐
-😃
+- Customise the double opt-in confirmation email
+- Create a triggered email campaign
+- Convert a triggered email into a standard email campaign
+- Set up an auto responder for email campaigns
+- Send a triggered campaign on WhatsAppDid this answer your question?😞😐😃

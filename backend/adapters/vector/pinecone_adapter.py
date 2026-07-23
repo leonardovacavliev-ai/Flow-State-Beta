@@ -28,8 +28,9 @@ class PineconeAdapter(VectorAdapter):
         self.index_name = index_name
         self.dimension = dimension
 
-        # Initialize embedding model (same as ChromaDB)
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        # MEMORY FIX: Lazy-load embedding model only when needed
+        # This prevents loading 250MB+ model during initialization
+        self._embedding_model = None
 
         # Get or create index
         if index_name not in self.pc.list_indexes().names():
@@ -45,6 +46,14 @@ class PineconeAdapter(VectorAdapter):
             )
 
         self.index = self.pc.Index(index_name)
+
+    @property
+    def embedding_model(self):
+        """Lazy-load embedding model on first use"""
+        if self._embedding_model is None:
+            print("[INFO] Loading SentenceTransformer model (first use)...")
+            self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._embedding_model
 
     def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
         """Add a document to the vector store"""

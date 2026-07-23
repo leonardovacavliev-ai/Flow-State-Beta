@@ -1,0 +1,36 @@
+If you want Global Knowledge to appear ABOVE ESPs in the admin panel,
+here's the fix:
+
+FILE: frontend/index.html
+
+MOVE THIS SECTION (lines 522-534):
+────────────────────────────────────────────────────
+<div class="border-b border-border pb-6">
+    <h3 class="text-lg font-semibold text-card-foreground mb-4">Global Knowledge Base</h3>
+    <p class="text-sm text-muted-foreground mb-4">Manage global knowledge sources that apply across all ESPs (loyalty best practices, general email marketing guidance, etc.)</p>
+    <div class="bg-muted/50 rounded-lg p-4 border border-border">
+        <div class="space-y-2 mb-4" id="globalKnowledgeLinks">
+            <!-- Global knowledge links will be loaded here -->
+        </div>
+        <div class="flex gap-2">
+            <input type="text" placeholder="Add new global knowledge URL" id="newGlobalKnowledgeLink" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+            <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addGlobalKnowledgeLink()">Add Link</button>
+        </div>
+    </div>
+</div>
+────────────────────────────────────────────────────
+
+TO ABOVE THIS SECTION (before line 517):
+────────────────────────────────────────────────────
+<div class="border-b border-border pb-6">
+    <h3 class="text-lg font-semibold text-card-foreground mb-4">Manage ESPs</h3>
+    <div id="espManagement" class="space-y-4"></div>
+</div>
+────────────────────────────────────────────────────
+
+RESULT:
+1. Global Knowledge Base (shows first)
+2. Manage ESPs (shows second)
+3. Create New ESP (shows last)
+
+This takes 2 minutes to implement. Should I do it?

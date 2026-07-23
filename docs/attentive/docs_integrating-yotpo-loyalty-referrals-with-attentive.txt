@@ -1,446 +1,373 @@
 Source URL: https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-attentive
 
 Products
+
 Loyalty & Referrals
-Supported plans
+
+####### Supported plans
+
 All plans
-eCommerce Platform
+
+####### eCommerce Platform
+
 Shopify, Shopify Plus, BigCommerce, Salesforce Commerce Cloud, Adobe Commerce (Magento), Custom
-Goals and Outcomes
+
+### Goals and Outcomes
+
 Integrating Yotpo Loyalty & Referrals with Attentive allows you to automatically sync loyalty program data to your Attentive account. This enables you to deliver personalized, data-driven customer communications via SMS and email.
+
 In this article, you’ll learn how to set up and use the integration.
+
 Note
-If you’ve already connected your Yotpo account to Attentive via webhooks, you can now switch to our direct integration through your Yotpo admin.
-Learn more in this guide
-.
-Integration Overview
+
+If you’ve already connected your Yotpo account to Attentive via webhooks, you can now switch to our direct integration through your Yotpo admin.Learn more in this guide.
+
+### Integration Overview
+
 To connect Yotpo Loyalty & Referrals with Attentive, complete the following steps:
-Create an Attentive account.
-Connect your Yotpo Loyalty & Referrals account to Attentive.
-Configure communication flows to send Email/SMS messages based on customer behavior.
-Important
-For Shopify Markets stores, the Attentive integration supports only one Attentive account which can sync to one Yotpo Loyalty & Referrals account.
-For
-multi-store setups
-, you can have separate Attentive accounts per store.
-Connecting Yotpo Loyalty & Referrals with Attentive
+
+1. Create an Attentive account.
+2. Connect your Yotpo Loyalty & Referrals account to Attentive.
+3. Configure communication flows to send Email/SMS messages based on customer behavior.Important
+
+- For Shopify Markets stores, the Attentive integration supports only one Attentive account which can sync to one Yotpo Loyalty & Referrals account.
+- Formulti-store setups, you can have separate Attentive accounts per store.
+
+#### Connecting Yotpo Loyalty & Referrals with Attentive
+
 Once you’ve created an Attentive account, you need to connect it to Yotpo:
-From your
-Yotpo Loyalty admin
-, go to
-Integrations Center
-.
-Locate the
-Attentive tile
-and click it.
-Click
-Connect Attentive
-.
-Authorize Yotpo Loyalty to access your Attentive account by clicking
-Authorize
-.
-Important
-For security reasons, the authorization window times out after 10 minutes of inactivity. Be sure to click the Authorize button within that time frame to complete the integration. If you weren’t able to complete the authorization within the timeframe, please uninstall the integration and reinstall it to try again.
-To complete the setup, click
-Set up Attentive
-.
-After setup, customer loyalty attributes and events will sync with Attentive in real time.
+
+1. From yourYotpo Loyalty admin, go toIntegrations Center.
+2. Locate theAttentive tileand click it.
+3. ClickConnect Attentive.
+4. Authorize Yotpo Loyalty to access your Attentive account by clickingAuthorize.ImportantFor security reasons, the authorization window times out after 10 minutes of inactivity. Be sure to click the Authorize button within that time frame to complete the integration. If you weren’t able to complete the authorization within the timeframe, please uninstall the integration and reinstall it to try again.
+5. To complete the setup, clickSet up Attentive.After setup, customer loyalty attributes and events will sync with Attentive in real time.
+
 Note
+
 Initial syncing may take up to a few hours to complete.
-Information Shared in the Integration
+
+#### Information Shared in the Integration
+
 There are two types of information that Yotpo Loyalty & Referrals pushes into Attentive:
-Events
-: Webhook events that can be used to trigger specific communications, such as a post-purchase message with earned points.
-Customer attributes
-: Customer-specific properties such as point balance, birthday, and tier status, which can be used to build highly personalized segments and campaigns.
-Subscriber webhooks from Attentive
-: Yotpo also receives webhook data from Attentive when new subscribers sign up via sign-up units, landing pages, or checkout. These webhooks allow Yotpo to identify eligible subscribers and award points or discounts
-based on your configured earning rules
-.
+
+1. Events: Webhook events that can be used to trigger specific communications, such as a post-purchase message with earned points.
+2. Customer attributes: Customer-specific properties such as point balance, birthday, and tier status, which can be used to build highly personalized segments and campaigns.
+3. Subscriber webhooks from Attentive: Yotpo also receives webhook data from Attentive when new subscribers sign up via sign-up units, landing pages, or checkout. These webhooks allow Yotpo to identify eligible subscribers and award points or discountsbased on your configured earning rules.Note
+
+If you’recollecting subscribers via Sign-up Units, make sure theForward data to Shopifysetting is enabled inAttentive > Shopify app settings. This is crucial to ensure subscribers from Attentive Sign-up Units are created in Shopify and synced to Yotpo.
+
+To locate the setting, go toAttentive > Marketplace > Shopify > Settings.
+
 Note
-If you’re
-collecting subscribers via Sign-up Units
-, make sure the
-Forward data to Shopify
-setting is enabled in
-Attentive > Shopify app settings
-. This is crucial to ensure subscribers from Attentive Sign-up Units are created in Shopify and synced to Yotpo.
-To locate the setting, go to
-Attentive > Marketplace > Shopify > Settings
-.
-Note
-Attentive uses strict
-identity matching for subscriber profiles
-. This means each customer email address can only be associated with one phone number in Attentive.
-Creating Journeys and Segments Using Yotpo Loyalty Data
-Journeys
+
+Attentive uses strictidentity matching for subscriber profiles. This means each customer email address can only be associated with one phone number in Attentive.
+
+#### Creating Journeys and Segments Using Yotpo Loyalty Data
+
+##### Journeys
+
 You can build automated communication flows (journeys) in Attentive using Yotpo loyalty data. There are two ways to create a journey: start from scratch, or use one of Attentive’s pre-built templates, which simplify the setup process by providing a ready-made flow to customize.
+
 Important
+
 Template journeys are only available for SMS flows.
+
 To create a journey using a template:
-In
-Attentive
-, go to
-Journeys
-in the left sidebar.
-Click
-Create journeys
-and select a template, then click
-Get Started
-.
-Preview the template’s content and loyalty variables, and customize them as needed.
-Click
-Save
-when ready.
-Alternatively, you can create a journey from scratch:
-In
-Attentive
-, go to
-Journeys
-.
-Click
-Create journeys
->
-Start from scratch
-.
-From the Apps dropdown, select
-Yotpo Loyalty
-and choose a
-journey trigger
-(you can also see all available events under ‘All apps’).
-Click
-Get Started
-and configure the journey using the editor.
-Tip
-Click the
-curly brackets
-icon in the text editor to insert Yotpo loyalty variables and use the search box to locate them faster.
-Make sure to
-add a default value
-, which will be displayed in the message if there’s no variable data for the specific subscriber. If there’s no data and no default value added, the subscriber won’t receive the message.
-Learn more about
-adding variables in Attentive
-.
-Segments
-You can also
-create dynamic segments
-using Yotpo Loyalty attributes to send targeted campaigns, such as sending exclusive offers to Platinum-tier members.
+
+1. InAttentive, go toJourneysin the left sidebar.
+2. ClickCreate journeysand select a template, then clickGet Started.
+3. Preview the template’s content and loyalty variables, and customize them as needed.
+4. ClickSavewhen ready.Alternatively, you can create a journey from scratch:
+
+1. InAttentive, go toJourneys.
+2. ClickCreate journeys>Start from scratch.
+3. From the Apps dropdown, selectYotpo Loyaltyand choose ajourney trigger(you can also see all available events under ‘All apps’).
+4. ClickGet Startedand configure the journey using the editor.Tip
+
+Click thecurly bracketsicon in the text editor to insert Yotpo loyalty variables and use the search box to locate them faster.
+
+Make sure toadd a default value, which will be displayed in the message if there’s no variable data for the specific subscriber. If there’s no data and no default value added, the subscriber won’t receive the message.
+
+Learn more aboutadding variables in Attentive.
+
+##### Segments
+
+You can alsocreate dynamic segmentsusing Yotpo Loyalty attributes to send targeted campaigns, such as sending exclusive offers to Platinum-tier members.
+
 To create a segment:
-In
-Attentive
-, go to
-Segments
-in the left sidebar.
-Click
-Create segment > Dynamic segment
-.
-Choose the relevant loyalty attribute (e.g.,
-yotpo_loyalty_vip_tier_name
-) to define your audience.
-Reward Attentive Signups with Loyalty Points and Discounts
+
+1. InAttentive, go toSegmentsin the left sidebar.
+2. ClickCreate segment > Dynamic segment.
+3. Choose the relevant loyalty attribute (e.g.,yotpo_loyalty_vip_tier_name) to define your audience.
+
+### Reward Attentive Signups with Loyalty Points and Discounts
+
 With this integration, you can also reward customers for subscribing to Attentive Email or SMS directly from your Yotpo Loyalty admin with no development work or API setup required.
-How It Works
-Create an
-Attentive Email/SMS Signup
-earning rule and configure it.
-Reward shoppers with
-points
-or
-coupons
-for signing up for SMS and/or email.
-Optionally, display the rule on your
-Rewards Page
-with a link to a custom page/URL to drive visibility.
-Important
-The
-Attentive Email Signup
-and
-Attentive SMS Signup
-earning rules are only available for
-Shopify and Shopify Plus merchants
-with an active Attentive integration.
-The earning rules are available for both Shopify’s Legacy (Classic) and New Customer Accounts.
-Rewards will apply only to
-existing shoppers
-, meaning customers who already have a profile in Shopify (and therefore in Yotpo).
-New visitors who subscribe before a Shopify profile is created will
-not receive a reward
-, since they don’t yet have a Yotpo profile.
-Points will only be awarded to customers who have provided
-marketing consent
-. Subscribers who have given only transactional consent will not be eligible for points.
-How to Set It Up
+
+#### How It Works
+
+- Create anAttentive Email/SMS Signupearning rule and configure it.
+- Reward shoppers withpointsorcouponsfor signing up for SMS and/or email.
+- Optionally, display the rule on yourRewards Pagewith a link to a custom page/URL to drive visibility.Important
+
+- TheAttentive Email SignupandAttentive SMS Signupearning rules are only available forShopify and Shopify Plus merchantswith an active Attentive integration.
+- The earning rules are available for both Shopify’s Legacy (Classic) and New Customer Accounts.
+- Rewards will apply only toexisting shoppers, meaning customers who already have a profile in Shopify (and therefore in Yotpo).
+- New visitors who subscribe before a Shopify profile is created willnot receive a reward, since they don’t yet have a Yotpo profile.
+- Points will only be awarded to customers who have providedmarketing consent. Subscribers who have given only transactional consent will not be eligible for points.
+
+#### How to Set It Up
+
 Start by creating an Attentive earning rule:
-In your Yotpo Loyalty admin, go to
-Manage Program > Rewards Program
-.
-Under
-Ways to earn
-, click
-Create earning rule
-.
-Select
-Attentive Email Signup
-or
-Attentive SMS Signup
-.
-Click
-Next
-and configure the rule details (reward type, amount, display settings, etc.).
-Save
-your changes.
-Next, configure how you will collect subscribers and trigger the new earning rule. You can:
-Add it to the Shopify checkout journey.
-Collect subscribers through sign-up units (e.g., popups, landing pages).
-Use third-party subscriber collection apps you’ve integrated with Attentive.
-In general, subscribers collected through third-party apps will also be recognized and eligible for rewards if they have an existing Shopify profile, provided that the third-party app successfully syncs subscriber data to Attentive.
-You can also display the earning rule on your
-Rewards Page
-, linking to a landing page where customers can subscribe and earn their reward.
-Full List of Events to Trigger Emails
+
+1. In your Yotpo Loyalty admin, go toManage Program > Rewards Program.
+2. UnderWays to earn, clickCreate earning rule.
+3. SelectAttentive Email SignuporAttentive SMS Signup.
+4. ClickNextand configure the rule details (reward type, amount, display settings, etc.).
+5. Saveyour changes.Next, configure how you will collect subscribers and trigger the new earning rule. You can:
+
+- Add it to the Shopify checkout journey.
+- Collect subscribers through sign-up units (e.g., popups, landing pages).
+- Use third-party subscriber collection apps you’ve integrated with Attentive.In general, subscribers collected through third-party apps will also be recognized and eligible for rewards if they have an existing Shopify profile, provided that the third-party app successfully syncs subscriber data to Attentive.You can also display the earning rule on yourRewards Page, linking to a landing page where customers can subscribe and earn their reward.
+
+### Full List of Events to Trigger Emails
+
 Points and Redemption Events
-Points Earned
-Appears as “Yotpo Loyalty - Points Earned” in Attentive.
-Triggered whenever a customer earns points. Commonly used to update a customer’s point balance in your CRM or notify them of rewards progress.
-Points Reminder
-Appears as “Yotpo Loyalty - Points Reminder” in Attentive.
-Triggered after a set period of inactivity. Sends a reminder of the customer’s current point balance and how many more points are needed to redeem a reward.
-Redemption Reminder
-Appears as “Yotpo Loyalty - Redemption Reminder” in Attentive.
-Triggered after a defined period of inactivity. Reminds customers that they have enough points to redeem a reward.
-Redemption Created
-Appears as “Yotpo Loyalty - Redemption Created” in Attentive.
-Triggered when a customer redeems points and receives a coupon code. (This event does not fire if the redemption occurs directly at checkout without a code.)
-Points Changed
-Appears as “Yotpo Loyalty - Points Changed” in Attentive.
-Triggered when a customer’s points balance changes (increase or decrease).
-Points expiration reminder
-Appears as “Yotpo Loyalty - Points Expiration Reminder” in Attentive.
-Triggered when a customer’s points are about to expire. Notifications are sent 30, 14, and 7 days before expiration to encourage redemption. Only the nearest expiring balance is included.
-Referral Events
+
+- Points EarnedAppears as “Yotpo Loyalty - Points Earned” in Attentive.Triggered whenever a customer earns points. Commonly used to update a customer’s point balance in your CRM or notify them of rewards progress.
+- Points ReminderAppears as “Yotpo Loyalty - Points Reminder” in Attentive.Triggered after a set period of inactivity. Sends a reminder of the customer’s current point balance and how many more points are needed to redeem a reward.
+- Redemption ReminderAppears as “Yotpo Loyalty - Redemption Reminder” in Attentive.Triggered after a defined period of inactivity. Reminds customers that they have enough points to redeem a reward.
+- Redemption CreatedAppears as “Yotpo Loyalty - Redemption Created” in Attentive.Triggered when a customer redeems points and receives a coupon code. (This event does not fire if the redemption occurs directly at checkout without a code.)
+- Points ChangedAppears as “Yotpo Loyalty - Points Changed” in Attentive.Triggered when a customer’s points balance changes (increase or decrease).
+- Points expiration reminderAppears as “Yotpo Loyalty - Points Expiration Reminder” in Attentive.Triggered when a customer’s points are about to expire. Notifications are sent 30, 14, and 7 days before expiration to encourage redemption. Only the nearest expiring balance is included.Referral Events
+
 Note
+
 The referral events you should use depend on which version of the referral program your store is using:
-If you’re on
-the legacy referral program
-, use the events labeled “Old Program.”
-If you’re on
-the new referral program
-, use the events labeled “New Program.”
-Referral Completed
-(old program)
-/
-Yotpo Referral Completed
-(new program)
-Appears as “Yotpo Loyalty - Referral Completed (Old Program)” and “Yotpo Loyalty - Referral Completed (New Program)” in Attentive.
-Triggered when a referred friend completes the referral requirements. Commonly used to thank the referring customer.
-Referral Share
-(old program)
-/
-Yotpo Referral Share
-(new program)
-Appears as “Yotpo Loyalty - Referral Share (Old Program)” and “Yotpo Loyalty - Referral Share (New Program)” in Attentive.
-Triggered when a customer shares their referral link. Commonly used to encourage the referred friend to visit your store.
-Referral Share Reminder
-(old program)
-Appears as “Yotpo Loyalty - Referral Share Reminder (Old Program)” in Attentive.
-Triggered when a referred friend hasn’t purchased after a set number of days. Commonly used to remind them to use their referral link.
-Birthday & Anniversary Events
-Customer Birthday
-Appears as “Yotpo Loyalty - Customer Birthday” in Attentive.
-Triggered on the customer’s birthday. Commonly used to send birthday greetings and rewards based on an existing Birthday Campaign.
-Birthday Captured
-Appears as “Yotpo Loyalty - Birthday Captured” in Attentive.
-Triggered when a customer submits their birthday through your storefront.
-Customer Anniversary
-Appears as “Yotpo Loyalty - Customer Anniversary” in Attentive.
-Triggered on the anniversary of the customer’s account creation. Commonly used to send anniversary greetings and rewards based on an existing Anniversary Campaign.
-Anniversary Captured
-Appears as “Yotpo Loyalty - Anniversary Captured” in Attentive.
-Triggered when a customer provides their anniversary date through your storefront.
-VIP Tiers
-Tier Earned
-Appears as “Yotpo Loyalty - Tier Earned” in Attentive.
-Triggered when a customer qualifies for a new tier. Commonly used to congratulate customers and highlight new benefits.
-Tier Lost
-Appears as “Yotpo Loyalty - Tier Lost” in Attentive.
-Triggered when a customer loses their tier after failing to meet the requirements needed to maintain it. Commonly used to inform customers that their tier status has changed and highlight ways to regain their benefits.
-Tier Status Changed
-Appears as “Yotpo Loyalty - Tier Status Changed” in Attentive.
-Triggered when a customer’s progress toward retaining or earning a tier changes. Commonly used to encourage continued engagement (“You only need X more points to reach the next tier”).
-Tier Expiration Reminder
-Appears as "Yotpo Loyalty - Tier Expiration Reminder" in Attentive.
-Triggered when a customer is at risk of losing their current tier. The event is sent 30, 14, and 7 days before the tier expires, based on your settings, and only if the customer has not met the requirements needed to maintain their tier. Commonly used to remind customers to complete the actions needed to retain their tier benefits before expiration.
-Account-Related Events
-Loyalty opt_in/opt_out
-Appears as “Yotpo Loyalty - Opt In” and “Yotpo Loyalty - Opt Out” in Attentive.
-Triggered when a customer joins or leaves the loyalty program. Commonly used for segmenting loyalty members. Read more about
-Loyalty Opt-in
-.
-Account Created
-Appears as “Yotpo Loyalty - New Member Award Received” in Attentive.
-Triggered when a customer creates a profile and receives a reward through the New Member Reward earning rule. Commonly used in welcome campaigns.
-Other Events
-Custom Reward Created
-Appears as “Yotpo Loyalty - Custom Reward Created” in Attentive.
-Triggered when a customer redeems points for a custom reward.
-Donation Created
-Appears as “Yotpo Loyalty - Donation Created” in Attentive.
-Triggered when a customer redeems points for a donation.
-Full List of Available Customer Attributes
+
+- If you’re onthe legacy referral program, use the events labeled “Old Program.”
+- If you’re onthe new referral program, use the events labeled “New Program.”
+- Referral Completed(old program)/Yotpo Referral Completed(new program)Appears as “Yotpo Loyalty - Referral Completed (Old Program)” and “Yotpo Loyalty - Referral Completed (New Program)” in Attentive.Triggered when a referred friend completes the referral requirements. Commonly used to thank the referring customer.
+- Referral Share(old program)/Yotpo Referral Share(new program)Appears as “Yotpo Loyalty - Referral Share (Old Program)” and “Yotpo Loyalty - Referral Share (New Program)” in Attentive.Triggered when a customer shares their referral link. Commonly used to encourage the referred friend to visit your store.
+- Referral Share Reminder(old program)Appears as “Yotpo Loyalty - Referral Share Reminder (Old Program)” in Attentive.Triggered when a referred friend hasn’t purchased after a set number of days. Commonly used to remind them to use their referral link.Birthday & Anniversary Events
+
+- Customer BirthdayAppears as “Yotpo Loyalty - Customer Birthday” in Attentive.Triggered on the customer’s birthday. Commonly used to send birthday greetings and rewards based on an existing Birthday Campaign.
+- Birthday CapturedAppears as “Yotpo Loyalty - Birthday Captured” in Attentive.Triggered when a customer submits their birthday through your storefront.
+- Customer AnniversaryAppears as “Yotpo Loyalty - Customer Anniversary” in Attentive.Triggered on the anniversary of the customer’s account creation. Commonly used to send anniversary greetings and rewards based on an existing Anniversary Campaign.
+- Anniversary CapturedAppears as “Yotpo Loyalty - Anniversary Captured” in Attentive.Triggered when a customer provides their anniversary date through your storefront.VIP Tiers
+
+- Tier EarnedAppears as “Yotpo Loyalty - Tier Earned” in Attentive.Triggered when a customer qualifies for a new tier. Commonly used to congratulate customers and highlight new benefits.
+- Tier LostAppears as “Yotpo Loyalty - Tier Lost” in Attentive.Triggered when a customer loses their tier after failing to meet the requirements needed to maintain it. Commonly used to inform customers that their tier status has changed and highlight ways to regain their benefits.
+- Tier Status ChangedAppears as “Yotpo Loyalty - Tier Status Changed” in Attentive.Triggered when a customer’s progress toward retaining or earning a tier changes. Commonly used to encourage continued engagement (“You only need X more points to reach the next tier”).
+- Tier Expiration ReminderAppears as "Yotpo Loyalty - Tier Expiration Reminder" in Attentive.Triggered when a customer is at risk of losing their current tier. The event is sent 30, 14, and 7 days before the tier expires, based on your settings, and only if the customer has not met the requirements needed to maintain their tier. Commonly used to remind customers to complete the actions needed to retain their tier benefits before expiration.Account-Related Events
+
+- Loyalty opt_in/opt_outAppears as “Yotpo Loyalty - Opt In” and “Yotpo Loyalty - Opt Out” in Attentive.Triggered when a customer joins or leaves the loyalty program. Commonly used for segmenting loyalty members. Read more aboutLoyalty Opt-in.
+- Account CreatedAppears as “Yotpo Loyalty - New Member Award Received” in Attentive.Triggered when a customer creates a profile and receives a reward through the New Member Reward earning rule. Commonly used in welcome campaigns.Other Events
+
+- Custom Reward CreatedAppears as “Yotpo Loyalty - Custom Reward Created” in Attentive.Triggered when a customer redeems points for a custom reward.
+- Donation CreatedAppears as “Yotpo Loyalty - Donation Created” in Attentive.Triggered when a customer redeems points for a donation.
+
+### Full List of Available Customer Attributes
+
 Note
+
 If you’ve connected Attentive to Klaviyo, make sure you’re always using the Yotpo branded loyalty attributes when creating segments and journeys to ensure your data and flows function propertly.
+
 Customer Attributes
-yotpo_loyalty_next_points_expire_on
-– Date when the customer’s points will expire.
-yotpo_loyalty_next_points_expire_amount
-– Number of points set to expire.
-yotpo_loyalty_points_earned
-– Customer’s lifetime points earned.
-yotpo_loyalty_points_balance
-– Current available points balance.
-yotpo_loyalty_credit_balance
-– Current available credit balance (if points are displayed as credit based on the logic set in your
-variable redemption rewards
-).
-yotpo_loyalty_credit_balance_with_currency
-– Current available credit balance (conversion for Shopify Markets).
-yotpo_loyalty_vip_tier_name
-– Customer’s current tier name.
-yotpo_loyalty_vip_tier_expires_at_date
-– Expiration date of the customer’s current tier.
-yotpo_loyalty_vip_tier_expires_at
-– Date when the customer’s VIP tier expires.
-yotpo_loyalty_next_tier_points_needed
-– Number of points a customer must earn within a qualifying period to move up to the next loyalty tier.
-yotpo_loyalty_next_tier_amount_needed_in_customer_currency
-– Spend required to reach the next tier (spend-based VIP tiers program).
-yotpo_loyalty_next_tier_amount_cents_needed
-– Amount in cents needed to maintain the current tier.
-yotpo_loyalty_next_tier_purchases_needed
-– Number of required purchases to reach the next tier (Purchase-based VIP tiers program).
-yotpo_loyalty_next_tier_referrals_needed
-– Number of required successful referrals to reach the next tier (Referral-based VIP tiers program).
-yotpo_loyalty_birthday_date
-– Customer’s birthday date.
-yotpo_loyalty_maintain_tier_points_needed
-– Points required to maintain the current tier.
-yotpo_loyalty_maintain_tier_amount_needed_in_customer_currency
-– Spend required to maintain the current tier.
-yotpo_loyalty_maintain_tier_purchases_needed
-- Purchases required to maintain the current tier.
-yotpo_loyalty_maintain_tier_referrals_needed
-– Referrals required to maintain the current tier.
-yotpo_loyalty_opt_in
-– Whether the customer has opted in to the loyalty program.
-yotpo_loyalty_opt_in_at
-– Date when the customer opted in.
-yotpo_loyalty_has_account
-– Indicates whether the customer has a store account (true/false).
-yotpo_loyalty_pea_date
-– Date when points will expire (Date object).
-yotpo_loyalty_points_expire_at
-– Date when points will expire. For the
-Date Earned
-expiration method, it will display the closest expiration date.
-Referring Customer Attributes
-yotpo_loyalty_referral_link
-– Customer’s unique referral link.
-yotpo_loyalty_referral_discount_code
-– Customer’s unique referral discount code. It’s only relevant for
-code-based referrals
-.
-Core Customer Communication Examples
-Points Earned
+
+- yotpo_loyalty_next_points_expire_on– Date when the customer’s points will expire.
+- yotpo_loyalty_next_points_expire_amount– Number of points set to expire.
+- yotpo_loyalty_points_earned– Customer’s lifetime points earned.
+- yotpo_loyalty_points_balance– Current available points balance.
+- yotpo_loyalty_credit_balance– Current available credit balance (if points are displayed as credit based on the logic set in yourvariable redemption rewards).
+- yotpo_loyalty_credit_balance_with_currency– Current available credit balance (conversion for Shopify Markets).
+- yotpo_loyalty_vip_tier_name– Customer’s current tier name.
+- yotpo_loyalty_vip_tier_expires_at_date– Expiration date of the customer’s current tier.
+- yotpo_loyalty_vip_tier_expires_at– Date when the customer’s VIP tier expires.
+- yotpo_loyalty_next_tier_points_needed– Number of points a customer must earn within a qualifying period to move up to the next loyalty tier.
+- yotpo_loyalty_next_tier_amount_needed_in_customer_currency– Spend required to reach the next tier (spend-based VIP tiers program).
+- yotpo_loyalty_next_tier_amount_cents_needed– Amount in cents needed to maintain the current tier.
+- yotpo_loyalty_next_tier_purchases_needed– Number of required purchases to reach the next tier (Purchase-based VIP tiers program).
+- yotpo_loyalty_next_tier_referrals_needed– Number of required successful referrals to reach the next tier (Referral-based VIP tiers program).
+- yotpo_loyalty_birthday_date– Customer’s birthday date.
+- yotpo_loyalty_maintain_tier_points_needed– Points required to maintain the current tier.
+- yotpo_loyalty_maintain_tier_amount_needed_in_customer_currency– Spend required to maintain the current tier.
+- yotpo_loyalty_maintain_tier_purchases_needed- Purchases required to maintain the current tier.
+- yotpo_loyalty_maintain_tier_referrals_needed– Referrals required to maintain the current tier.
+- yotpo_loyalty_opt_in– Whether the customer has opted in to the loyalty program.
+- yotpo_loyalty_opt_in_at– Date when the customer opted in.
+- yotpo_loyalty_has_account– Indicates whether the customer has a store account (true/false).
+- yotpo_loyalty_pea_date– Date when points will expire (Date object).
+- yotpo_loyalty_points_expire_at– Date when points will expire. For theDate Earnedexpiration method, it will display the closest expiration date.Referring Customer Attributes
+
+- yotpo_loyalty_referral_link– Customer’s unique referral link.
+- yotpo_loyalty_referral_discount_code– Customer’s unique referral discount code. It’s only relevant forcode-based referrals.
+
+### Core Customer Communication Examples
+
+#### Points Earned
+
 Notify customers when they earn points and show their updated balance.
+
+```
 Hey {{subscriber.firstName | default: 'there'}},
+
 Good news - you just earned {{triggerEvent.custom['perk']['reward_points']}} points! 🎉
+
 Your balance is:
 {{triggerEvent.custom['customer']['points_balance']}}
+
 Keep shopping and engaging with us to unlock even more rewards.
-Tier Earned
+```
+
+#### Tier Earned
+
 Congratulate customers when they reach a new tier. Depending on the tier entry reward (points or a coupon), you can customize the messaging.
+
 Entry reward: Points
+
+```
 Hey {{subscriber.firstName | default: 'There'}}
+
 Congratulations! You've just been upgraded to {{subscriber.custom['yotpo_loyalty_vip_tier_name'] | default: 'a new'}} status 🎉
+
 As a {{subscriber.custom['yotpo_loyalty_vip_tier_name']}} member, you got a special points perk from us!
 {{triggerEvent.custom['new_tier']['reward_points']}}
+
 Thank you for being one of our most loyal customers😍
+```
 Entry reward: Coupon
+
+```
 Hey {{subscriber.firstName | default: 'There'}}
+
 Congratulations! You've just been upgraded to {{subscriber.custom['yotpo_loyalty_vip_tier_name'] | default: 'a new'}} status 🎉
+
 As a {{subscriber.custom['yotpo_loyalty_vip_tier_name']}} member, you got a special coupon from us: {{triggerEvent.custom['redemption']['reward_text']}}
+
 Thank you for being one of our most loyal customers😍
+```
 Tip
+
 If your program includes a base tier, consider excluding it from this communication flow, as it’s not typically viewed as a true “upgrade.” Every customer is automatically assigned to the base tier (e.g., Bronze) upon joining the program.
+
 Before creating a journey, make sure to first create a separate segment for each tier. These tier-based segments can then be used as triggers or conditions within the journey itself.
+
 Here’s an example of a communication flow that excludes the base (Bronze) tier:
-Referral Share Email
+
+#### Referral Share Email
+
 This email will be sent to the referred friend along with the referring customer’s unique referral link. The friend will click the link and receive an incentive to make their first purchase in your store.
+
+```
 Hey friend,  your friend shared a discount you’ll just love!
 Here is a special discount on your first purchase to get you started.
 Click below to unlock your offer:
 Happy shopping! {{triggerEvent.custom['referral_link']}}
-Referral Completed
+```
+
+#### Referral Completed
+
 Reward the referring customer once their friend completes a purchase. The messaging will differ depending on the reward type configured in your referral program settings.
+
 Points as a reward
+
+```
 Hey {{subscriber.firstName | default: 'there'}}
+
 A friend made their first purchase using your referral link.
 As a thank you, we've added {{triggerEvent.custom['perk']['reward_points']}} points to your account, which are redeemable for all kinds of great rewards at our store!
 Log in to your account to see which rewards you could be eligible for!
+```
 Discount as a reward
+
+```
 Hey {{subscriber.firstName | default: 'there'}}
+
 A friend made their first purchase using your referral link.
 As a thank you, we're awarding you with {{triggerEvent.custom['perk']['redemption_option']['name']}} at our store!
+
 Use this discount code at checkout:
 {{triggerEvent.custom['perk']['redemption']['reward_text']}}
-Customer Birthday
-Celebrate customers’ birthdays with bonus points or a discount. The messaging will change depending on the reward type configured in your
-Birthday Reward earning rule
-.
+```
+
+#### Customer Birthday
+
+Celebrate customers’ birthdays with bonus points or a discount. The messaging will change depending on the reward type configured in yourBirthday Reward earning rule.
+
 Points as a reward
+
+```
 Happy birthday, {{subscriber.firstName | default: 'there'}}
+
 You didn't think we'd come empty-handed, did you?
 We're getting this party started with BONUS birthday points just for you.
 We added {{triggerEvent.custom['perk']['reward_points']}} points to your account.
 You now have a total of {{subscriber.custom['yotpo_loyalty_points_balance']}} points to treat yourself!
 Happy Bday😍
+```
 Discount as a reward
+
+```
 Happy birthday, {{subscriber.firstName | default: 'there'}}
+
 You didn't think we'd come empty-handed, did you?
 We're getting this party started with a special discount just for you.
 Enjoy this {{triggerEvent.custom['redemption_option']['name']}} reward off your next purchase!
 Discount code: {{triggerEvent.custom['redemption']['reward_text']}}
+
 Just enter it at checkout when you make your next purchase.
 Happy Bday😍
-Account Created
-Welcome new members and highlight how they can earn and redeem rewards. This flow will be triggered after the
-New Member Reward earning rule
-is completed.
+```
+
+#### Account Created
+
+Welcome new members and highlight how they can earn and redeem rewards. This flow will be triggered after theNew Member Reward earning ruleis completed.
+
+```
 Hi {{subscriber.firstName | default: 'there'}} You got your new member reward!
+
 Visit our rewards page to earn more points, redeem them for discounts, and get exclusive offers like early access to our newest products and VIP deals.
+
 Log in today to check out your rewards!
+```
 Important
-This event can’t dynamically display the exact new member reward (points or coupon), since there’s no dynamic attribute available for it.
-If using
-points
-as a reward, display the value as static content (e.g., “You earned 25 points”).
-If using a
-discount
-, use the “Yotpo Loyalty - Redemption Created” event to send the coupon code.
-Redemption Created
+
+- This event can’t dynamically display the exact new member reward (points or coupon), since there’s no dynamic attribute available for it.If usingpointsas a reward, display the value as static content (e.g., “You earned 25 points”).If using adiscount, use the “Yotpo Loyalty - Redemption Created” event to send the coupon code.
+
+#### Redemption Created
+
 Send discount codes after a customer redeems points for a reward.
+
+```
 Hey {{subscriber.firstName | default: 'there'}},
+
 Your {{triggerEvent.custom['redemption_option_name']}} reward is here!
+
 Your discount code is:
+
 {{triggerEvent.custom['redemption']['reward_text']}}
+
 Just enter it at checkout when you make your next purchase😍
-Points/Loyalty Expiration Reminder
+```
+
+#### Points/Loyalty Expiration Reminder
+
 Remind customers to redeem points before they expire.
+
+```
 Hey {{subscriber.firstName | default: 'there'}},
 You have {{ subscriber.custom['yotpo_loyalty_next_points_expire_amount'] }} points expiring on {{ subscriber.custom['yotpo_loyalty_points_expire_at'] | date: "%m-%d-%Y" }}.
 Don’t miss out—redeem them before they’re gone!
-Tier Lost
+```
+
+#### Tier Lost
+
 Warn customers when they’re at risk of losing their tier.
+
+```
 Hi {{ subscriber.firstName | default: 'there' }},
 Your VIP tier benefits will expire on {{ subscriber.custom['yotpo_loyalty_vip_tier_expires_at_date'] }}.
 Stay active to keep your exclusive perks!
+```

@@ -1,139 +1,116 @@
 Source URL: https://marketing.help.dotdigital.com/en/articles/8199355-easyeditor-extensions-app-blocks-overview
 
-EasyEditor extensions: App blocks overview
+## EasyEditor extensions: App blocks overview
+
 Pull content from other platforms and applications into your email campaigns, landing pages, and forms, without having to alter any code.
-Written by
-Gareth Burroughes
-Updated over a week ago
-Table of contents
-App blocks are additional blocks that can be added to EasyEditor. These blocks are added to your account as account-scoped insight data collections. They are automatically converted into drag-and-drop building blocks within EasyEditor.
+
+Written by Gareth Burroughes Updated over a week agoTable of contentsApp blocks are additional blocks that can be added to EasyEditor. These blocks are added to your account as account-scoped insight data collections. They are automatically converted into drag-and-drop building blocks within EasyEditor.
+
 The specific process of adding a block to your account varies depending on the application you are using. However, in general, it involves a simple process of adding your Marketing API credentials to your account in the partner software.
-Learn more
-Learn more about API credentials in
-Create an API user
-.
-Full details for each type of App block can be found in the
-corresponding articles
-.
-Manage your App blocks
-To manage your App blocks, go to
-Connect
->
-EasyEditor extensions
-.
+
+#### Learn more
+
+- Learn more about API credentials inCreate an API user.
+- Full details for each type of App block can be found in thecorresponding articles.
+
+## Manage your App blocks
+
+To manage your App blocks, go toConnect>EasyEditor extensions.
+
 EasyEditor extensions displays the App block groups added to your account. Each extension shows the associated Insight data collection name, the number of blocks in each group, and indicates if any blocks contain errors.
-App block errors
+
+#### App block errors
+
 Errors with an App block normally need to be resolved by the third party who created the block.
-View Insight data for a collection
-To view an Insight data collection for an extension, select the
-collection name
-.
-View App blocks in a group
-To view the available App blocks in a group, select the
-group name
-.
+
+### View Insight data for a collection
+
+To view an Insight data collection for an extension, select thecollection name.
+
+### View App blocks in a group
+
+To view the available App blocks in a group, select thegroup name.
+
 The group page displays the block name, status (whether enabled or disabled), date of last modification, and any errors associated with the block. The page also indicates the editors in which the block can be utilised, such as email; Surveys, pages, and forms; or both.
-View App block details
-To view the details of an individual App block, select its
-name
-. This opens a side panel that displays information about the block and provides the option to enable or disable it.
-To perform this action, toggle the
-Status
-switch to either
-Enabled
-or
-Disabled
-, and then select
-APPLY
-.
+
+### View App block details
+
+To view the details of an individual App block, select itsname. This opens a side panel that displays information about the block and provides the option to enable or disable it.
+
+To perform this action, toggle theStatusswitch to eitherEnabledorDisabled, and then selectAPPLY.
+
 The side panel also displays an App block's description and links to any supplementary documentation, if available.
-Enable or disable App blocks
-To enable or disable multiple blocks, select the checkboxes for the blocks. Then, expand the
-More actions
-drop-down menu and choose the option to
-enable
-or
-disable
-the App block.
+
+### Enable or disable App blocks
+
+To enable or disable multiple blocks, select the checkboxes for the blocks. Then, expand theMore actionsdrop-down menu and choose the option toenableordisablethe App block.
+
 Disabled App blocks are not visible in EasyEditor.
-Delete or disable App blocks
-To delete App blocks that belong to a group, select the
-checkbox
-of the App block, then select
-Delete
-.
-A popover appears, asking you to confirm the action. Select
-Delete
-.
+
+### Delete or disable App blocks
+
+To delete App blocks that belong to a group, select thecheckboxof the App block, then selectDelete.
+
+A popover appears, asking you to confirm the action. SelectDelete.
+
 There are no data dependencies in place to prevent you from deleting or disabling individual App blocks. If you delete or disable an App block that's in use:
-You can't publish a page or form with a deleted or disabled App block added to it. A deleted or disabled App block in use on an already published page or form does not display.
-A warning appears on the campaign summary page and campaign preview if you have included a deleted or disabled App block. Deleted or disabled App blocks no longer display in a recipient’s inbox.
-Deleting EasyEditor extension Insight data
-It's only possible to delete an
-Insight data collection
-for an EasyEditor App block if it is
-not
-in use in any email campaigns.
-App blocks in EasyEditor
-Enabled App blocks appear in EasyEditor on the
-Build
-tab of the left side menu. Each App block group that you have added to your account has its own drop-down in EasyEditor which contains the individual blocks within that group.
+
+- You can't publish a page or form with a deleted or disabled App block added to it. A deleted or disabled App block in use on an already published page or form does not display.
+- A warning appears on the campaign summary page and campaign preview if you have included a deleted or disabled App block. Deleted or disabled App blocks no longer display in a recipient’s inbox.
+
+#### Deleting EasyEditor extension Insight data
+
+It's only possible to delete anInsight data collectionfor an EasyEditor App block if it isnotin use in any email campaigns.
+
+## App blocks in EasyEditor
+
+Enabled App blocks appear in EasyEditor on theBuildtab of the left side menu. Each App block group that you have added to your account has its own drop-down in EasyEditor which contains the individual blocks within that group.
+
 To add a block to your email campaign, page, or form, drag and drop it to the required position on the design canvas. A side panel opens with information about the block you have added.
-For some blocks, you must complete some
-data input
-- for example, adding a data field placeholder to include a contact email address in the App block, or providing a product ID.
-You can’t apply the App block and close the side panel until this data input is complete. Hover over the
-tooltip
-for more information on the data required. The individual documentation for different App blocks gives more information on any data inputs required.
-Learn more in the
-EasyEditor extensions section of the Help Centre
-.
-Once you’ve completed the setup for the block, select
-Apply
-.
-Add App blocks to columns
+
+For some blocks, you must complete somedata input- for example, adding a data field placeholder to include a contact email address in the App block, or providing a product ID.
+
+You can’t apply the App block and close the side panel until this data input is complete. Hover over thetooltipfor more information on the data required. The individual documentation for different App blocks gives more information on any data inputs required.
+
+Learn more in theEasyEditor extensions section of the Help Centre.
+
+Once you’ve completed the setup for the block, selectApply.
+
+### Add App blocks to columns
+
 You can use most App blocks within column blocks in EasyEditor. However, this functionality is only specific to some App blocks — not all apps are compatible.
-App block styles
+
+## App block styles
+
 Some App blocks inherit the styles of your campaign, depending on how they were developed.
+
 To style the content of your App blocks:
-For app blocks that don’t inherit styles
-Expand the
-Utilities
-drop-down menu.
-Select
-Manage all styles
-.
-Select
-Edit
-next to App block styles.
-From here you can edit your App blocks
-text
-styles.
-Learn more about using the Style manager in
-Choose and manage styles
-.
-For App blocks that inherit styles
-On the EasyEditor canvas, select the
-App block
-, to open the style options, then select
-Style content
-at the bottom of the side panel.
-App block details
+
+### For app blocks that don’t inherit styles
+
+1. Expand theUtilitiesdrop-down menu.
+2. SelectManage all styles.
+3. SelectEditnext to App block styles.From here you can edit your App blockstextstyles.Learn more about using the Style manager inChoose and manage styles.
+
+### For App blocks that inherit styles
+
+On the EasyEditor canvas, select theApp block, to open the style options, then selectStyle contentat the bottom of the side panel.
+
+### App block details
+
 The styles side panel displays basic details that can be customised for each App block.
+
 These details might include names, review counts, or colours used for App block elements. Follow the on-screen guidance to make changes to these details.
-App block tracking
+
+## App block tracking
+
 To help you track your App block performance, we apply your account-defined UTM parameters to any links within your App blocks.
-Learn more about UTM parameters in
-Add UTM tags to email campaign links
-.
+
+Learn more about UTM parameters inAdd UTM tags to email campaign links.
+
 Related Articles
-Build your campaign in EasyEditor
-Images in EasyEditor
-Add coupon codes to your campaigns with Uniqodo
-Use Personalization Slots in EasyEditor
-Use The Wishlist app blocks in EasyEditor
-Did this answer your question?
-😞
-😐
-😃
-Table of contents
+- Build your campaign in EasyEditor
+- Images in EasyEditor
+- Add coupon codes to your campaigns with Uniqodo
+- Use Personalization Slots in EasyEditor
+- Use The Wishlist app blocks in EasyEditorDid this answer your question?😞😐😃Table of contents

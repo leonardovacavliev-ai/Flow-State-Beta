@@ -1,562 +1,264 @@
 Source URL: https://support.yotpo.com/docs/postscript-integration-guide-for-yotpo-loyalty-referrals
 
 Products
+
 Loyalty & Referrals
-Supported plans
+
+####### Supported plans
+
 All plans
-eCommerce Platform
+
+####### eCommerce Platform
+
 Shopify, Shopify Plus
+
 Already have a Postscript integration?
+
 Please contact Postscript support to assist with migrating to the new integration.
-Goals and Outcomes
+
+### Goals and Outcomes
+
 Integrating Yotpo Loyalty & Referrals with Postscript allows you to sync loyalty program data to your Postscript account and deliver personalized, data-driven SMS flows.
+
 You can use this integration to:
-Sync loyalty events and attributes into Postscript.
-Trigger campaigns and flows based on customer behavior and loyalty data.
-Create personalized segments for targeted messaging.
-In this article, you’ll learn how to set up and use the integration.
-Integration Overview
+
+- Sync loyalty events and attributes into Postscript.
+- Trigger campaigns and flows based on customer behavior and loyalty data.
+- Create personalized segments for targeted messaging.In this article, you’ll learn how to set up and use the integration.
+
+### Integration Overview
+
 To connect Yotpo Loyalty & Referrals with Postscript, you need to:
-Have a
-Postscript account
-connected to your eCommerce store.
-Connect your
-Yotpo Loyalty & Referrals account
-to Postscript.
-Configure
-communication flows
-to send SMS messages based on loyalty data and customer behavior.
-Connecting Yotpo Loyalty & Referrals with Postscript
+
+1. Have aPostscript accountconnected to your eCommerce store.
+2. Connect yourYotpo Loyalty & Referrals accountto Postscript.
+3. Configurecommunication flowsto send SMS messages based on loyalty data and customer behavior.
+
+#### Connecting Yotpo Loyalty & Referrals with Postscript
+
 Follow these steps:
-From your
-Yotpo Loyalty admin
-, go to
-Integrations Center
-.
-Locate the
-Postscript tile
-and click it.
-Click
-Connect Postscript
-.
-Allow Postscript to access your Yotpo Loyalty account and use customer data by clicking
-Next
-.
-Enter your
-Postscript API Key
-.
-To generate the key, go to your
-Postscript Dashboard
-.
-Under your store settings, click
-API > Create Security Key Pair
-.
-Once the key is generated, click
-Show
-next to the new label and
-copy the private key
-.
-Click
-Connect
-to activate the integration and sync customer data.
-Your integration is now active. After setup, customer loyalty attributes and events will sync with Postscript in real time.
-Information Shared in the Integration
+
+1. From yourYotpo Loyalty admin, go toIntegrations Center.
+2. Locate thePostscript tileand click it.
+3. ClickConnect Postscript.
+4. Allow Postscript to access your Yotpo Loyalty account and use customer data by clickingNext.
+5. Enter yourPostscript API Key.To generate the key, go to yourPostscript Dashboard.Under your store settings, clickAPI > Create Security Key Pair.Once the key is generated, clickShownext to the new label andcopy the private key.
+6. ClickConnectto activate the integration and sync customer data.Your integration is now active. After setup, customer loyalty attributes and events will sync with Postscript in real time.
+
+#### Information Shared in the Integration
+
 The information that Yotpo Loyalty & Referrals pushes into Postscript includes:
+
+- Events: Webhook events you can use to trigger specific SMS campaigns, such as a post-purchase message with earned points.
+- Event and customer properties: Attributes like VIP tier and opt-in status that can be used to build personalized segments and campaigns.
+
+#### Full List of Events to Trigger SMS Messages
+
 Events
-: Webhook events you can use to trigger specific SMS campaigns, such as a post-purchase message with earned points.
-Event and customer properties
-: Attributes like VIP tier and opt-in status that can be used to build personalized segments and campaigns.
-Full List of Events to Trigger SMS Messages
-Events
-Swell Redemption Created
-Appears as “Yotpo Loyalty - RedemptionCreated” in Postscript.
-Used to let customers know when a reward is waiting for them.
-Loyalty Custom Reward Created
-Appears as “Yotpo Loyalty - CustomRewardCreated” in Postscript.
-Triggered when a customer redeems points for a custom reward.
-Swell Customer Anniversary
-Appears as “Yotpo Loyalty - CustomerAnniversary” in Postscript.
-Triggered when a customer receives their anniversary reward.
-Swell Anniversary Captured
-Appears as “Yotpo Loyalty - AnniversaryCaptured” in Postscript.
-Triggered after a customer submits their anniversary date.
-Swell Customer Birthday
-Appears as “Yotpo Loyalty - CustomerBirthday” in Postscript.
-Triggered when a customer receives their birthday reward.
-Swell Birthday Captured
-Appears as “Yotpo Loyalty - BirthdayCaptured” in Postscript.
-Triggered when a customer submits their birthday date.
-Loyalty Donation Created
-Appears as “Yotpo Loyalty - DonationCreated” in Postscript.
-Triggered when a customer redeems points for a donation.
-Loyalty Opt In
-Appears as “Yotpo Loyalty - OptIn” in Postscript.
-Triggered when a customer opts into your loyalty program.
-Loyalty Opt Out
-Appears as “Yotpo Loyalty - OptOut” in Postscript.
-Triggered when a customer opts out of your loyalty program.
-Swell Points Changed
-Appears as “Yotpo Loyalty - PointsChanged” in Postscript.
-Triggered when a customer’s points balance changes (increase or decrease).
-Loyalty Points Earned / Swell Points Earned
-Appears as “Yotpo Loyalty - PointsEarned” in Postscript.
-Used to let customers know when they earn loyalty points.
-Swell Points Reminder
-Appears as “Yotpo Loyalty - PointsReminder” in Postscript.
-Triggered when a customer is reminded they don’t yet have enough points to redeem (“almost there”).
-Swell Redemption Reminder
-Appears as “Yotpo Loyalty - RedemptionReminder” in Postscript.
-Used to remind customers they have enough points to redeem a reward.
-Swell Referral Completed
-(old program)/
-Yotpo Referral Completed
-(new program)
-Appears as “Yotpo Loyalty - ReferralCompletedOldProgram” and “Yotpo Loyalty - ReferralCompletedNewProgram” in Postscript.
-Used to send a reward to the referring customer when their friend completes a successful first purchase.
-Swell Tier Earned
-Appears as “Yotpo Loyalty - TierEarned” in Postscript.
-Triggered when a customer enters a new tier and unlocks new benefits.
-Swell Tier Lost
-Appears as “Yotpo Loyalty - TierLost” in Postscript.
-Triggered when a customer moves out of a tier.
-Swell Tier Status Changed
-Appears as “Yotpo Loyalty - TierStatusChange” in Postscript.
-Triggered when a customer gets closer or farther from retaining their current tier, and from entering the next tier.
-Yotpo Tier Expiration Reminder
-Appears as "Yotpo Loyalty - Tier Expiration Reminder" in Postscript.
-Triggered when a customer is at risk of losing their current tier.
-The event is sent 30, 14, and 7 days before the tier expires, based on your settings, and only if the customer has not met the requirements necessary to maintain their tier.
-Loyalty Expiration Reminder
-Appears as “Yotpo Loyalty - PointsExpirationReminder” in Postscript.
-Triggered when a customer’s points are about to expire.
-Swell Account Created
-Appears as “Yotpo Loyalty - NewMemberRewardCreated” in Postscript.
-Triggered when a customer receives the New Member Reward.
-Full List of Event Properties (per Event)
+
+- Swell Redemption CreatedAppears as “Yotpo Loyalty - RedemptionCreated” in Postscript.Used to let customers know when a reward is waiting for them.
+- Loyalty Custom Reward CreatedAppears as “Yotpo Loyalty - CustomRewardCreated” in Postscript.Triggered when a customer redeems points for a custom reward.
+- Swell Customer AnniversaryAppears as “Yotpo Loyalty - CustomerAnniversary” in Postscript.Triggered when a customer receives their anniversary reward.
+- Swell Anniversary CapturedAppears as “Yotpo Loyalty - AnniversaryCaptured” in Postscript.Triggered after a customer submits their anniversary date.
+- Swell Customer BirthdayAppears as “Yotpo Loyalty - CustomerBirthday” in Postscript.Triggered when a customer receives their birthday reward.
+- Swell Birthday CapturedAppears as “Yotpo Loyalty - BirthdayCaptured” in Postscript.Triggered when a customer submits their birthday date.
+- Loyalty Donation CreatedAppears as “Yotpo Loyalty - DonationCreated” in Postscript.Triggered when a customer redeems points for a donation.
+- Loyalty Opt InAppears as “Yotpo Loyalty - OptIn” in Postscript.Triggered when a customer opts into your loyalty program.
+- Loyalty Opt OutAppears as “Yotpo Loyalty - OptOut” in Postscript.Triggered when a customer opts out of your loyalty program.
+- Swell Points ChangedAppears as “Yotpo Loyalty - PointsChanged” in Postscript.Triggered when a customer’s points balance changes (increase or decrease).
+- Loyalty Points Earned / Swell Points EarnedAppears as “Yotpo Loyalty - PointsEarned” in Postscript.Used to let customers know when they earn loyalty points.
+- Swell Points ReminderAppears as “Yotpo Loyalty - PointsReminder” in Postscript.Triggered when a customer is reminded they don’t yet have enough points to redeem (“almost there”).
+- Swell Redemption ReminderAppears as “Yotpo Loyalty - RedemptionReminder” in Postscript.Used to remind customers they have enough points to redeem a reward.
+- Swell Referral Completed(old program)/Yotpo Referral Completed(new program)Appears as “Yotpo Loyalty - ReferralCompletedOldProgram” and “Yotpo Loyalty - ReferralCompletedNewProgram” in Postscript.Used to send a reward to the referring customer when their friend completes a successful first purchase.
+- Swell Tier EarnedAppears as “Yotpo Loyalty - TierEarned” in Postscript.Triggered when a customer enters a new tier and unlocks new benefits.
+- Swell Tier LostAppears as “Yotpo Loyalty - TierLost” in Postscript.Triggered when a customer moves out of a tier.
+- Swell Tier Status ChangedAppears as “Yotpo Loyalty - TierStatusChange” in Postscript.Triggered when a customer gets closer or farther from retaining their current tier, and from entering the next tier.
+- Yotpo Tier Expiration ReminderAppears as "Yotpo Loyalty - Tier Expiration Reminder" in Postscript.Triggered when a customer is at risk of losing their current tier.The event is sent 30, 14, and 7 days before the tier expires, based on your settings, and only if the customer has not met the requirements necessary to maintain their tier.
+- Loyalty Expiration ReminderAppears as “Yotpo Loyalty - PointsExpirationReminder” in Postscript.Triggered when a customer’s points are about to expire.
+- Swell Account CreatedAppears as “Yotpo Loyalty - NewMemberRewardCreated” in Postscript.Triggered when a customer receives the New Member Reward.
+
+#### Full List of Event Properties (per Event)
+
 Tip
+
 For the most up-to-date loyalty data, we recommend using event attributes instead of customer attributes when customizing your messages. Customer attributes may sometimes take longer to sync.
+
 Yotpo Loyalty - RedemptionCreated
-Yotpo Loyalty Coupon Code
-: The coupon code earned or redeemed.
-Example: 5OFF15
-Yotpo Loyalty Redemption Name
-: A short description of what the coupon is for.
-Example: $5.00 Off
-Yotpo Loyalty Points Balance
-: The customer's current points balance. Shows the points balance before the current redemption.
-Example: 4700
-Yotpo Loyalty VIP Tier Name
-: The name of the current VIP tier (e.g., Bronze, Gold, Platinum).
-Example: Gold
-Yotpo Loyalty Points Expiration Date
-: The date on which the customer's points will expire (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty VIP Tier Expiration Date
-: The expiration date of the customer's current VIP tier (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty - CustomRewardCreated
-Yotpo Loyalty Redemption Name
-: The name of the redemption option.
-Example: $10 Donation
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 4700
-Yotpo Loyalty VIP Tier Name
-: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)
-Example: Gold
-Yotpo Loyalty Points Expiration Date
-: The date on which the customer's points will expire (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty Vip Tier Expiration Date
-: The expiration date of the customer's current VIP tier (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty - CustomerAnniversary
-Yotpo Loyalty Reward Points
-: The number of reward points received, if any.
-Example: 200
-Yotpo Loyalty Coupon Code
-: The coupon code received, if any.
-Example: ANNIVERSARY
-Yotpo Loyalty Redemption Name
-: If the customer was gifted a coupon, this is the discount name.
-Example: 10% OFF
-Yotpo Loyalty Points Balance
-: The customer's current points balance. Shows the points balance before the current redemption.
-Example: 4700
-Yotpo Loyalty - AnniversaryCaptured
-Yotpo Loyalty Anniversary Date
-: Customer's anniversary date (mm-dd)
-Example: 05/29
-Yotpo Loyalty - CustomerBirthday
-Yotpo Loyalty Reward Points
-: The number of reward points received, if any.
-Example: 200
-Yotpo Loyalty Coupon Code
-: The coupon code received, if any.
-Example: HAPPYBDAY
-Yotpo Loyalty Redemption Name
-: If the customer was gifted a coupon, this is the discount name.
-Example: 10% OFF
-Yotpo Loyalty Points Balance
-: The customer's current points balance. Shows the points balance before the current redemption.
-Example: 4700
-Yotpo Loyalty - BirthdayCaptured
-Yotpo Loyalty Birthday Date
-: Customer's birthday date (yyyy-mm-dd)
-Example: 2025-05-29
-Yotpo Loyalty - DonationCreated
-Yotpo Loyalty Coupon Code
-: The coupon code received, if any.
-Example: CODEXWEX
-Yotpo Loyalty Redemption Name
-: A short description of what the coupon is for.
-Example: 14$ off
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 4700
-Yotpo Loyalty - PointsEarned
-Yotpo Loyalty Reward Points
-: The number of points the customer just earned.
-Example: 50
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 4700
-Yotpo Loyalty Points History
-: A short description of the action that led them to earn these points.
-Example: Create an account
-Yotpo Loyalty - PointsReminder
-Yotpo Loyalty Reward Points
-: The amount of points that can be redeemed.
-Example: 500
-Yotpo Loyalty Redemption Name
-: The name of the redemption option. This is the name of the current reward.
-Example: $5 off orders over $15
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 200
-Yotpo Loyalty Points Needed
-: The number of points the customer needs to earn to gain the next reward.
-Example: 125
-Yotpo Loyalty - PointsExpirationReminder
-Yotpo Loyalty Points Expiration Date
-: The date when the customer’s points will expire.
-Example: 2025-05-29
-Yotpo Loyalty Days to Points Expiration
-: The number of days left before the points expire and are no longer available to the customer.
-Example: 2
-Yotpo Loyalty Next Points Expiration Date
-: The closest next date when points will expire.
-Example: 2025-05-29
-Yotpo Loyalty Next Points Expiration Amount
-: The number of points that are about to expire.
-Example: 20
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 200
-Yotpo Loyalty - RedemptionReminder
-Yotpo Loyalty Reward Points
-: The amount of points that can be redeemed.
-Example: 500
-Yotpo Loyalty Redemption Name
-: The name of the redemption option.
-Example: $5 off orders over $15
-Yotpo Loyalty Points Balance
-: The customer's current points balance.
-Example: 300
-Yotpo Loyalty Credit Balance
-: The current credit balance for the customer (in US$).
-Example: $200
-Yotpo Loyalty - ReferralCompletedOldProgram
-Yotpo Loyalty Coupon Code
-: The referral code used.
-Example: 10OFF20
-Yotpo Loyalty Redemption Name
-: If the referrer earned a coupon, this is the discount name.
-Example: 10% OFF
-Yotpo Loyalty Reward Points
-: The number of points awarded to the referrer when their referral is completed / the amount of earned points, if any.
-Example: 50
-Yotpo Loyalty Referred Customer First Name
-: The first name of the referred customer who completed the purchase.
-Example: John
-Yotpo Loyalty Referred Customer Last Name
-: The last name of the referred customer who completed the purchase.
-Example: Doe
-Yotpo Loyalty - ReferralCompletedNewProgram
-Yotpo Loyalty Coupon Code
-: The referral code used.
-Example: 10OFF20
-Yotpo Loyalty Redemption Name
-: If the referrer earned a coupon, this is the discount name.
-Example: 10% OFF
-Yotpo Loyalty Reward Points
-: The number of points awarded to the referrer when their referral is completed / the amount of earned points, if any.
-Example: 50
-Yotpo Loyalty Referred Customer First Name
-: The first name of the referred customer who completed the purchase.
-Example: John
-Yotpo Loyalty Referred Customer Last Name
-: The last name of the referred customer who completed the purchase.
-Example: Doe
-Yotpo Loyalty - TierEarned
-Yotpo Loyalty NEW VIP Tier Name
-: The name of the new VIP tier (e.g., Bronze, Gold, Platinum)
-Example: Bronze
-Yotpo Loyalty OLD VIP Tier Name
-: The tier the customer came from. The attribute won’t be present if they had no previous tier.
-Example: Base
-Yotpo Loyalty VIP Tier Points Reward
-: The points reward for entering a new tier.
-Example: 500
-Yotpo Loyalty VIP Tier Coupon Code
-: Shows the coupon code associated with the customer's most recent VIP tier earned event.
-Example: 10OFF20
-Yotpo Loyalty VIP Tier Coupon Value
-: Shows the discount value/description associated with the customer's most recent VIP tier earned event.
-Example: 15% off
-Yotpo Loyalty - TierLost
-Yotpo Loyalty NEW VIP Tier Name
-: The name of the new VIP tier (e.g., Bronze, Gold, Platinum)
-Example: Bronze
-Yotpo Loyalty OLD VIP Tier Name
-: The tier the customer came from. The attribute won’t be present if they had no previous tier.
-Example: Base
-Yotpo Loyalty - TierStatusChange
-Yotpo Loyalty Points Needed to Maintain Tier
-: Shows how much is needed for the customer to maintain their current tier.
-Example: 200
-Yotpo Loyalty Amount Needed Maintain Tier
-: Spend required to maintain the current tier in the store currency (e.g., 1000 cents = 10 dollars).
-Example: 10
-Yotpo Loyalty Points Needed for Next Tier
-: The number of points needed for the customer to obtain the next tier.
-Example: 200
-Yot
-po Loyalty Amount Needed Next Tier
-: Spend required to get to the next tier in store currency (e.g., 300 cents = 3 dollars).
-Example: 3
-Yotpo Loyalty Points in Tier
-: Loyalty points in tier (the lifetime points the customer acquired ever).
-Example: 100
-Yotpo Loyalty VIP Tier Name
-: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)
-Example: Bronze
-Yotpo Loyalty VIP Tier Expiration Date
-: The expiration date of the customer's current VIP tier (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty - Tier Expiration Reminder
-Yotpo Loyalty VIP Tier Name
-: The name of the customer's current tier (e.g., Bronze, Gold, Platinum).
-Example: Bronze
-Yotpo Loyalty VIP Tier Expiration Date
-: The expiration date of the customer's current VIP tier (yyyy-mm-dd).
-Example: 2025-05-29
-Yotpo Loyalty Points Needed to Maintain Tier
-: The number of points the customer must earn to maintain their current tier.
-Example: 200
-Yotpo Loyalty Amount Needed Maintain Tier
-: The amount the customer must spend to maintain their current tier, in the store currency.
-Example: 10
-Yotpo Loyalty Points Needed for Next Tier
-: The number of points the customer needs to earn to reach the next tier.
-Example: 200
-Yotpo Loyalty Amount Needed Next Tier
-: The amount the customer must spend to reach the next tier, in the store currency.
-Example: 25
-Yotpo Loyalty Points in Tier
-: The customer's lifetime points accumulated within the tier program.
-Example: 100
-Yotpo Loyalty - NewMemberRewardCreated
-Yotpo Loyalty Points Balance
-: The customer's lifetime points balance.
-Example: 300
-Yotpo Loyalty Points Earned
-: The number of points the customer just earned.
-Example: 50
-Yotpo Loyalty VIP Tier Name
-: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)
-Example: Bronze
-Note
+
+- Yotpo Loyalty Coupon Code: The coupon code earned or redeemed.Example: 5OFF15
+- Yotpo Loyalty Redemption Name: A short description of what the coupon is for.Example: $5.00 Off
+- Yotpo Loyalty Points Balance: The customer's current points balance. Shows the points balance before the current redemption.Example: 4700
+- Yotpo Loyalty VIP Tier Name: The name of the current VIP tier (e.g., Bronze, Gold, Platinum).Example: Gold
+- Yotpo Loyalty Points Expiration Date: The date on which the customer's points will expire (yyyy-mm-dd).Example: 2025-05-29
+- Yotpo Loyalty VIP Tier Expiration Date: The expiration date of the customer's current VIP tier (yyyy-mm-dd).Example: 2025-05-29Yotpo Loyalty - CustomRewardCreated
+
+- Yotpo Loyalty Redemption Name: The name of the redemption option.Example: $10 Donation
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 4700
+- Yotpo Loyalty VIP Tier Name: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)Example: Gold
+- Yotpo Loyalty Points Expiration Date: The date on which the customer's points will expire (yyyy-mm-dd).Example: 2025-05-29
+- Yotpo Loyalty Vip Tier Expiration Date: The expiration date of the customer's current VIP tier (yyyy-mm-dd).Example: 2025-05-29Yotpo Loyalty - CustomerAnniversary
+
+- Yotpo Loyalty Reward Points: The number of reward points received, if any.Example: 200
+- Yotpo Loyalty Coupon Code: The coupon code received, if any.Example: ANNIVERSARY
+- Yotpo Loyalty Redemption Name: If the customer was gifted a coupon, this is the discount name.Example: 10% OFF
+- Yotpo Loyalty Points Balance: The customer's current points balance. Shows the points balance before the current redemption.Example: 4700Yotpo Loyalty - AnniversaryCaptured
+
+- Yotpo Loyalty Anniversary Date: Customer's anniversary date (mm-dd)Example: 05/29Yotpo Loyalty - CustomerBirthday
+
+- Yotpo Loyalty Reward Points: The number of reward points received, if any.Example: 200
+- Yotpo Loyalty Coupon Code: The coupon code received, if any.Example: HAPPYBDAY
+- Yotpo Loyalty Redemption Name: If the customer was gifted a coupon, this is the discount name.Example: 10% OFF
+- Yotpo Loyalty Points Balance: The customer's current points balance. Shows the points balance before the current redemption.Example: 4700Yotpo Loyalty - BirthdayCaptured
+
+- Yotpo Loyalty Birthday Date: Customer's birthday date (yyyy-mm-dd)Example: 2025-05-29Yotpo Loyalty - DonationCreated
+
+- Yotpo Loyalty Coupon Code: The coupon code received, if any.Example: CODEXWEX
+- Yotpo Loyalty Redemption Name: A short description of what the coupon is for.Example: 14$ off
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 4700Yotpo Loyalty - PointsEarned
+
+- Yotpo Loyalty Reward Points: The number of points the customer just earned.Example: 50
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 4700
+- Yotpo Loyalty Points History: A short description of the action that led them to earn these points.Example: Create an accountYotpo Loyalty - PointsReminder
+
+- Yotpo Loyalty Reward Points: The amount of points that can be redeemed.Example: 500
+- Yotpo Loyalty Redemption Name: The name of the redemption option. This is the name of the current reward.Example: $5 off orders over $15
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 200
+- Yotpo Loyalty Points Needed: The number of points the customer needs to earn to gain the next reward.Example: 125Yotpo Loyalty - PointsExpirationReminder
+
+- Yotpo Loyalty Points Expiration Date: The date when the customer’s points will expire.Example: 2025-05-29
+- Yotpo Loyalty Days to Points Expiration: The number of days left before the points expire and are no longer available to the customer.Example: 2
+- Yotpo Loyalty Next Points Expiration Date: The closest next date when points will expire.Example: 2025-05-29
+- Yotpo Loyalty Next Points Expiration Amount: The number of points that are about to expire.Example: 20
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 200Yotpo Loyalty - RedemptionReminder
+
+- Yotpo Loyalty Reward Points: The amount of points that can be redeemed.Example: 500
+- Yotpo Loyalty Redemption Name: The name of the redemption option.Example: $5 off orders over $15
+- Yotpo Loyalty Points Balance: The customer's current points balance.Example: 300
+- Yotpo Loyalty Credit Balance: The current credit balance for the customer (in US$).Example: $200Yotpo Loyalty - ReferralCompletedOldProgram
+
+- Yotpo Loyalty Coupon Code: The referral code used.Example: 10OFF20
+- Yotpo Loyalty Redemption Name: If the referrer earned a coupon, this is the discount name.Example: 10% OFF
+- Yotpo Loyalty Reward Points: The number of points awarded to the referrer when their referral is completed / the amount of earned points, if any.Example: 50
+- Yotpo Loyalty Referred Customer First Name: The first name of the referred customer who completed the purchase.Example: John
+- Yotpo Loyalty Referred Customer Last Name: The last name of the referred customer who completed the purchase.Example: DoeYotpo Loyalty - ReferralCompletedNewProgram
+
+- Yotpo Loyalty Coupon Code: The referral code used.Example: 10OFF20
+- Yotpo Loyalty Redemption Name: If the referrer earned a coupon, this is the discount name.Example: 10% OFF
+- Yotpo Loyalty Reward Points: The number of points awarded to the referrer when their referral is completed / the amount of earned points, if any.Example: 50
+- Yotpo Loyalty Referred Customer First Name: The first name of the referred customer who completed the purchase.Example: John
+- Yotpo Loyalty Referred Customer Last Name: The last name of the referred customer who completed the purchase.Example: DoeYotpo Loyalty - TierEarned
+
+- Yotpo Loyalty NEW VIP Tier Name: The name of the new VIP tier (e.g., Bronze, Gold, Platinum)Example: Bronze
+- Yotpo Loyalty OLD VIP Tier Name: The tier the customer came from. The attribute won’t be present if they had no previous tier.Example: Base
+- Yotpo Loyalty VIP Tier Points Reward: The points reward for entering a new tier.Example: 500
+- Yotpo Loyalty VIP Tier Coupon Code: Shows the coupon code associated with the customer's most recent VIP tier earned event.Example: 10OFF20
+- Yotpo Loyalty VIP Tier Coupon Value: Shows the discount value/description associated with the customer's most recent VIP tier earned event.Example: 15% offYotpo Loyalty - TierLost
+
+- Yotpo Loyalty NEW VIP Tier Name: The name of the new VIP tier (e.g., Bronze, Gold, Platinum)Example: Bronze
+- Yotpo Loyalty OLD VIP Tier Name: The tier the customer came from. The attribute won’t be present if they had no previous tier.Example: BaseYotpo Loyalty - TierStatusChange
+
+- Yotpo Loyalty Points Needed to Maintain Tier: Shows how much is needed for the customer to maintain their current tier.Example: 200
+- Yotpo Loyalty Amount Needed Maintain Tier: Spend required to maintain the current tier in the store currency (e.g., 1000 cents = 10 dollars).Example: 10
+- Yotpo Loyalty Points Needed for Next Tier: The number of points needed for the customer to obtain the next tier.Example: 200
+- Yotpo Loyalty Amount Needed Next Tier: Spend required to get to the next tier in store currency (e.g., 300 cents = 3 dollars).Example: 3
+- Yotpo Loyalty Points in Tier: Loyalty points in tier (the lifetime points the customer acquired ever).Example: 100
+- Yotpo Loyalty VIP Tier Name: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)Example: Bronze
+- Yotpo Loyalty VIP Tier Expiration Date: The expiration date of the customer's current VIP tier (yyyy-mm-dd).Example: 2025-05-29Yotpo Loyalty - Tier Expiration Reminder
+
+- Yotpo Loyalty VIP Tier Name: The name of the customer's current tier (e.g., Bronze, Gold, Platinum).Example: Bronze
+- Yotpo Loyalty VIP Tier Expiration Date: The expiration date of the customer's current VIP tier (yyyy-mm-dd).Example: 2025-05-29
+- Yotpo Loyalty Points Needed to Maintain Tier: The number of points the customer must earn to maintain their current tier.Example: 200
+- Yotpo Loyalty Amount Needed Maintain Tier: The amount the customer must spend to maintain their current tier, in the store currency.Example: 10
+- Yotpo Loyalty Points Needed for Next Tier: The number of points the customer needs to earn to reach the next tier.Example: 200
+- Yotpo Loyalty Amount Needed Next Tier: The amount the customer must spend to reach the next tier, in the store currency.Example: 25
+- Yotpo Loyalty Points in Tier: The customer's lifetime points accumulated within the tier program.Example: 100Yotpo Loyalty - NewMemberRewardCreated
+
+- Yotpo Loyalty Points Balance: The customer's lifetime points balance.Example: 300
+- Yotpo Loyalty Points Earned: The number of points the customer just earned.Example: 50
+- Yotpo Loyalty VIP Tier Name: The name of the current VIP tier (e.g., Bronze, Gold, Platinum)Example: BronzeNote
+
 There are no dedicated attributes for these events:
-Yotpo Loyalty - OptIn
-Yotpo Loyalty - OptOut
-Yotpo Loyalty - PointsChanged
-Full List of Customer Properties
+
+- Yotpo Loyalty - OptIn
+- Yotpo Loyalty - OptOut
+- Yotpo Loyalty - PointsChanged
+
+#### Full List of Customer Properties
+
 Customer properties
-Yotpo Loyalty Email
-: The email address of the subscriber for the Yotpo Loyalty program.
-Example:
-person@test.com
-Yotpo Loyalty Birthday Date
-: The subscriber’s birthdate.
-Example: 1984-12-27
-Yotpo Loyalty Opt In
-: Whether the subscriber is enrolled in the loyalty program.
-Example: True (must be capitalized).
-Note
-: Subscribers that are not in the loyalty program, do not have a value of false, and the false value should not be used to create a segment or in automation filtering.
-Yotpo Loyalty Points Earned
-: Numeric value of the total number of points earned in the subscriber’s loyalty program lifetime.
-Example: 1200
-Yotpo Loyalty Points Balance
-: Numeric value of the current number of points available to the subscriber.
-Example: 500
-Yotpo Loyalty Points Expire At
-: Date when points will expire (Date object)
-Example: 2025-10-27
-Yotpo Loyalty VIP Tier Name
-: The subscriber’s current loyalty tier.
-Example: Platinum (tier names are typically unique to most stores)
-Yotpo Loyalty Vip Tier Expires At
-: Date when VIP tier expires
-Example: 2025-10-27
-Yotpo Loyalty Maintain Tier Points Needed
-: Points required to maintain the current tier.
-Example: 20
-Yotpo Loyalty Maintain Tier Amount Needed:
-Spend required to maintain the current tier in the store currency (e.g., 300 cents = 3 dollars).
-Example: 3
-Yotpo Loyalty Next Tier Points Needed
-: The number of points required to proceed to the next tier.
-Example: 20
-Yotpo Loyalty Next Tier Amount Needed
-: Spend required to move to the next tier in store currency (e.g., 500 cents = 5 dollars).
-Example: 5
-Yotpo Loyalty Credit Balance
-: The dollar amount of the credit balance for the subscriber.
-Example: $10
-Yotpo Loyalty Referral Links Exist
-: Whether or not the subscriber has created a referral link. This value will be true if a link exists and otherwise blank.
-Example: True (must be capitalized)
-Yotpo Loyalty Referral Link
-: The URL of the referral link for the subscriber.
-Example:
-https://yot.po/abc123
-Yotpo Loyalty Updated At
-: The last time Yotpo updated the subscriber.
-Example: 2025-10-27 15:22:15
-Yotpo Loyalty Has Account
-: Indicates whether the customer has a store account (true/false). Applies to legacy Shopify accounts.
-Example: True (must be capitalized)
-Yotpo Loyalty Opt In At
-: Date when the customer opted in.
-Example: 2025-10-27
-Creating Segments, Campaign Flows & Automations Using Yotpo Loyalty Data
-Segments
+
+- Yotpo Loyalty Email: The email address of the subscriber for the Yotpo Loyalty program.Example:person@test.com
+- Yotpo Loyalty Birthday Date: The subscriber’s birthdate.Example: 1984-12-27
+- Yotpo Loyalty Opt In: Whether the subscriber is enrolled in the loyalty program.Example: True (must be capitalized).Note: Subscribers that are not in the loyalty program, do not have a value of false, and the false value should not be used to create a segment or in automation filtering.
+- Yotpo Loyalty Points Earned: Numeric value of the total number of points earned in the subscriber’s loyalty program lifetime.Example: 1200
+- Yotpo Loyalty Points Balance: Numeric value of the current number of points available to the subscriber.Example: 500
+- Yotpo Loyalty Points Expire At: Date when points will expire (Date object)Example: 2025-10-27
+- Yotpo Loyalty VIP Tier Name: The subscriber’s current loyalty tier.Example: Platinum (tier names are typically unique to most stores)
+- Yotpo Loyalty Vip Tier Expires At: Date when VIP tier expiresExample: 2025-10-27
+- Yotpo Loyalty Maintain Tier Points Needed: Points required to maintain the current tier.Example: 20
+- Yotpo Loyalty Maintain Tier Amount Needed:Spend required to maintain the current tier in the store currency (e.g., 300 cents = 3 dollars).Example: 3
+- Yotpo Loyalty Next Tier Points Needed: The number of points required to proceed to the next tier.Example: 20
+- Yotpo Loyalty Next Tier Amount Needed: Spend required to move to the next tier in store currency (e.g., 500 cents = 5 dollars).Example: 5
+- Yotpo Loyalty Credit Balance: The dollar amount of the credit balance for the subscriber.Example: $10
+- Yotpo Loyalty Referral Links Exist: Whether or not the subscriber has created a referral link. This value will be true if a link exists and otherwise blank.Example: True (must be capitalized)
+- Yotpo Loyalty Referral Link: The URL of the referral link for the subscriber.Example:https://yot.po/abc123
+- Yotpo Loyalty Updated At: The last time Yotpo updated the subscriber.Example: 2025-10-27 15:22:15
+- Yotpo Loyalty Has Account: Indicates whether the customer has a store account (true/false). Applies to legacy Shopify accounts.Example: True (must be capitalized)
+- Yotpo Loyalty Opt In At: Date when the customer opted in.Example: 2025-10-27
+
+### Creating Segments, Campaign Flows & Automations Using Yotpo Loyalty Data
+
+#### Segments
+
 Through this integration, you can create targeted subsets of subscribers based on Yotpo loyalty data to use in campaigns:
-In Postscript, go to
-Messaging > Segments
-.
-Click
-Create Segment
-.
-Select the
-segment criteria
-. Loyalty-based criteria are available in the dropdown as custom fields.
-Example: To select loyalty members, choose
-Custom Field Yotpo Loyalty Opt In
-equals TRUE.
-Configure the segment and
-save
-it.
-Important
+
+1. In Postscript, go toMessaging > Segments.
+2. ClickCreate Segment.
+3. Select thesegment criteria. Loyalty-based criteria are available in the dropdown as custom fields.Example: To select loyalty members, chooseCustom Field Yotpo Loyalty Opt Inequals TRUE.
+4. Configure the segment andsaveit.Important
+
 When creating segments using Yotpo loyalty customer properties, make sure to enter the values exactly in the formats shown in the examples above (including capitalization and date formatting). Using an incorrect format may prevent subscribers from being added to the segment, resulting in incomplete or inaccurate segmentation.
-Learn more about
-creating segments in Postscript
-.
-Automations
+
+Learn more aboutcreating segments in Postscript.
+
+#### Automations
+
 Automations let you build customized customer journeys using Yotpo loyalty events as triggers. To create an automation:
-In Postscript, go to
-Messaging > Automations
-.
-Click
-Create Automation > Create an Automation Flow
-.
-Select a
-loyalty event or property
-that will trigger the flow (e.g., Yotpo Loyalty - PointsEarned).
-Use the filters to tailor the flow as needed.
-In the message editor,
-insert merge tags to personalize the SMS
-using the loyalty attributes available in the dropdown.
-Finalize the message, then
-save and launch
-the automation flow.
-Learn more about
-automation flows in Postscript
-.
-Campaign Flows
+
+1. In Postscript, go toMessaging > Automations.
+2. ClickCreate Automation > Create an Automation Flow.
+3. Select aloyalty event or propertythat will trigger the flow (e.g., Yotpo Loyalty - PointsEarned).
+4. Use the filters to tailor the flow as needed.
+5. In the message editor,insert merge tags to personalize the SMSusing the loyalty attributes available in the dropdown.
+6. Finalize the message, thensave and launchthe automation flow.Learn more aboutautomation flows in Postscript.
+
+#### Campaign Flows
+
 You can build standard SMS campaigns (single-message campaigns) or campaign flows using Yotpo loyalty data. However, loyalty attributes and merge tags cannot be used in standard SMS campaigns or pre-built templates. You can still target loyalty-based segments, but message personalization using Yotpo loyalty data is only supported in campaign flows and automated flows.
+
 To create a standard SMS campaign:
-In Postscript, go to
-Messaging > Campaigns
-.
-Create a
-new campaign
-or choose from a
-template
-.
-Select your
-target segment
-(loyalty-based segments are supported).
-Configure and send your campaign.
-To create campaign flows and automations using Yotpo loyalty data for personalization:
-In Postscript, go to
-Messaging > Campaigns
-.
-Click to
-create a campaign flow
-.
-Select a segment and configure the flow steps.
-In the message editor, click to
-insert merge tags
-to personalize the SMS.
-Add the loyalty attributes
-you need from the dropdown and finalize the message.
-Save and launch
-the flow when ready.
-Learn more about
-creating campaign flows in Postscript
-.
-Reward Postscript Signups with Loyalty Points and Discounts
-You can reward new Postscript subscribers with loyalty points or discounts by
-creating a custom action earning rule
-in Yotpo using webhooks. How the reward is issued and whether loyalty data syncs to Postscript depends on how the subscriber is created in Postscript.
+
+1. In Postscript, go toMessaging > Campaigns.
+2. Create anew campaignor choose from atemplate.
+3. Select yourtarget segment(loyalty-based segments are supported).
+4. Configure and send your campaign.To create campaign flows and automations using Yotpo loyalty data for personalization:
+
+1. In Postscript, go toMessaging > Campaigns.
+2. Click tocreate a campaign flow.
+3. Select a segment and configure the flow steps.
+4. In the message editor, click toinsert merge tagsto personalize the SMS.
+5. Add the loyalty attributesyou need from the dropdown and finalize the message.
+6. Save and launchthe flow when ready.Learn more aboutcreating campaign flows in Postscript.
+
+### Reward Postscript Signups with Loyalty Points and Discounts
+
+You can reward new Postscript subscribers with loyalty points or discounts bycreating a custom action earning rulein Yotpo using webhooks. How the reward is issued and whether loyalty data syncs to Postscript depends on how the subscriber is created in Postscript.
+
 Subscribers created via Postscript popups:
-If a user subscribes to Postscript via popups, Yotpo will not immediately identify them.
-The subscriber
-won’t receive loyalty points or rewards
-, and
-Their
-loyalty data will not sync
-to Postscript.
-If that subscriber later completes a loyalty-related action that creates a Shopify profile with an email (e.g., a purchase), then:
-They
-can receive points or rewards
-based on your earning rules, and
-Their
-loyalty data will sync
-to Postscript.
-Subscribers created at Checkout via Postscript:
-When a subscriber opts in through the checkout page with
-both their email address and phone number
-, Shopify will create a customer profile with an email address. In this case:
-Their
-loyalty data will sync
-to Postscript, and
-For merchants using
-Shopify’s new Customer Accounts
-, loyalty rewards (if configured) will be granted
-after the customer completes an action
-in your store, such as placing an order.
-Subscribers with a Shopify profile but no email address:
-If a customer has a Shopify profile that contains only a phone number, and they subscribe through Postscript:
-Yotpo
-cannot match
-the subscriber to a loyalty profile.
-No reward can be issued, and loyalty data will
-not sync
-to Postscript.
-Whenever a Shopify profile
-includes an email address
-and the user is a Postscript subscriber, Yotpo can match the profile and sync loyalty data to Postscript. Any updates, whether triggered by customer activity or admin changes in Yotpo, will sync automatically.
+
+- If a user subscribes to Postscript via popups, Yotpo will not immediately identify them.The subscriberwon’t receive loyalty points or rewards, andTheirloyalty data will not syncto Postscript.
+- If that subscriber later completes a loyalty-related action that creates a Shopify profile with an email (e.g., a purchase), then:Theycan receive points or rewardsbased on your earning rules, andTheirloyalty data will syncto Postscript.Subscribers created at Checkout via Postscript:
+
+- When a subscriber opts in through the checkout page withboth their email address and phone number, Shopify will create a customer profile with an email address. In this case:Theirloyalty data will syncto Postscript, andFor merchants usingShopify’s new Customer Accounts, loyalty rewards (if configured) will be grantedafter the customer completes an actionin your store, such as placing an order.Subscribers with a Shopify profile but no email address:
+
+- If a customer has a Shopify profile that contains only a phone number, and they subscribe through Postscript:Yotpocannot matchthe subscriber to a loyalty profile.No reward can be issued, and loyalty data willnot syncto Postscript.Whenever a Shopify profileincludes an email addressand the user is a Postscript subscriber, Yotpo can match the profile and sync loyalty data to Postscript. Any updates, whether triggered by customer activity or admin changes in Yotpo, will sync automatically.

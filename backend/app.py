@@ -66,6 +66,15 @@ if USE_DATABASE_ESP_ROUTES:
         register_esp_admin_routes(app, BASE_PATH, vectorizer)
         print("[DEBUG] ESP database routes (SYNC) registered successfully")
 
+# Health check endpoint for Railway
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """Basic health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat()
+    })
+
 # Debug endpoint to test ESP routes
 @app.route('/api/debug/esps', methods=['GET'])
 def debug_esps():

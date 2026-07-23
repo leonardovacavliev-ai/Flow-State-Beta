@@ -10,8 +10,8 @@
     },
     {
       "name": "backend",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["backend/app.py"],
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd backend && python3 app.py"],
       "port": 5000
     }
   ]
