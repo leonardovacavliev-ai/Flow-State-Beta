@@ -15,9 +15,12 @@ COPY esp_support_links.csv ./
 # Create necessary directories
 RUN mkdir -p backend/chroma_db
 
-# Expose port (Railway will override with PORT env var)
-EXPOSE 8080
-ENV PORT=8080
+# Set working directory to backend for app execution
+WORKDIR /app/backend
 
-# Run application with proper host binding
-CMD ["python", "-u", "backend/app.py"]
+# Expose port (Railway will set PORT env var dynamically)
+EXPOSE 8080
+
+# Run application with Gunicorn for production
+# Railway will inject $PORT, so we need a shell to expand it
+CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --worker-class gthread --timeout 120 --max-requests 1000 --max-requests-jitter 50 app:app
