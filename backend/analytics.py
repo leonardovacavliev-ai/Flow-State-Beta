@@ -1,17 +1,87 @@
-import sqlite3
+"""
+Analytics layer.
+
+All reads and writes go through the database adapter selected by
+DATABASE_PROVIDER (sqlite locally, postgres on Railway), so analytics
+survive redeploys on ephemeral filesystems. SQL is written once with `?`
+placeholders and translated per dialect; the few constructs that genuinely
+differ between SQLite and PostgreSQL (duration math, day truncation) are
+isolated in the fragments below.
+"""
+
 import os
 import json
 import atexit
 import queue
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 import threading
 import time
 import requests
 from contextlib import contextmanager
 
-BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_PATH, "backend/analytics.db")
+from adapters.database.db_manager import get_database_adapter
+
+_adapter = None
+_adapter_lock = threading.Lock()
+
+
+def _get_adapter():
+    global _adapter
+    if _adapter is None:
+        with _adapter_lock:
+            if _adapter is None:
+                _adapter = get_database_adapter()
+    return _adapter
+
+
+def _is_postgres() -> bool:
+    return _get_adapter().dialect == 'postgres'
+
+
+@contextmanager
+def get_db_connection():
+    with _get_adapter().connection() as conn:
+        yield conn
+
+
+def _dict_cursor(conn):
+    """Cursor whose rows support row['column'] access in both dialects."""
+    if _is_postgres():
+        from psycopg2.extras import RealDictCursor
+        return conn.cursor(cursor_factory=RealDictCursor)
+    return conn.cursor()  # sqlite3.Row is set on the connection
+
+
+def _sql(query: str) -> str:
+    """Translate canonical `?` placeholders to the dialect's style."""
+    if _is_postgres():
+        return query.replace('?', '%s')
+    return query
+
+
+def _duration_seconds() -> str:
+    """SQL expression: session duration in seconds."""
+    if _is_postgres():
+        return "EXTRACT(EPOCH FROM (end_time - start_time))"
+    return "(julianday(end_time) - julianday(start_time)) * 86400"
+
+
+def _day(col: str) -> str:
+    """SQL expression: truncate a timestamp column to its calendar day."""
+    if _is_postgres():
+        return f"({col})::date"
+    return f"DATE({col})"
+
+
+def _num(value, default=0.0) -> float:
+    """Coerce SQL numerics (incl. psycopg2 Decimal) to float for JSON."""
+    return float(value) if value is not None else default
+
+
+def _int(value, default=0) -> int:
+    return int(value) if value is not None else default
+
 
 # Thread-safe batch write queue: a single background worker executes writes
 # strictly in enqueue order (an UPDATE can never run before its INSERT).
@@ -24,6 +94,7 @@ class BatchWriteQueue:
         self._worker.start()
 
     def add(self, operation, params):
+        """Enqueue canonical (`?`-placeholder) SQL; translated at execute time."""
         self.queue.put((operation, params))
 
     def _run(self):
@@ -46,11 +117,20 @@ class BatchWriteQueue:
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
+                # In Postgres a failed statement aborts the whole transaction;
+                # savepoints let one bad write skip without losing the batch.
+                use_savepoints = _is_postgres()
                 for operation, params in items:
                     try:
-                        cursor.execute(operation, params)
+                        if use_savepoints:
+                            cursor.execute("SAVEPOINT analytics_batch")
+                        cursor.execute(_sql(operation), params)
+                        if use_savepoints:
+                            cursor.execute("RELEASE SAVEPOINT analytics_batch")
                     except Exception as e:
                         print(f"Error executing analytics write: {e}")
+                        if use_savepoints:
+                            cursor.execute("ROLLBACK TO SAVEPOINT analytics_batch")
                 conn.commit()
         except Exception as e:
             print(f"Error flushing analytics batch: {e}")
@@ -61,129 +141,38 @@ class BatchWriteQueue:
         while self.queue.unfinished_tasks and time.time() < deadline:
             time.sleep(0.05)
 
+
 # Global batch queue
 batch_queue = BatchWriteQueue()
 
 # Flush pending analytics writes on shutdown/redeploy so they aren't lost
 atexit.register(batch_queue.force_flush)
 
-@contextmanager
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH, timeout=30.0)
-    conn.row_factory = sqlite3.Row
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 def init_db():
-    """Initialize analytics database with schema"""
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
+    """Ensure the analytics schema exists in the configured database."""
+    # The adapter factory runs CREATE TABLE IF NOT EXISTS for the full
+    # analytics schema on first creation (both dialects).
+    _get_adapter()
 
-        # Sessions table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
-                session_id TEXT PRIMARY KEY,
-                start_time DATETIME NOT NULL,
-                end_time DATETIME,
-                country TEXT,
-                ip_address TEXT,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+    if not _is_postgres():
+        # Legacy SQLite files created before these columns existed
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            import sqlite3
+            try:
+                cursor.execute("ALTER TABLE daily_aggregates ADD COLUMN unique_users INTEGER DEFAULT 0")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            try:
+                cursor.execute("ALTER TABLE daily_aggregates RENAME COLUMN avg_messages_per_session TO avg_messages_per_conversation")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass  # Column already renamed or doesn't exist
 
-        # Messages table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                role TEXT NOT NULL,
-                message_length INTEGER NOT NULL,
-                esp TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES sessions(session_id)
-            )
-        """)
+    print("✓ Analytics database initialized")
 
-        # ESP selections table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS esp_selections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT NOT NULL,
-                esp TEXT NOT NULL,
-                selected_at DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES sessions(session_id)
-            )
-        """)
-
-        # Feedback submissions (enhanced from CSV)
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS feedback (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_id TEXT,
-                email TEXT,
-                esp TEXT NOT NULL,
-                rating INTEGER NOT NULL,
-                comments TEXT,
-                submitted_at DATETIME NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (session_id) REFERENCES sessions(session_id)
-            )
-        """)
-
-        # Daily aggregates table for performance
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS daily_aggregates (
-                date DATE PRIMARY KEY,
-                total_sessions INTEGER DEFAULT 0,
-                total_messages INTEGER DEFAULT 0,
-                total_user_messages INTEGER DEFAULT 0,
-                total_feedback INTEGER DEFAULT 0,
-                esp_selections JSON,
-                country_breakdown JSON,
-                avg_session_duration REAL DEFAULT 0,
-                avg_messages_per_conversation REAL DEFAULT 0,
-                avg_message_length REAL DEFAULT 0,
-                unique_users INTEGER DEFAULT 0,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Add unique_users column if it doesn't exist (migration)
-        try:
-            cursor.execute("ALTER TABLE daily_aggregates ADD COLUMN unique_users INTEGER DEFAULT 0")
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already exists
-
-        # Rename avg_messages_per_session to avg_messages_per_conversation (migration)
-        try:
-            cursor.execute("ALTER TABLE daily_aggregates RENAME COLUMN avg_messages_per_session TO avg_messages_per_conversation")
-            conn.commit()
-        except sqlite3.OperationalError:
-            pass  # Column already renamed or doesn't exist
-
-        # Last aggregation timestamp
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS aggregation_metadata (
-                key TEXT PRIMARY KEY,
-                value TEXT,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Create indexes for performance
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_selections_session ON esp_selections(session_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_submitted ON feedback(submitted_at)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time)")
-
-        conn.commit()
-        print("✓ Analytics database initialized")
 
 def get_country_from_ip(ip_address: str) -> str:
     """Get country from IP address using ipapi.co (free tier)"""
@@ -200,6 +189,7 @@ def get_country_from_ip(ip_address: str) -> str:
 
     return 'Unknown'
 
+
 def _resolve_country_async(session_id: str, ip_address: str):
     """Resolve country in the background and update the session row."""
     country = get_country_from_ip(ip_address)
@@ -209,11 +199,13 @@ def _resolve_country_async(session_id: str, ip_address: str):
             (country, session_id)
         )
 
+
 def create_session(session_id: str, ip_address: Optional[str] = None):
     """Create a new session (geolocation happens off the request path)"""
     operation = """
-        INSERT OR IGNORE INTO sessions (session_id, start_time, country, ip_address)
+        INSERT INTO sessions (session_id, start_time, country, ip_address)
         VALUES (?, ?, ?, ?)
+        ON CONFLICT (session_id) DO NOTHING
     """
     params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address)
     batch_queue.add(operation, params)
@@ -225,6 +217,7 @@ def create_session(session_id: str, ip_address: Optional[str] = None):
             daemon=True
         ).start()
 
+
 def end_session(session_id: str):
     """Mark session as ended"""
     operation = """
@@ -232,6 +225,7 @@ def end_session(session_id: str):
     """
     params = (datetime.utcnow().isoformat(), session_id)
     batch_queue.add(operation, params)
+
 
 def track_message(session_id: str, role: str, message: str, esp: str):
     """Track a message in a session"""
@@ -242,6 +236,7 @@ def track_message(session_id: str, role: str, message: str, esp: str):
     params = (session_id, role, len(message), esp, datetime.utcnow().isoformat())
     batch_queue.add(operation, params)
 
+
 def track_esp_selection(session_id: str, esp: str):
     """Track ESP selection"""
     operation = """
@@ -250,6 +245,7 @@ def track_esp_selection(session_id: str, esp: str):
     """
     params = (session_id, esp, datetime.utcnow().isoformat())
     batch_queue.add(operation, params)
+
 
 def track_feedback(session_id: Optional[str], email: str, esp: str, rating: int, comments: str):
     """Track feedback submission"""
@@ -260,115 +256,112 @@ def track_feedback(session_id: Optional[str], email: str, esp: str, rating: int,
     params = (session_id, email, esp, rating, comments, datetime.utcnow().isoformat())
     batch_queue.add(operation, params)
 
+
 def calculate_daily_aggregates(target_date: datetime):
     """Calculate aggregates for a specific day"""
     date_str = target_date.date().isoformat()
-    start_of_day = datetime.combine(target_date.date(), datetime.min.time())
-    end_of_day = datetime.combine(target_date.date(), datetime.max.time())
 
     # Force flush pending writes first (blocks until drained)
     batch_queue.force_flush()
 
     with get_db_connection() as conn:
-        cursor = conn.cursor()
+        cursor = _dict_cursor(conn)
 
         # Total sessions
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(DISTINCT session_id) as count
             FROM sessions
-            WHERE DATE(start_time) = ?
-        """, (date_str,))
-        total_sessions = cursor.fetchone()['count']
+            WHERE {_day('start_time')} = ?
+        """), (date_str,))
+        total_sessions = _int(cursor.fetchone()['count'])
 
         # Total messages
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(*) as count
             FROM messages
-            WHERE DATE(timestamp) = ?
-        """, (date_str,))
-        total_messages = cursor.fetchone()['count']
+            WHERE {_day('timestamp')} = ?
+        """), (date_str,))
+        total_messages = _int(cursor.fetchone()['count'])
 
         # Total user messages
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(*) as count
             FROM messages
-            WHERE DATE(timestamp) = ? AND role = 'user'
-        """, (date_str,))
-        total_user_messages = cursor.fetchone()['count']
+            WHERE {_day('timestamp')} = ? AND role = 'user'
+        """), (date_str,))
+        total_user_messages = _int(cursor.fetchone()['count'])
 
         # Total feedback
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(*) as count
             FROM feedback
-            WHERE DATE(submitted_at) = ?
-        """, (date_str,))
-        total_feedback = cursor.fetchone()['count']
+            WHERE {_day('submitted_at')} = ?
+        """), (date_str,))
+        total_feedback = _int(cursor.fetchone()['count'])
 
         # ESP selections count
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT esp, COUNT(*) as count
             FROM esp_selections
-            WHERE DATE(selected_at) = ?
+            WHERE {_day('selected_at')} = ?
             GROUP BY esp
-        """, (date_str,))
-        esp_selections = {row['esp']: row['count'] for row in cursor.fetchall()}
+        """), (date_str,))
+        esp_selections = {row['esp']: _int(row['count']) for row in cursor.fetchall()}
 
         # Country breakdown
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT s.country, COUNT(DISTINCT s.session_id) as count
             FROM sessions s
-            WHERE DATE(s.start_time) = ?
+            WHERE {_day('s.start_time')} = ?
             GROUP BY s.country
-        """, (date_str,))
-        country_breakdown = {row['country']: row['count'] for row in cursor.fetchall()}
+        """), (date_str,))
+        country_breakdown = {row['country']: _int(row['count']) for row in cursor.fetchall()}
 
         # Average session duration (in seconds)
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT AVG(
                 CASE
                     WHEN end_time IS NOT NULL
-                    THEN (julianday(end_time) - julianday(start_time)) * 86400
+                    THEN {_duration_seconds()}
                     ELSE NULL
                 END
             ) as avg_duration
             FROM sessions
-            WHERE DATE(start_time) = ?
-        """, (date_str,))
-        result = cursor.fetchone()
-        avg_session_duration = result['avg_duration'] or 0
+            WHERE {_day('start_time')} = ?
+        """), (date_str,))
+        avg_session_duration = _num(cursor.fetchone()['avg_duration'])
 
         # Average messages per conversation (count unique session+ESP combinations)
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(DISTINCT session_id || '-' || esp) as conversation_count
             FROM messages
-            WHERE DATE(timestamp) = ? AND role = 'user'
-        """, (date_str,))
-        total_conversations = cursor.fetchone()['conversation_count']
+            WHERE {_day('timestamp')} = ? AND role = 'user'
+        """), (date_str,))
+        total_conversations = _int(cursor.fetchone()['conversation_count'])
         avg_messages_per_conversation = total_messages / total_conversations if total_conversations > 0 else 0
 
         # Average conversation length (AI responses per conversation)
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT AVG(assistant_count) as avg_conv_length
             FROM (
                 SELECT COUNT(*) as assistant_count
                 FROM messages
-                WHERE DATE(timestamp) = ? AND role = 'assistant'
+                WHERE {_day('timestamp')} = ? AND role = 'assistant'
                 GROUP BY session_id, esp
-            )
-        """, (date_str,))
-        result = cursor.fetchone()
-        avg_message_length = result['avg_conv_length'] or 0
+            ) AS conv
+        """), (date_str,))
+        avg_message_length = _num(cursor.fetchone()['avg_conv_length'])
 
         # Unique users (by IP)
-        cursor.execute("""
+        cursor.execute(_sql(f"""
             SELECT COUNT(DISTINCT ip_address) as count
             FROM sessions
-            WHERE DATE(start_time) = ? AND ip_address IS NOT NULL AND ip_address != ''
-        """, (date_str,))
-        unique_users = cursor.fetchone()['count']
+            WHERE {_day('start_time')} = ? AND ip_address IS NOT NULL AND ip_address != ''
+        """), (date_str,))
+        unique_users = _int(cursor.fetchone()['count'])
 
         # Insert or update aggregate
-        cursor.execute("""
+        cursor.execute(_sql("""
             INSERT INTO daily_aggregates (
                 date, total_sessions, total_messages, total_user_messages, total_feedback,
                 esp_selections, country_breakdown, avg_session_duration,
@@ -386,7 +379,7 @@ def calculate_daily_aggregates(target_date: datetime):
                 avg_message_length = excluded.avg_message_length,
                 unique_users = excluded.unique_users,
                 updated_at = excluded.updated_at
-        """, (
+        """), (
             date_str, total_sessions, total_messages, total_user_messages, total_feedback,
             json.dumps(esp_selections), json.dumps(country_breakdown), avg_session_duration,
             avg_messages_per_conversation, avg_message_length, unique_users, datetime.utcnow().isoformat()
@@ -395,10 +388,11 @@ def calculate_daily_aggregates(target_date: datetime):
         conn.commit()
         print(f"✓ Calculated aggregates for {date_str}")
 
+
 def should_refresh_aggregates() -> bool:
     """Check if aggregates should be refreshed (once per day)"""
     with get_db_connection() as conn:
-        cursor = conn.cursor()
+        cursor = _dict_cursor(conn)
         cursor.execute("""
             SELECT value FROM aggregation_metadata WHERE key = 'last_refresh'
         """)
@@ -413,6 +407,7 @@ def should_refresh_aggregates() -> bool:
         # Refresh if last refresh was more than 24 hours ago
         return (now - last_refresh).total_seconds() > 86400
 
+
 def refresh_aggregates_if_needed():
     """Refresh aggregates if 24+ hours have passed"""
     if not should_refresh_aggregates():
@@ -423,13 +418,14 @@ def refresh_aggregates_if_needed():
     # Backfill every day since the last aggregated date (capped at 60 days)
     # so quiet periods with no dashboard views don't leave permanent gaps.
     with get_db_connection() as conn:
-        cursor = conn.cursor()
+        cursor = _dict_cursor(conn)
         cursor.execute("SELECT MAX(date) as last_date FROM daily_aggregates")
         row = cursor.fetchone()
         last_date = row['last_date'] if row else None
 
     if last_date:
-        start_day = datetime.fromisoformat(last_date)
+        # SQLite returns TEXT, Postgres a datetime.date — str() normalizes both
+        start_day = datetime.fromisoformat(str(last_date))
     else:
         start_day = today - timedelta(days=1)
 
@@ -445,14 +441,15 @@ def refresh_aggregates_if_needed():
     # Update last refresh timestamp
     with get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        cursor.execute(_sql("""
             INSERT INTO aggregation_metadata (key, value, updated_at)
             VALUES ('last_refresh', ?, ?)
             ON CONFLICT(key) DO UPDATE SET
                 value = excluded.value,
                 updated_at = excluded.updated_at
-        """, (datetime.utcnow().isoformat(), datetime.utcnow().isoformat()))
+        """), (datetime.utcnow().isoformat(), datetime.utcnow().isoformat()))
         conn.commit()
+
 
 def get_analytics(time_range: str = 'all_time') -> Dict:
     """
@@ -482,7 +479,7 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
         previous_end = None
 
     with get_db_connection() as conn:
-        cursor = conn.cursor()
+        cursor = _dict_cursor(conn)
 
         def get_metrics(start_date, end_date=None):
             """Get metrics for a date range"""
@@ -500,111 +497,109 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                         COALESCE(AVG(avg_messages_per_conversation), 0) as avg_messages
                     FROM daily_aggregates
                 """)
-            else:
-                # Specific range - query raw data
-                date_filter = "timestamp >= ?" if end_date is None else "timestamp >= ? AND timestamp < ?"
-                params = (start_date.isoformat(),) if end_date is None else (start_date.isoformat(), end_date.isoformat())
-
-                # Sessions
-                cursor.execute(f"""
-                    SELECT COUNT(DISTINCT session_id) as count
-                    FROM sessions
-                    WHERE start_time >= ?{' AND start_time < ?' if end_date else ''}
-                """, params)
-                total_sessions = cursor.fetchone()['count']
-
-                # Messages
-                cursor.execute(f"""
-                    SELECT COUNT(*) as count
-                    FROM messages
-                    WHERE {date_filter}
-                """, params)
-                total_messages = cursor.fetchone()['count']
-
-                # User messages
-                cursor.execute(f"""
-                    SELECT COUNT(*) as count
-                    FROM messages
-                    WHERE role = 'user' AND {date_filter}
-                """, params)
-                total_user_messages = cursor.fetchone()['count']
-
-                # Feedback
-                cursor.execute(f"""
-                    SELECT COUNT(*) as count
-                    FROM feedback
-                    WHERE submitted_at >= ?{' AND submitted_at < ?' if end_date else ''}
-                """, params)
-                total_feedback = cursor.fetchone()['count']
-
-                # Avg session duration
-                cursor.execute(f"""
-                    SELECT AVG(
-                        CASE
-                            WHEN end_time IS NOT NULL
-                            THEN (julianday(end_time) - julianday(start_time)) * 86400
-                            ELSE NULL
-                        END
-                    ) as avg_duration
-                    FROM sessions
-                    WHERE start_time >= ?{' AND start_time < ?' if end_date else ''}
-                """, params)
-                result = cursor.fetchone()
-                avg_duration = result['avg_duration'] or 0
-
-                # Avg conversation length (AI responses per conversation)
-                cursor.execute(f"""
-                    SELECT AVG(assistant_count) as avg_conv_length
-                    FROM (
-                        SELECT COUNT(*) as assistant_count
-                        FROM messages
-                        WHERE {date_filter} AND role = 'assistant'
-                        GROUP BY session_id, esp
-                    )
-                """, params)
-                result = cursor.fetchone()
-                avg_length = result['avg_conv_length'] or 0
-
-                # Unique users (by IP)
-                cursor.execute(f"""
-                    SELECT COUNT(DISTINCT ip_address) as count
-                    FROM sessions
-                    WHERE start_time >= ?{' AND start_time < ?' if end_date else ''}
-                    AND ip_address IS NOT NULL AND ip_address != ''
-                """, params)
-                unique_users = cursor.fetchone()['count']
-
-                # Average messages per conversation (count unique session+ESP combinations)
-                cursor.execute(f"""
-                    SELECT COUNT(DISTINCT session_id || '-' || esp) as conversation_count
-                    FROM messages
-                    WHERE {date_filter.replace('timestamp', 'timestamp')} AND role = 'user'
-                """, params)
-                total_conversations = cursor.fetchone()['conversation_count']
-                avg_messages = total_messages / total_conversations if total_conversations > 0 else 0
-
+                row = cursor.fetchone()
                 return {
-                    'total_sessions': total_sessions,
-                    'total_messages': total_messages,
-                    'total_user_messages': total_user_messages,
-                    'total_feedback': total_feedback,
-                    'avg_duration': avg_duration,
-                    'avg_length': avg_length,
-                    'unique_users': unique_users,
-                    'avg_messages': avg_messages
+                    'total_sessions': _int(row['total_sessions']),
+                    'total_messages': _int(row['total_messages']),
+                    'total_user_messages': _int(row['total_user_messages']),
+                    'total_feedback': _int(row['total_feedback']),
+                    'avg_duration': _num(row['avg_duration']),
+                    'avg_length': _num(row['avg_length']),
+                    'unique_users': _int(row['unique_users']),
+                    'avg_messages': _num(row['avg_messages'])
                 }
 
-            # For all_time aggregate query
-            row = cursor.fetchone()
+            # Specific range - query raw data
+            date_filter = "timestamp >= ?" if end_date is None else "timestamp >= ? AND timestamp < ?"
+            session_filter = "start_time >= ?" if end_date is None else "start_time >= ? AND start_time < ?"
+            feedback_filter = "submitted_at >= ?" if end_date is None else "submitted_at >= ? AND submitted_at < ?"
+            params = (start_date.isoformat(),) if end_date is None else (start_date.isoformat(), end_date.isoformat())
+
+            # Sessions
+            cursor.execute(_sql(f"""
+                SELECT COUNT(DISTINCT session_id) as count
+                FROM sessions
+                WHERE {session_filter}
+            """), params)
+            total_sessions = _int(cursor.fetchone()['count'])
+
+            # Messages
+            cursor.execute(_sql(f"""
+                SELECT COUNT(*) as count
+                FROM messages
+                WHERE {date_filter}
+            """), params)
+            total_messages = _int(cursor.fetchone()['count'])
+
+            # User messages
+            cursor.execute(_sql(f"""
+                SELECT COUNT(*) as count
+                FROM messages
+                WHERE role = 'user' AND {date_filter}
+            """), params)
+            total_user_messages = _int(cursor.fetchone()['count'])
+
+            # Feedback
+            cursor.execute(_sql(f"""
+                SELECT COUNT(*) as count
+                FROM feedback
+                WHERE {feedback_filter}
+            """), params)
+            total_feedback = _int(cursor.fetchone()['count'])
+
+            # Avg session duration
+            cursor.execute(_sql(f"""
+                SELECT AVG(
+                    CASE
+                        WHEN end_time IS NOT NULL
+                        THEN {_duration_seconds()}
+                        ELSE NULL
+                    END
+                ) as avg_duration
+                FROM sessions
+                WHERE {session_filter}
+            """), params)
+            avg_duration = _num(cursor.fetchone()['avg_duration'])
+
+            # Avg conversation length (AI responses per conversation)
+            cursor.execute(_sql(f"""
+                SELECT AVG(assistant_count) as avg_conv_length
+                FROM (
+                    SELECT COUNT(*) as assistant_count
+                    FROM messages
+                    WHERE {date_filter} AND role = 'assistant'
+                    GROUP BY session_id, esp
+                ) AS conv
+            """), params)
+            avg_length = _num(cursor.fetchone()['avg_conv_length'])
+
+            # Unique users (by IP)
+            cursor.execute(_sql(f"""
+                SELECT COUNT(DISTINCT ip_address) as count
+                FROM sessions
+                WHERE {session_filter}
+                AND ip_address IS NOT NULL AND ip_address != ''
+            """), params)
+            unique_users = _int(cursor.fetchone()['count'])
+
+            # Average messages per conversation (count unique session+ESP combinations)
+            cursor.execute(_sql(f"""
+                SELECT COUNT(DISTINCT session_id || '-' || esp) as conversation_count
+                FROM messages
+                WHERE {date_filter} AND role = 'user'
+            """), params)
+            total_conversations = _int(cursor.fetchone()['conversation_count'])
+            avg_messages = total_messages / total_conversations if total_conversations > 0 else 0
+
             return {
-                'total_sessions': row['total_sessions'],
-                'total_messages': row['total_messages'],
-                'total_user_messages': row['total_user_messages'],
-                'total_feedback': row['total_feedback'],
-                'avg_duration': row['avg_duration'],
-                'avg_length': row['avg_length'],
-                'unique_users': row['unique_users'],
-                'avg_messages': row['avg_messages']
+                'total_sessions': total_sessions,
+                'total_messages': total_messages,
+                'total_user_messages': total_user_messages,
+                'total_feedback': total_feedback,
+                'avg_duration': avg_duration,
+                'avg_length': avg_length,
+                'unique_users': unique_users,
+                'avg_messages': avg_messages
             }
 
         # Get current period metrics
@@ -622,13 +617,13 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
 
         # Get ESP breakdown (current period) - count unique conversations (session+ESP with messages)
         if current_start:
-            cursor.execute("""
+            cursor.execute(_sql("""
                 SELECT esp, COUNT(DISTINCT session_id) as count
                 FROM messages
                 WHERE timestamp >= ? AND role = 'user'
                 GROUP BY esp
                 ORDER BY count DESC
-            """, (current_start.isoformat(),))
+            """), (current_start.isoformat(),))
         else:
             cursor.execute("""
                 SELECT esp, COUNT(DISTINCT session_id) as count
@@ -639,19 +634,19 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             """)
 
         esp_breakdown = [
-            {'esp': row['esp'], 'conversations': row['count']}
+            {'esp': row['esp'], 'conversations': _int(row['count'])}
             for row in cursor.fetchall()
         ]
 
         # Get country breakdown (current period)
         if current_start:
-            cursor.execute("""
+            cursor.execute(_sql("""
                 SELECT s.country, COUNT(DISTINCT s.session_id) as count
                 FROM sessions s
                 WHERE s.start_time >= ?
                 GROUP BY s.country
                 ORDER BY count DESC
-            """, (current_start.isoformat(),))
+            """), (current_start.isoformat(),))
         else:
             cursor.execute("""
                 SELECT s.country, COUNT(DISTINCT s.session_id) as count
@@ -661,7 +656,7 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             """)
 
         country_breakdown = [
-            {'country': row['country'], 'sessions': row['count']}
+            {'country': row['country'], 'sessions': _int(row['count'])}
             for row in cursor.fetchall()
         ]
 
@@ -685,7 +680,7 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             sparkline_start = now - timedelta(days=days)
 
             # Get daily aggregates for sparkline
-            cursor.execute("""
+            cursor.execute(_sql("""
                 SELECT
                     date,
                     total_sessions,
@@ -697,18 +692,19 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 FROM daily_aggregates
                 WHERE date >= ? AND date <= ?
                 ORDER BY date ASC
-            """, (sparkline_start.date().isoformat(), now.date().isoformat()))
+            """), (sparkline_start.date().isoformat(), now.date().isoformat()))
 
             daily_data = cursor.fetchall()
 
             sparkline_data = {
-                'dates': [row['date'] for row in daily_data],
-                'sessions': [row['total_sessions'] for row in daily_data],
-                'unique_users': [row['unique_users'] for row in daily_data],
-                'avg_messages': [round(row['avg_messages_per_conversation'], 1) for row in daily_data],
-                'feedback': [row['total_feedback'] for row in daily_data],
-                'session_time': [round(row['avg_session_duration'], 1) for row in daily_data],
-                'msg_length': [round(row['avg_message_length'], 1) for row in daily_data]
+                # Postgres returns datetime.date objects; str() gives ISO dates
+                'dates': [str(row['date']) for row in daily_data],
+                'sessions': [_int(row['total_sessions']) for row in daily_data],
+                'unique_users': [_int(row['unique_users']) for row in daily_data],
+                'avg_messages': [round(_num(row['avg_messages_per_conversation']), 1) for row in daily_data],
+                'feedback': [_int(row['total_feedback']) for row in daily_data],
+                'session_time': [round(_num(row['avg_session_duration']), 1) for row in daily_data],
+                'msg_length': [round(_num(row['avg_message_length']), 1) for row in daily_data]
             }
 
         result = {
@@ -743,6 +739,7 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
         }
 
         return result
+
 
 # Initialize database on module import
 init_db()

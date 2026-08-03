@@ -6,6 +6,7 @@ Uses cloud PostgreSQL - suitable for production deployments.
 
 import os
 import json
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import psycopg2
@@ -18,6 +19,8 @@ from .base import DatabaseAdapter
 
 class PostgresAdapter(DatabaseAdapter):
     """PostgreSQL implementation of DatabaseAdapter."""
+
+    dialect = 'postgres'
 
     def __init__(self, connection_url: str = None):
         """
@@ -55,6 +58,25 @@ class PostgresAdapter(DatabaseAdapter):
     def _put_connection(self, conn):
         """Return a connection to the pool."""
         self._get_pool().putconn(conn)
+
+    @contextmanager
+    def connection(self):
+        """Public context manager yielding a pooled psycopg2 connection.
+
+        Rolls back on error so an aborted transaction is never returned to
+        the pool. Callers commit themselves.
+        """
+        conn = self._get_connection()
+        try:
+            yield conn
+        except Exception:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
+        finally:
+            self._put_connection(conn)
 
     def initialize(self):
         """Initialize database schema."""
