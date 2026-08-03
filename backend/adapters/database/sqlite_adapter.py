@@ -18,6 +18,8 @@ from .base import DatabaseAdapter
 class SQLiteAdapter(DatabaseAdapter):
     """SQLite implementation of DatabaseAdapter."""
 
+    dialect = 'sqlite'
+
     def __init__(self, db_path: str = None):
         """
         Initialize SQLite adapter.
@@ -41,6 +43,15 @@ class SQLiteAdapter(DatabaseAdapter):
             yield conn
         finally:
             conn.close()
+
+    @contextmanager
+    def connection(self):
+        """Public context manager yielding a raw DB-API connection.
+
+        Rows are dict-indexable (sqlite3.Row). Callers commit themselves.
+        """
+        with self._get_connection() as conn:
+            yield conn
 
     def initialize(self):
         """Initialize database schema."""
