@@ -195,7 +195,7 @@ This migration implements an **abstraction layer pattern** that:
 
 **Your Pinecone Setup**:
 - Index: `esp-loyalty-docs1`
-- API Key: `pcsk_2aKY6Q_...` (in `.env`)
+- API Key: `<redacted>` (in `.env`)
 - Status: Ready to test
 
 ### ✅ COMPLETED: Analytics Database Abstraction Layer

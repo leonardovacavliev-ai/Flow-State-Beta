@@ -127,6 +127,26 @@ class ChromaDBAdapter(VectorAdapter):
         if ids:
             self.collection.delete(ids=ids)
 
+    def delete_by_url(self, url: str, esp_name: str) -> int:
+        """Delete all chunks belonging to a specific source URL."""
+        try:
+            results = self.collection.get(
+                where={
+                    "$and": [
+                        {"esp": esp_name.lower()},
+                        {"source_url": url}
+                    ]
+                }
+            )
+            ids = results.get('ids', [])
+            if ids:
+                self.collection.delete(ids=ids)
+                print(f"  Deleted {len(ids)} chunks for {url}")
+            return len(ids)
+        except Exception as e:
+            print(f"Error deleting vectors for {url}: {e}")
+            return 0
+
     def get_collection_count(self) -> int:
         """Get total number of chunks in the database"""
         return self.collection.count()

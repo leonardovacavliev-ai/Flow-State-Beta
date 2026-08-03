@@ -1,6 +1,8 @@
 import sqlite3
 import os
 import json
+import atexit
+import queue
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import threading
@@ -11,48 +13,59 @@ from contextlib import contextmanager
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_PATH, "backend/analytics.db")
 
-# Thread-safe batch write queue
+# Thread-safe batch write queue: a single background worker executes writes
+# strictly in enqueue order (an UPDATE can never run before its INSERT).
 class BatchWriteQueue:
-    def __init__(self, max_size=100, flush_interval=5):
-        self.queue = []
-        self.lock = threading.Lock()
-        self.max_size = max_size
-        self.flush_interval = flush_interval
-        self.last_flush = time.time()
+    def __init__(self, max_batch=100, poll_interval=5):
+        self.queue = queue.Queue()
+        self.max_batch = max_batch
+        self.poll_interval = poll_interval
+        self._worker = threading.Thread(target=self._run, daemon=True)
+        self._worker.start()
 
     def add(self, operation, params):
-        with self.lock:
-            self.queue.append((operation, params))
-            if len(self.queue) >= self.max_size or (time.time() - self.last_flush) > self.flush_interval:
-                self._flush()
+        self.queue.put((operation, params))
 
-    def _flush(self):
-        if not self.queue:
-            return
-
-        items = self.queue[:]
-        self.queue.clear()
-        self.last_flush = time.time()
-
-        # Execute batch in separate thread to avoid blocking
-        threading.Thread(target=self._execute_batch, args=(items,)).start()
+    def _run(self):
+        while True:
+            items = []
+            try:
+                items.append(self.queue.get(timeout=self.poll_interval))
+            except queue.Empty:
+                continue
+            while len(items) < self.max_batch:
+                try:
+                    items.append(self.queue.get_nowait())
+                except queue.Empty:
+                    break
+            self._execute_batch(items)
+            for _ in items:
+                self.queue.task_done()
 
     def _execute_batch(self, items):
         try:
             with get_db_connection() as conn:
                 cursor = conn.cursor()
                 for operation, params in items:
-                    cursor.execute(operation, params)
+                    try:
+                        cursor.execute(operation, params)
+                    except Exception as e:
+                        print(f"Error executing analytics write: {e}")
                 conn.commit()
         except Exception as e:
             print(f"Error flushing analytics batch: {e}")
 
-    def force_flush(self):
-        with self.lock:
-            self._flush()
+    def force_flush(self, timeout=10):
+        """Block until all queued writes have been executed (or timeout)."""
+        deadline = time.time() + timeout
+        while self.queue.unfinished_tasks and time.time() < deadline:
+            time.sleep(0.05)
 
 # Global batch queue
 batch_queue = BatchWriteQueue()
+
+# Flush pending analytics writes on shutdown/redeploy so they aren't lost
+atexit.register(batch_queue.force_flush)
 
 @contextmanager
 def get_db_connection():
@@ -187,16 +200,30 @@ def get_country_from_ip(ip_address: str) -> str:
 
     return 'Unknown'
 
-def create_session(session_id: str, ip_address: Optional[str] = None):
-    """Create a new session"""
-    country = get_country_from_ip(ip_address) if ip_address else 'Unknown'
+def _resolve_country_async(session_id: str, ip_address: str):
+    """Resolve country in the background and update the session row."""
+    country = get_country_from_ip(ip_address)
+    if country and country != 'Unknown':
+        batch_queue.add(
+            "UPDATE sessions SET country = ? WHERE session_id = ?",
+            (country, session_id)
+        )
 
+def create_session(session_id: str, ip_address: Optional[str] = None):
+    """Create a new session (geolocation happens off the request path)"""
     operation = """
         INSERT OR IGNORE INTO sessions (session_id, start_time, country, ip_address)
         VALUES (?, ?, ?, ?)
     """
-    params = (session_id, datetime.utcnow().isoformat(), country, ip_address)
+    params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address)
     batch_queue.add(operation, params)
+
+    if ip_address:
+        threading.Thread(
+            target=_resolve_country_async,
+            args=(session_id, ip_address),
+            daemon=True
+        ).start()
 
 def end_session(session_id: str):
     """Mark session as ended"""
@@ -239,9 +266,8 @@ def calculate_daily_aggregates(target_date: datetime):
     start_of_day = datetime.combine(target_date.date(), datetime.min.time())
     end_of_day = datetime.combine(target_date.date(), datetime.max.time())
 
-    # Force flush pending writes first
+    # Force flush pending writes first (blocks until drained)
     batch_queue.force_flush()
-    time.sleep(1)  # Give time for async flush
 
     with get_db_connection() as conn:
         cursor = conn.cursor()
@@ -392,12 +418,29 @@ def refresh_aggregates_if_needed():
     if not should_refresh_aggregates():
         return
 
-    # Calculate aggregates for yesterday and today
     today = datetime.utcnow()
-    yesterday = today - timedelta(days=1)
 
-    calculate_daily_aggregates(yesterday)
-    calculate_daily_aggregates(today)
+    # Backfill every day since the last aggregated date (capped at 60 days)
+    # so quiet periods with no dashboard views don't leave permanent gaps.
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT MAX(date) as last_date FROM daily_aggregates")
+        row = cursor.fetchone()
+        last_date = row['last_date'] if row else None
+
+    if last_date:
+        start_day = datetime.fromisoformat(last_date)
+    else:
+        start_day = today - timedelta(days=1)
+
+    earliest = today - timedelta(days=60)
+    if start_day < earliest:
+        start_day = earliest
+
+    day = start_day
+    while day.date() <= today.date():
+        calculate_daily_aggregates(day)
+        day += timedelta(days=1)
 
     # Update last refresh timestamp
     with get_db_connection() as conn:
@@ -419,9 +462,8 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
     # Refresh aggregates if needed
     refresh_aggregates_if_needed()
 
-    # Force flush any pending writes
+    # Force flush any pending writes (blocks until drained)
     batch_queue.force_flush()
-    time.sleep(0.5)
 
     now = datetime.utcnow()
 

@@ -11,6 +11,16 @@ from typing import List, Dict, Optional
 from adapters.database.db_manager import get_database_adapter
 
 
+def _iso(value):
+    """Format a timestamp column that may be a datetime (Postgres) or a
+    string (SQLite)."""
+    if value is None:
+        return None
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
+
+
 class ESPManager:
     """Manages ESPs and their documentation in the database."""
 
@@ -59,7 +69,7 @@ class ESPManager:
                 'display_name': row[2],
                 'description': row[3],
                 'status': row[4],
-                'created_at': row[5].isoformat() if row[5] else None
+                'created_at': _iso(row[5])
             }
         return None
 
@@ -79,8 +89,8 @@ class ESPManager:
                 'display_name': row[2],
                 'description': row[3],
                 'status': row[4],
-                'created_at': row[5].isoformat() if row[5] else None,
-                'updated_at': row[6].isoformat() if row[6] else None
+                'created_at': _iso(row[5]),
+                'updated_at': _iso(row[6])
             }
         return None
 
@@ -100,8 +110,8 @@ class ESPManager:
                 'display_name': row[2],
                 'description': row[3],
                 'status': row[4],
-                'created_at': row[5].isoformat() if row[5] else None,
-                'updated_at': row[6].isoformat() if row[6] else None
+                'created_at': _iso(row[5]),
+                'updated_at': _iso(row[6])
             }
         return None
 
@@ -137,8 +147,8 @@ class ESPManager:
                 'display_name': row[2],
                 'description': row[3],
                 'status': row[4],
-                'created_at': row[5].isoformat() if row[5] else None,
-                'updated_at': row[6].isoformat() if row[6] else None,
+                'created_at': _iso(row[5]),
+                'updated_at': _iso(row[6]),
                 'doc_count': row[7]
             })
         return esps
@@ -224,7 +234,7 @@ class ESPManager:
                 'url': row[1],
                 'filename': row[2],
                 'crawl_status': row[3],
-                'created_at': row[4].isoformat() if row[4] else None
+                'created_at': _iso(row[4])
             }
         return None
 
@@ -246,11 +256,11 @@ class ESPManager:
                 'filename': row[3],
                 'content_hash': row[4],
                 'crawl_status': row[5],
-                'last_crawled_at': row[6].isoformat() if row[6] else None,
+                'last_crawled_at': _iso(row[6]),
                 'error_message': row[7],
                 'vector_ids': row[8],
-                'created_at': row[9].isoformat() if row[9] else None,
-                'updated_at': row[10].isoformat() if row[10] else None
+                'created_at': _iso(row[9]),
+                'updated_at': _iso(row[10])
             }
         return None
 
@@ -277,10 +287,10 @@ class ESPManager:
                 'filename': row[2],
                 'content_hash': row[3],
                 'crawl_status': row[4],
-                'last_crawled_at': row[5].isoformat() if row[5] else None,
+                'last_crawled_at': _iso(row[5]),
                 'error_message': row[6],
-                'created_at': row[7].isoformat() if row[7] else None,
-                'updated_at': row[8].isoformat() if row[8] else None
+                'created_at': _iso(row[7]),
+                'updated_at': _iso(row[8])
             })
         return docs
 
@@ -298,21 +308,34 @@ class ESPManager:
             error_message: Error message (if failed)
             vector_ids: List of vector DB chunk IDs (if successful)
         """
-        query = """
+        # Only overwrite columns that were actually provided — a failed
+        # re-crawl must not NULL out the previously good content_hash or
+        # vector_ids (they're needed for change detection and cleanup).
+        import json
+        sets = ["crawl_status = %s", "last_crawled_at = CURRENT_TIMESTAMP"]
+        params = [status]
+
+        if content_hash is not None:
+            sets.append("content_hash = %s")
+            params.append(content_hash)
+
+        if error_message is not None:
+            sets.append("error_message = %s")
+            params.append(error_message)
+        elif status == 'completed':
+            sets.append("error_message = NULL")
+
+        if vector_ids is not None:
+            sets.append("vector_ids = %s")
+            params.append(json.dumps(vector_ids))
+
+        params.append(doc_id)
+        query = f"""
             UPDATE esp_documents
-            SET crawl_status = %s,
-                last_crawled_at = CURRENT_TIMESTAMP,
-                content_hash = %s,
-                error_message = %s,
-                vector_ids = %s
+            SET {', '.join(sets)}
             WHERE id = %s
         """
-        # Convert vector_ids list to JSON string
-        import json
-        vector_ids_json = json.dumps(vector_ids) if vector_ids else None
-
-        params = (status, content_hash, error_message, vector_ids_json, doc_id)
-        self.db.execute_query(query, params)
+        self.db.execute_query(query, tuple(params))
         return True
 
     def delete_document(self, doc_id: str) -> bool:
@@ -372,7 +395,7 @@ class ESPManager:
                 'completed': row[1],
                 'pending': row[2],
                 'failed': row[3],
-                'last_crawl': row[4].isoformat() if row[4] else None
+                'last_crawl': _iso(row[4])
             }
         return None
 

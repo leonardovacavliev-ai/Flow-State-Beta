@@ -132,7 +132,7 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
         """
         audit_log = self.get_audit_log()
 
-        if not audit_log or abs(audit_entry_index) > len(audit_log):
+        if not audit_log or not (-len(audit_log) <= audit_entry_index < len(audit_log)):
             raise ValueError("Invalid audit entry index")
 
         backup_entry = audit_log[audit_entry_index]

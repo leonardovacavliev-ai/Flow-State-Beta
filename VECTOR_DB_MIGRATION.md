@@ -26,7 +26,7 @@ Create or update your `.env` file:
 ```bash
 # Use Pinecone
 VECTOR_DB_PROVIDER=pinecone
-PINECONE_API_KEY=pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU
+PINECONE_API_KEY=<your-pinecone-api-key>
 PINECONE_INDEX_NAME=esp-loyalty-docs1
 PINECONE_ENVIRONMENT=us-east-1
 ```

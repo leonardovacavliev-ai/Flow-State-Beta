@@ -34,7 +34,7 @@ Built a complete **vector database abstraction layer** enabling the ESP Loyalty 
 
 ```
 Index:   esp-loyalty-docs1
-API Key: pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU
+API Key: <your-pinecone-api-key>
 Region:  us-east-1
 Status:  Ready to use
 ```

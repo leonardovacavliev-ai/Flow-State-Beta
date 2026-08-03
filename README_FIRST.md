@@ -10,7 +10,7 @@ Complete adapter layer for ChromaDB ↔ Pinecone switching.
 cd backend && pip install -r requirements.txt
 
 # 2. Test Pinecone
-export PINECONE_API_KEY=pcsk_2aKY6Q_KMnu4YGdpctHN78PQ4KuC4bZcYQR9ztVkoGrYqNLBa1r6wFgpLp6JESsiEg2jwU
+export PINECONE_API_KEY=<your-pinecone-api-key>
 export PINECONE_INDEX_NAME=esp-loyalty-docs1
 python test_pinecone.py
 

@@ -146,6 +146,29 @@ def crawl_single_url(url, esp_name, base_path):
         print(f"[CRAWLER] Error crawling {url}: {e}")
         return None
 
+def vectorize_single_document(vectorizer, esp_name, url, filepath, filename):
+    """
+    Replace the vectors for one URL without touching the rest of the ESP.
+
+    refresh_esp() deletes the ESP's entire vector namespace and re-adds only
+    the files present on the local filesystem — on an ephemeral cloud
+    filesystem (Railway) that wipes all previously crawled knowledge every
+    time a single URL is crawled. Scoping the update to one URL avoids that.
+    """
+    with open(filepath, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    esp_key = esp_name.lower()
+    if hasattr(vectorizer, 'delete_by_url'):
+        vectorizer.delete_by_url(url, esp_key)
+
+    vectorizer.add_document(content, {
+        'esp': esp_key,
+        'filename': filename,
+        'source_url': url,
+        'filepath': filepath
+    })
+
 def crawl_and_save(csv_path, base_docs_path):
     """Read CSV and crawl all URLs, saving to appropriate folders"""
 
@@ -221,10 +244,26 @@ def crawl_and_save(csv_path, base_docs_path):
             # Be polite - don't hammer servers
             time.sleep(1)
 
-    # Save metadata
+    # Merge with existing metadata instead of overwriting it: manually
+    # pasted docs and ESPs not in the CSV must survive a "Refresh All",
+    # otherwise their vectors get deleted on the next refresh_esp().
     metadata_path = os.path.join(base_docs_path, 'crawl_metadata.json')
+    metadata = {}
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: could not read existing metadata, starting fresh: {e}")
+
+    for esp, docs in results.items():
+        existing = metadata.get(esp, [])
+        crawled_urls = {doc['url'] for doc in docs}
+        # Keep entries for URLs this run didn't touch (e.g. pasted content)
+        metadata[esp] = [doc for doc in existing if doc['url'] not in crawled_urls] + docs
+
     with open(metadata_path, 'w') as f:
-        json.dump(results, f, indent=2)
+        json.dump(metadata, f, indent=2)
 
     print(f"\nCrawling complete! Metadata saved to {metadata_path}")
     return results

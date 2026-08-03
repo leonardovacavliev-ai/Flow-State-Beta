@@ -1,10 +1,42 @@
-// Auto-detect API URL based on environment
-const API_URL = window.location.hostname === 'localhost'
+// Auto-detect API URL based on environment. Same-origin by default (Flask
+// serves this frontend); only the standalone static dev servers (ports
+// 3001/8000) need to point at the separately-running backend on 5001.
+const isStaticDevServer =
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    && ['3001', '8000'].includes(window.location.port);
+const API_URL = isStaticDevServer
     ? 'http://localhost:5001/api'
     : `${window.location.protocol}//${window.location.host}/api`;
 
+// Escape untrusted text before interpolating into HTML strings
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text == null ? '' : String(text);
+    return div.innerHTML;
+}
+
+// Escape untrusted text for use inside HTML attribute values
+function escapeAttr(text) {
+    return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Render markdown safely: sanitize the output so a malicious doc echoed by
+// the AI can't inject script into every user's browser.
+function renderMarkdown(content) {
+    const html = marked.parse(content);
+    return (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(html) : html;
+}
+
 let selectedESP = 'klaviyo';
 let adminPassword = '';
+
+// Headers for authenticated admin requests (GETs can't carry a body)
+function adminHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'X-Admin-Password': adminPassword
+    };
+}
 let sessionId = null;
 let sessionStartTime = null;
 
@@ -18,9 +50,15 @@ let conversationHistories = {
 
 // Load histories from session storage
 const loadHistories = () => {
-    const stored = sessionStorage.getItem('espConversationHistories');
-    if (stored) {
-        conversationHistories = JSON.parse(stored);
+    try {
+        const stored = sessionStorage.getItem('espConversationHistories');
+        if (stored) {
+            conversationHistories = JSON.parse(stored);
+        }
+    } catch (error) {
+        // Corrupt storage must not abort the whole script at load time
+        console.error('Could not load stored histories:', error);
+        sessionStorage.removeItem('espConversationHistories');
     }
 };
 
@@ -68,7 +106,13 @@ async function initializeSession() {
 // End session on page unload
 window.addEventListener('beforeunload', () => {
     if (sessionId) {
-        navigator.sendBeacon(`${API_URL}/session/end`, JSON.stringify({ session_id: sessionId }));
+        // Plain-string beacons post as text/plain, which Flask rejects with
+        // 415 — send a JSON-typed Blob so the backend can parse the body.
+        const payload = new Blob(
+            [JSON.stringify({ session_id: sessionId })],
+            { type: 'application/json' }
+        );
+        navigator.sendBeacon(`${API_URL}/session/end`, payload);
     }
 });
 
@@ -352,7 +396,7 @@ function addMessage(role, content) {
         try {
             // Safety check: ensure content is valid before parsing
             if (content && typeof content === 'string') {
-                contentDiv.innerHTML = marked.parse(content);
+                contentDiv.innerHTML = renderMarkdown(content);
             } else {
                 console.error('Invalid content for marked.parse:', content);
                 contentDiv.textContent = content || '[Error: Empty response from server]';
@@ -674,7 +718,7 @@ async function loadAnalytics() {
     dashboard.classList.add('hidden');
 
     try {
-        const response = await fetch(`${API_URL}/admin/analytics?time_range=${timeRange}`);
+        const response = await fetch(`${API_URL}/admin/analytics?time_range=${timeRange}`, { headers: adminHeaders() });
         const data = await response.json();
 
         if (data.error) {
@@ -1000,11 +1044,11 @@ async function loadESPManagement() {
 
                     return `
                     <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${esp.name}" value="${link.url}" ${link.status === 'pending' ? 'checked' : ''}>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${link.status}</span>
-                        <a href="${link.url}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${link.url}</a>
+                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${link.status === 'pending' ? 'checked' : ''}>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+                        <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                         ${link.status === 'pending' ? `
-                            <button onclick="openPasteModal('${esp.name}', '${link.url.replace(/'/g, "\\'")}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
+                            <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                                 📋 Paste Content
                             </button>
                         ` : ''}
@@ -1142,7 +1186,7 @@ async function crawlAllSelectedAsync() {
                 const response = await fetch(`${API_URL}/admin/esp/${espName}/crawl-selected`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ urls })
+                    body: JSON.stringify({ password: adminPassword, urls })
                 });
 
                 const data = await response.json();
@@ -1157,23 +1201,39 @@ async function crawlAllSelectedAsync() {
             }
         }
 
-        // Queue global knowledge URLs
+        // Crawl global knowledge URLs. There is no async global endpoint —
+        // this one runs synchronously and returns a count, not job_ids.
+        let globalCrawledCount = 0;
         if (globalUrls.length > 0) {
             try {
                 const response = await fetch(`${API_URL}/admin/global-knowledge/crawl-selected`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ urls: globalUrls })
+                    body: JSON.stringify({ password: adminPassword, urls: globalUrls })
                 });
 
                 const data = await response.json();
 
                 if (data.success && data.job_ids) {
                     allJobIds = allJobIds.concat(data.job_ids);
+                } else if (data.success) {
+                    globalCrawledCount = data.count || 0;
+                } else {
+                    console.error('Failed to crawl global knowledge:', data.error);
                 }
             } catch (error) {
                 console.error('Error queueing global knowledge:', error);
             }
+        }
+
+        if (allJobIds.length === 0 && globalCrawledCount > 0) {
+            alert(`Crawled ${globalCrawledCount} global knowledge link(s).`);
+            crawlButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = 'Crawl Selected';
+            });
+            await loadESPManagement();
+            return;
         }
 
         if (allJobIds.length === 0) {
@@ -1190,7 +1250,7 @@ async function crawlAllSelectedAsync() {
         let progressContainer = document.getElementById('crawl-progress-container');
         if (!progressContainer) {
             // Insert progress container after the crawl buttons
-            const espManagement = document.getElementById('esp-management');
+            const espManagement = document.getElementById('espManagement');
             if (espManagement) {
                 progressContainer = document.createElement('div');
                 progressContainer.id = 'crawl-progress-container';
@@ -1583,14 +1643,14 @@ function showHistory(esp) {
                     if (typeof marked !== 'undefined') {
                         try {
                             assistantContent = assistantMsg.content && typeof assistantMsg.content === 'string'
-                                ? marked.parse(assistantMsg.content)
-                                : assistantMsg.content || '';
+                                ? renderMarkdown(assistantMsg.content)
+                                : escapeHtml(assistantMsg.content || '');
                         } catch (error) {
                             console.error('Markdown parsing error in history:', error);
-                            assistantContent = assistantMsg.content || '';
+                            assistantContent = escapeHtml(assistantMsg.content || '');
                         }
                     } else {
-                        assistantContent = assistantMsg.content || '';
+                        assistantContent = escapeHtml(assistantMsg.content || '');
                     }
                 }
 
@@ -1608,7 +1668,7 @@ function showHistory(esp) {
                         </div>
                         <div class="bg-primary text-primary-foreground rounded-lg p-3 mb-2">
                             <div class="text-xs font-medium mb-1 opacity-70 uppercase tracking-wide">You</div>
-                            <div class="text-sm">${userMsg.content}</div>
+                            <div class="text-sm">${escapeHtml(userMsg.content)}</div>
                         </div>
                         ${assistantMsg ? `
                             <div class="bg-background text-foreground rounded-lg p-3 border border-border">
@@ -1697,7 +1757,7 @@ async function loadGeneralSettings() {
 
 async function loadAIModelConfig() {
     try {
-        const response = await fetch(`${API_URL}/admin/settings/ai-model`);
+        const response = await fetch(`${API_URL}/admin/settings/ai-model`, { headers: adminHeaders() });
         const data = await response.json();
 
         if (data.error) {
@@ -1762,7 +1822,7 @@ function updateModelOptions(provider, selectedModel = null) {
 
 async function loadSystemPrompt() {
     try {
-        const response = await fetch(`${API_URL}/admin/settings/system-prompt`);
+        const response = await fetch(`${API_URL}/admin/settings/system-prompt`, { headers: adminHeaders() });
         const data = await response.json();
 
         if (data.error) {
@@ -1778,7 +1838,7 @@ async function loadSystemPrompt() {
 
 async function loadAuditLog() {
     try {
-        const response = await fetch(`${API_URL}/admin/settings/audit-log?limit=20`);
+        const response = await fetch(`${API_URL}/admin/settings/audit-log?limit=20`, { headers: adminHeaders() });
         const data = await response.json();
 
         if (data.error) {
@@ -1804,9 +1864,9 @@ async function loadAuditLog() {
                 <div class="border-b border-border p-4 hover:bg-muted/30 transition-colors">
                     <div class="flex items-start justify-between mb-2">
                         <div>
-                            <div class="font-medium text-card-foreground text-sm">${entry.description}</div>
+                            <div class="font-medium text-card-foreground text-sm">${escapeHtml(entry.description)}</div>
                             <div class="text-xs text-muted-foreground mt-1">
-                                by ${entry.user_email} • ${timestamp}
+                                by ${escapeHtml(entry.user_email)} • ${timestamp}
                             </div>
                         </div>
                         <button class="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors" onclick="restoreFromBackup(${actualIndex}, '${entry.timestamp}')">
@@ -1818,7 +1878,7 @@ async function loadAuditLog() {
                             <details class="cursor-pointer">
                                 <summary class="text-muted-foreground hover:text-foreground">View backup details</summary>
                                 <div class="mt-2 p-2 bg-background rounded border border-border font-mono text-xs overflow-x-auto">
-                                    <pre>${JSON.stringify(entry.backup, null, 2)}</pre>
+                                    <pre>${escapeHtml(JSON.stringify(entry.backup, null, 2))}</pre>
                                 </div>
                             </details>
                         </div>
@@ -1987,7 +2047,7 @@ async function restoreFromBackup(auditIndex, timestamp) {
 
 async function loadGlobalKnowledge() {
     try {
-        const response = await fetch(`${API_URL}/admin/global-knowledge/links`);
+        const response = await fetch(`${API_URL}/admin/global-knowledge/links`, { headers: adminHeaders() });
         const data = await response.json();
 
         const container = document.getElementById('globalKnowledgeLinks');
@@ -2010,11 +2070,11 @@ async function loadGlobalKnowledge() {
 
             return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${link.url}" ${link.status === 'pending' ? 'checked' : ''}>
-                <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${link.status}</span>
-                <a href="${link.url}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${link.url}</a>
+                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${link.status === 'pending' ? 'checked' : ''}>
+                <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+                <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                 ${link.status === 'pending' ? `
-                    <button onclick="openPasteModal('global', '${link.url.replace(/'/g, "\\'")}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
+                    <button onclick="openPasteModal('global', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                         📋 Paste Content
                     </button>
                 ` : ''}

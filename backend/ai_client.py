@@ -145,20 +145,22 @@ class AIClient:
         Returns:
             Generated response text
         """
+        # Raise instead of returning error text: returning a string here made
+        # /api/chat store provider failures as real assistant messages, which
+        # then polluted conversation history and follow-up RAG queries.
         if not self.configured:
-            return f"{self.provider.title()} API not configured. Please set API key in admin settings."
+            raise RuntimeError(
+                f"{self.provider.title()} API not configured. Please set API key in admin settings."
+            )
 
-        try:
-            if self.provider == 'gemini':
-                return self._generate_gemini(message, context, conversation_history)
-            elif self.provider == 'claude':
-                return self._generate_claude(message, context, conversation_history)
-            elif self.provider == 'openai':
-                return self._generate_openai(message, context, conversation_history)
-            else:
-                return f"Unknown provider: {self.provider}"
-        except Exception as e:
-            return f"Error generating response: {str(e)}"
+        if self.provider == 'gemini':
+            return self._generate_gemini(message, context, conversation_history)
+        elif self.provider == 'claude':
+            return self._generate_claude(message, context, conversation_history)
+        elif self.provider == 'openai':
+            return self._generate_openai(message, context, conversation_history)
+        else:
+            raise RuntimeError(f"Unknown provider: {self.provider}")
 
     def _generate_gemini(
         self,

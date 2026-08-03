@@ -213,7 +213,7 @@ class CrawlWorker:
             self._update_metadata_atomic(esp_name, url, filename)
 
             # Vectorize the document
-            self._vectorize_document(esp_name)
+            self._vectorize_document(esp_name, url, filename)
 
             # Calculate content hash
             file_path = os.path.join(self.base_path, 'docs', esp_name, filename)
@@ -336,17 +336,19 @@ class CrawlWorker:
                 # Release lock
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
-    def _vectorize_document(self, esp_name: str):
+    def _vectorize_document(self, esp_name: str, url: str, filename: str):
         """
-        Vectorize documents for an ESP.
+        Vectorize a single crawled document.
 
-        Args:
-            esp_name: ESP name
+        Uses a targeted per-URL update instead of refresh_esp(), which would
+        delete the ESP's entire vector namespace and re-add only the files
+        present on the (ephemeral) local filesystem.
         """
         try:
-            docs_path = os.path.join(self.base_path, 'docs')
-            self.vectorizer.refresh_esp(esp_name, docs_path)
-            print(f"[WORKER] Vectorized {esp_name}")
+            from crawler import vectorize_single_document
+            filepath = os.path.join(self.base_path, 'docs', esp_name, filename)
+            vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename)
+            print(f"[WORKER] Vectorized {esp_name}/{filename}")
         except Exception as e:
             print(f"[WORKER] Vectorization error for {esp_name}: {e}")
             # Don't fail the job if vectorization fails - can be re-vectorized later

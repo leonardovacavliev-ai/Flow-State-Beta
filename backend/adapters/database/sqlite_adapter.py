@@ -127,12 +127,66 @@ class SQLiteAdapter(DatabaseAdapter):
                 )
             """)
 
+            # ESP management tables (SQLite dialect of schema_esp.sql +
+            # migration 001). Without these, every /api/admin/esp* route
+            # 500s with "no such table: esps" in local development.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS esps (
+                    id TEXT PRIMARY KEY,
+                    name TEXT UNIQUE NOT NULL,
+                    display_name TEXT NOT NULL,
+                    description TEXT,
+                    status TEXT DEFAULT 'active',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS esp_documents (
+                    id TEXT PRIMARY KEY,
+                    esp_id TEXT NOT NULL REFERENCES esps(id) ON DELETE CASCADE,
+                    url TEXT NOT NULL,
+                    filename TEXT,
+                    content_hash TEXT,
+                    crawl_status TEXT DEFAULT 'pending',
+                    last_crawled_at DATETIME,
+                    error_message TEXT,
+                    vector_ids TEXT,
+                    crawl_job_id TEXT,
+                    is_crawling INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(esp_id, url)
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS crawl_jobs (
+                    id TEXT PRIMARY KEY,
+                    esp_id TEXT,
+                    document_id TEXT,
+                    priority INTEGER DEFAULT 10,
+                    status TEXT DEFAULT 'pending',
+                    attempts INTEGER DEFAULT 0,
+                    max_attempts INTEGER DEFAULT 3,
+                    worker_id TEXT,
+                    error_message TEXT,
+                    error_traceback TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    started_at DATETIME,
+                    completed_at DATETIME
+                )
+            """)
+
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_selections_session ON esp_selections(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_submitted ON feedback(submitted_at)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_esp_id ON esp_documents(esp_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_status ON esp_documents(crawl_status)")
 
             conn.commit()
             print("✓ SQLite analytics database initialized")
@@ -162,6 +216,10 @@ class SQLiteAdapter(DatabaseAdapter):
 
             if fetch:
                 result = cursor.fetchall()
+                # Commit even when fetching: INSERT/UPDATE ... RETURNING is
+                # used with fetch=True, and skipping the commit silently
+                # discarded those writes (the Postgres adapter commits here).
+                conn.commit()
                 # Convert Row objects to tuples for consistency with PostgreSQL
                 return [tuple(row) for row in result]
             else:
@@ -276,11 +334,13 @@ class SQLiteAdapter(DatabaseAdapter):
             cursor.execute(f"SELECT COUNT(*) as count FROM messages m JOIN sessions s ON m.session_id = s.session_id {where_clause}", params)
             total_messages = cursor.fetchone()['count']
 
-            # Unique users (by IP)
+            # Unique users (by IP) — where_clause is empty for 'all', so the
+            # IP condition needs its own WHERE in that case.
+            ip_clause = f"{where_clause} AND" if where_clause else "WHERE"
             cursor.execute(f"""
                 SELECT COUNT(DISTINCT ip_address) as count
                 FROM sessions s
-                {where_clause} AND ip_address IS NOT NULL AND ip_address != ''
+                {ip_clause} ip_address IS NOT NULL AND ip_address != ''
             """, params)
             unique_users = cursor.fetchone()['count']
 

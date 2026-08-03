@@ -38,7 +38,10 @@ class PostgresAdapter(DatabaseAdapter):
     def _get_pool(self):
         """Get or create connection pool."""
         if self._connection_pool is None:
-            self._connection_pool = pool.SimpleConnectionPool(
+            # ThreadedConnectionPool: this adapter is shared across Flask
+            # request threads and the crawl worker threads; SimpleConnectionPool
+            # is not thread-safe and can hand one connection to two threads.
+            self._connection_pool = pool.ThreadedConnectionPool(
                 minconn=1,
                 maxconn=10,
                 dsn=self.connection_url
@@ -172,6 +175,7 @@ class PostgresAdapter(DatabaseAdapter):
             List of tuples if fetch=True, None otherwise
         """
         conn = self._get_connection()
+        cursor = None
         try:
             cursor = conn.cursor()
             cursor.execute(query, params or ())
@@ -184,8 +188,18 @@ class PostgresAdapter(DatabaseAdapter):
             else:
                 conn.commit()
                 return None
+        except Exception:
+            # Roll back so the connection isn't returned to the pool with an
+            # aborted transaction, which would poison every later request
+            # that draws it ("current transaction is aborted").
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            raise
         finally:
-            cursor.close()
+            if cursor is not None:
+                cursor.close()
             self._put_connection(conn)
 
     def _get_country_from_ip(self, ip_address: str) -> str:

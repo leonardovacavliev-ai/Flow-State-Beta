@@ -10,6 +10,8 @@ Usage:
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
+from crawler import vectorize_single_document
+from app_admin_esp_routes import check_admin_password, delete_document_artifacts
 import os
 import uuid
 
@@ -68,6 +70,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/add-link', methods=['POST'])
     def add_esp_link(esp_name):
         """Add a new link to an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -92,6 +96,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/create', methods=['POST'])
     def create_esp():
         """Create a new ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -125,6 +131,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/delete-links', methods=['POST'])
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -135,6 +143,10 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
 
             # Delete from database
             deleted_count = esp_mgr.delete_documents_by_urls(esp_name, urls)
+
+            # Also remove vectors, files, and metadata so the deleted docs
+            # actually stop being served as RAG context
+            delete_document_artifacts(esp_name, urls, vectorizer, BASE_PATH)
 
             return jsonify({
                 'success': True,
@@ -181,6 +193,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 "message": "Queued 2 URLs for crawling"
             }
         """
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             db = get_db()
@@ -308,14 +322,18 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                     pass  # Skip invalid UUIDs silently
 
             if not valid_job_ids:
+                # Same shape as the normal branch so pollers checking
+                # summary.is_complete stop instead of polling forever
                 return jsonify({
                     'jobs': [],
                     'summary': {
                         'total': 0,
-                        'queued': 0,
+                        'pending': 0,
                         'processing': 0,
                         'completed': 0,
-                        'failed': 0
+                        'failed': 0,
+                        'cancelled': 0,
+                        'is_complete': True
                     }
                 }), 200
 
@@ -401,6 +419,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 "cancelled": 2
             }
         """
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             db = get_db()
             data = request.json
@@ -409,8 +429,21 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not job_ids:
                 return jsonify({'error': 'No job_ids provided'}), 400
 
+            # Validate UUIDs — a malformed ID would raise a Postgres cast
+            # error mid-transaction
+            valid_job_ids = []
+            for job_id in job_ids:
+                try:
+                    uuid.UUID(str(job_id))
+                    valid_job_ids.append(str(job_id))
+                except (ValueError, AttributeError):
+                    pass
+
+            if not valid_job_ids:
+                return jsonify({'error': 'No valid job_ids provided'}), 400
+
             # Build query with proper parameterization
-            placeholders = ','.join(['%s'] * len(job_ids))
+            placeholders = ','.join(['%s'] * len(valid_job_ids))
             query = f"""
                 UPDATE crawl_jobs
                 SET status = 'cancelled',
@@ -419,10 +452,19 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 AND status IN ('pending', 'processing')
             """
 
-            db.execute_query(query, tuple(job_ids))
+            db.execute_query(query, tuple(valid_job_ids))
 
-            # Note: We can't easily get rowcount from execute_query
-            # Just return success
+            # Clear the crawling flag on affected documents; the worker only
+            # clears it on completion/failure, so cancelled docs would stay
+            # stuck in "crawling" forever otherwise.
+            clear_query = f"""
+                UPDATE esp_documents
+                SET is_crawling = FALSE,
+                    crawl_job_id = NULL
+                WHERE crawl_job_id IN ({placeholders})
+            """
+            db.execute_query(clear_query, tuple(valid_job_ids))
+
             return jsonify({
                 'success': True,
                 'message': 'Jobs cancelled'
@@ -508,9 +550,10 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
 
-            # Vectorize
+            # Vectorize just this document — refresh_esp() would wipe the
+            # ESP's namespace and re-add only local files
             try:
-                vectorizer.refresh_esp(esp_name, base_docs_path)
+                vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
             except Exception as ve:
                 print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
 

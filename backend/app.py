@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from adapters.vector.vector_manager import get_vector_adapter
 from adapters.session.session_manager import get_session_adapter
-from crawler import crawl_and_save
+from crawler import crawl_and_save, vectorize_single_document
 from analytics import (
     create_session, track_message, track_esp_selection,
     track_feedback, get_analytics, end_session
@@ -22,6 +22,11 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
+# Behind Railway/other proxies the client IP arrives via X-Forwarded-For;
+# without this every session records the load balancer's IP.
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
+
 # Initialize vectorizer with adapter pattern
 BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_PATH, "backend/chroma_db")
@@ -34,6 +39,20 @@ session_adapter = get_session_adapter()
 
 # Admin password - from environment variable for security
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
+if 'ADMIN_PASSWORD' not in os.environ:
+    print("[WARNING] ADMIN_PASSWORD not set - using the default password. "
+          "Set ADMIN_PASSWORD in the environment for production.")
+
+def is_admin_request():
+    """Check admin password from header, query param, or JSON body."""
+    password = (
+        request.headers.get('X-Admin-Password', '')
+        or request.args.get('password', '')
+    )
+    if not password and request.is_json:
+        data = request.get_json(silent=True) or {}
+        password = data.get('password', '')
+    return password == ADMIN_PASSWORD
 
 # Initialize configuration manager
 config_manager = ConfigManager(BASE_PATH)
@@ -98,20 +117,30 @@ def debug_esps():
             'use_database_routes': USE_DATABASE_ESP_ROUTES
         }), 500
 
+# Vector DB provider determines how to interpret the 'distances' field:
+# - ChromaDB returns L2 distances (lower = more similar)
+# - Pinecone returns cosine similarity scores (higher = more similar)
+VECTOR_PROVIDER = os.environ.get('VECTOR_DB_PROVIDER', 'chromadb').lower()
+
 # Helper function: Filter vector search results by relevance score
-def filter_by_relevance(results, min_score=0.60, result_type=''):
+def filter_by_relevance(results, min_score=None, result_type=''):
     """
     Filter vector search results by minimum relevance score.
     Removes low-quality chunks that could cause hallucinations.
 
     Args:
         results: Vector search results dict with 'documents', 'metadatas', 'distances'
-        min_score: Minimum similarity score (0-1, default 0.60)
+        min_score: Minimum similarity score (0-1). Defaults per provider.
         result_type: Label for logging (e.g., 'ESP', 'Global')
 
     Returns:
         Filtered results dict
     """
+    is_similarity_metric = VECTOR_PROVIDER == 'pinecone'
+    if min_score is None:
+        # Cosine similarity (Pinecone) and 1/(1+L2) (ChromaDB) live on
+        # different scales, so each needs its own default threshold.
+        min_score = 0.35 if is_similarity_metric else 0.60
     # If no distance info, return as-is
     if 'distances' not in results or not results['distances'] or not results['distances'][0]:
         return results
@@ -131,9 +160,13 @@ def filter_by_relevance(results, min_score=0.60, result_type=''):
         results['metadatas'][0],
         results['distances'][0]
     ):
-        # ChromaDB uses L2 distance (lower = more similar)
-        # Convert to similarity score: 1 / (1 + distance)
-        similarity = 1 / (1 + distance)
+        if is_similarity_metric:
+            # Pinecone already returns cosine similarity (higher = better)
+            similarity = distance
+        else:
+            # ChromaDB uses L2 distance (lower = more similar)
+            # Convert to similarity score: 1 / (1 + distance)
+            similarity = 1 / (1 + distance)
 
         if similarity >= min_score:
             filtered_docs.append(doc)
@@ -176,7 +209,9 @@ def init_session():
 @app.route('/api/session/end', methods=['POST'])
 def end_session_endpoint():
     """Mark a session as ended"""
-    data = request.json
+    # sendBeacon payloads may arrive as text/plain; parse leniently so the
+    # session end isn't rejected with a 415.
+    data = request.get_json(silent=True, force=True) or {}
     session_id = data.get('session_id')
     if session_id:
         end_session(session_id)
@@ -208,8 +243,19 @@ def chat():
     if not session_id:
         return jsonify({'error': 'No session_id provided'}), 400
 
-    # Get conversation history from session store
-    conversation_history = session_adapter.get_conversation_history(session_id)
+    # Prefer the client's per-ESP history (it isolates conversations per ESP
+    # and honors "Clear History"); fall back to the server-side session store.
+    client_history = data.get('history')
+    if isinstance(client_history, list):
+        conversation_history = [
+            {'role': m['role'], 'content': m['content']}
+            for m in client_history[-20:]
+            if isinstance(m, dict)
+            and m.get('role') in ('user', 'assistant')
+            and isinstance(m.get('content'), str)
+        ]
+    else:
+        conversation_history = session_adapter.get_conversation_history(session_id)
 
     # Track user message in analytics
     track_message(session_id, 'user', message, esp)
@@ -242,13 +288,13 @@ def chat():
     esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=10)
 
     # Filter ESP results by relevance score to reduce hallucinations
-    esp_results = filter_by_relevance(esp_results, min_score=0.60, result_type='ESP')
+    esp_results = filter_by_relevance(esp_results, result_type='ESP')
 
     # Search global knowledge (2 results) - also use enhanced query
     global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
 
     # Filter global results by relevance score
-    global_results = filter_by_relevance(global_results, min_score=0.60, result_type='Global')
+    global_results = filter_by_relevance(global_results, result_type='Global')
 
     # Build context from search results
     context = "# Relevant Documentation:\n\n"
@@ -323,9 +369,18 @@ def submit_feedback():
     data = request.json
     email = data.get('email', '')
     esp = data.get('esp', '')
-    rating = data.get('rating', '')
     comments = data.get('comments', '')
     session_id = data.get('session_id')
+
+    # Validate rating BEFORE writing anywhere, so a bad rating can't leave
+    # the CSV and analytics out of sync.
+    try:
+        rating = int(data.get('rating'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'A numeric rating is required'}), 400
+
+    if not 1 <= rating <= 5:
+        return jsonify({'error': 'Rating must be between 1 and 5'}), 400
 
     feedback_path = os.path.join(BASE_PATH, 'feedback.csv')
 
@@ -347,7 +402,7 @@ def submit_feedback():
         ])
 
     # Track in analytics
-    track_feedback(session_id, email, esp, int(rating), comments)
+    track_feedback(session_id, email, esp, rating, comments)
 
     return jsonify({'success': True})
 
@@ -391,46 +446,6 @@ if not USE_DATABASE_ESP_ROUTES:
                     })
 
         return jsonify({'esps': esps})
-
-@app.route('/api/admin/debug/pinecone-sample', methods=['GET'])
-def debug_pinecone_sample():
-    """Debug endpoint to see what's actually in Pinecone"""
-    try:
-        # Use a real query vector instead of dummy zeros
-        from sentence_transformers import SentenceTransformer
-        embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
-        query_vector = embedding_model.encode("sample query").tolist()
-
-        results = vectorizer.index.query(
-            vector=query_vector,
-            top_k=10,
-            include_metadata=True
-        )
-
-        samples = []
-        for match in results.get('matches', []):
-            metadata = match.get('metadata', {})
-            samples.append({
-                'id': match['id'],
-                'esp': metadata.get('esp', 'N/A'),
-                'filename': metadata.get('filename', 'N/A'),
-                'source_url': metadata.get('source_url', 'N/A'),
-                'score': match.get('score', 0)
-            })
-
-        return jsonify({
-            'provider': os.getenv('VECTOR_DB_PROVIDER', 'chromadb'),
-            'total_vectors': vectorizer.get_collection_count(),
-            'sample_count': len(samples),
-            'sample_vectors': samples
-        })
-    except Exception as e:
-        import traceback
-        return jsonify({
-            'error': str(e),
-            'traceback': traceback.format_exc()
-        }), 500
-
 
     # Additional ESP admin routes (filesystem-based)
     @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
@@ -799,6 +814,47 @@ def debug_pinecone_sample():
 
     # ========== END OF OLD FILESYSTEM-BASED ESP ROUTES ==========
 
+@app.route('/api/admin/debug/pinecone-sample', methods=['GET'])
+def debug_pinecone_sample():
+    """Debug endpoint to see what's actually in Pinecone (admin only)"""
+    password = request.args.get('password', '') or request.headers.get('X-Admin-Password', '')
+    if password != ADMIN_PASSWORD:
+        return jsonify({'error': 'Invalid password'}), 403
+
+    if VECTOR_PROVIDER != 'pinecone':
+        return jsonify({'error': f'Not using Pinecone (provider: {VECTOR_PROVIDER})'}), 400
+
+    try:
+        # Reuse the adapter's lazily-loaded embedding model instead of
+        # instantiating a fresh 250MB SentenceTransformer per request.
+        query_vector = vectorizer.embedding_model.encode("sample query").tolist()
+
+        results = vectorizer.index.query(
+            vector=query_vector,
+            top_k=10,
+            include_metadata=True
+        )
+
+        samples = []
+        for match in results.get('matches', []):
+            metadata = match.get('metadata', {})
+            samples.append({
+                'id': match['id'],
+                'esp': metadata.get('esp', 'N/A'),
+                'filename': metadata.get('filename', 'N/A'),
+                'source_url': metadata.get('source_url', 'N/A'),
+                'score': match.get('score', 0)
+            })
+
+        return jsonify({
+            'provider': VECTOR_PROVIDER,
+            'total_vectors': vectorizer.get_collection_count(),
+            'sample_count': len(samples),
+            'sample_vectors': samples
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/refresh', methods=['POST'])
 def refresh_all():
     """Re-crawl all links and update vector database"""
@@ -824,7 +880,10 @@ def refresh_all():
 
 @app.route('/api/admin/analytics', methods=['GET'])
 def get_analytics_data():
-    """Get analytics data for dashboard"""
+    """Get analytics data for dashboard (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Invalid password'}), 403
+
     time_range = request.args.get('time_range', 'all_time')
 
     if time_range not in ['all_time', 'last_90_days', 'last_7_days']:
@@ -840,7 +899,9 @@ def get_analytics_data():
 
 @app.route('/api/admin/settings/ai-model', methods=['GET'])
 def get_ai_model_config():
-    """Get current AI model configuration"""
+    """Get current AI model configuration (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Invalid password'}), 403
     try:
         config = config_manager.get_model_config()
         available_models = AIClient.get_available_models()
@@ -941,7 +1002,9 @@ def check_api_status():
 
 @app.route('/api/admin/settings/system-prompt', methods=['GET'])
 def get_system_prompt():
-    """Get current system prompt"""
+    """Get current system prompt (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Invalid password'}), 403
     try:
         prompt = config_manager.get_system_prompt()
         return jsonify({'system_prompt': prompt})
@@ -986,7 +1049,9 @@ def update_system_prompt():
 
 @app.route('/api/admin/settings/audit-log', methods=['GET'])
 def get_audit_log():
-    """Get configuration change audit log"""
+    """Get configuration change audit log (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Invalid password'}), 403
     try:
         limit = request.args.get('limit', type=int, default=50)
         audit_log = config_manager.get_audit_log(limit=limit)
@@ -1034,7 +1099,10 @@ def restore_from_backup():
 
 @app.route('/api/admin/global-knowledge/links', methods=['GET'])
 def get_global_knowledge_links():
-    """Get links for global knowledge base"""
+    """Get links for global knowledge base (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Invalid password'}), 403
+
     csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
     metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
@@ -1195,8 +1263,10 @@ def crawl_global_knowledge_links():
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
 
-        # Re-vectorize global knowledge
-        vectorizer.refresh_esp('global', docs_path)
+        # Vectorize only the crawled documents — refresh_esp() would wipe
+        # the global namespace and re-add only local files
+        for result in results:
+            vectorize_single_document(vectorizer, 'global', result['url'], result['filepath'], result['filename'])
 
         return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
 
@@ -1263,8 +1333,8 @@ def paste_global_content():
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
 
-        # Re-vectorize global knowledge to include the new content
-        vectorizer.refresh_esp('global', docs_path)
+        # Vectorize only this document (see crawl route for why not refresh_esp)
+        vectorize_single_document(vectorizer, 'global', url, filepath, filename)
 
         return jsonify({
             'success': True,
@@ -1318,9 +1388,11 @@ def delete_global_knowledge_links():
                 with open(metadata_path, 'w') as f:
                     json.dump(metadata, f, indent=2)
 
-        # Refresh vector database for global knowledge
-        docs_path = os.path.join(BASE_PATH, 'docs')
-        vectorizer.refresh_esp('global', docs_path)
+        # Delete just these URLs' vectors — a full refresh would rebuild the
+        # namespace from the (possibly incomplete) local filesystem
+        if hasattr(vectorizer, 'delete_by_url'):
+            for url in urls:
+                vectorizer.delete_by_url(url, 'global')
 
         return jsonify({'success': True, 'message': f'Deleted {len(urls)} links'})
 
@@ -1383,5 +1455,7 @@ if USE_ASYNC_CRAWL:
 if __name__ == '__main__':
     # Support cloud deployment platforms (Heroku, Railway, etc.)
     port = int(os.getenv('PORT', 5001))
-    debug = os.getenv('FLASK_DEBUG', 'True').lower() == 'true'
+    # Debug mode must be opt-in: the Werkzeug debugger allows remote code
+    # execution and this binds to 0.0.0.0.
+    debug = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     app.run(host='0.0.0.0', debug=debug, port=port)

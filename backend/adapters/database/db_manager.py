@@ -16,32 +16,12 @@ from .postgres_adapter import PostgresAdapter
 load_dotenv()
 
 
-def get_database_adapter(provider: Optional[str] = None) -> DatabaseAdapter:
-    """
-    Get the appropriate database adapter based on configuration.
+# Global adapter instance (lazy-loaded)
+_adapter_instance: Optional[DatabaseAdapter] = None
 
-    Args:
-        provider: Database provider ('sqlite' or 'postgres').
-                 If None, reads from DATABASE_PROVIDER environment variable.
-                 Defaults to 'sqlite' if not specified.
 
-    Returns:
-        DatabaseAdapter instance (SQLiteAdapter or PostgresAdapter)
-
-    Raises:
-        ValueError: If provider is invalid or required configuration is missing
-
-    Environment Variables:
-        DATABASE_PROVIDER: 'sqlite' or 'postgres' (default: 'sqlite')
-        DATABASE_URL: PostgreSQL connection string (required for postgres)
-
-    Examples:
-        # Use environment variable (recommended)
-        db = get_database_adapter()
-
-        # Override provider
-        db = get_database_adapter('postgres')
-    """
+def _create_adapter(provider: Optional[str] = None) -> DatabaseAdapter:
+    """Create and initialize a new database adapter instance."""
     if provider is None:
         provider = os.environ.get('DATABASE_PROVIDER', 'sqlite').lower()
 
@@ -72,8 +52,30 @@ def get_database_adapter(provider: Optional[str] = None) -> DatabaseAdapter:
     return adapter
 
 
-# Global adapter instance (lazy-loaded)
-_adapter_instance: Optional[DatabaseAdapter] = None
+def get_database_adapter(provider: Optional[str] = None) -> DatabaseAdapter:
+    """
+    Get the database adapter (singleton for the default provider).
+
+    Previously this created a NEW adapter (and a new connection pool, plus a
+    full schema re-init) on every call — call sites invoke it per request and
+    per scheduler tick, permanently leaking one Postgres connection each time.
+    Now the default-provider adapter is created once and reused.
+
+    Args:
+        provider: Explicit provider override ('sqlite' or 'postgres').
+                 When given, a fresh non-cached adapter is returned.
+
+    Environment Variables:
+        DATABASE_PROVIDER: 'sqlite' or 'postgres' (default: 'sqlite')
+        DATABASE_URL: PostgreSQL connection string (required for postgres)
+    """
+    if provider is not None:
+        return _create_adapter(provider)
+
+    global _adapter_instance
+    if _adapter_instance is None:
+        _adapter_instance = _create_adapter()
+    return _adapter_instance
 
 
 def get_adapter() -> DatabaseAdapter:
@@ -86,12 +88,7 @@ def get_adapter() -> DatabaseAdapter:
     Returns:
         DatabaseAdapter instance
     """
-    global _adapter_instance
-
-    if _adapter_instance is None:
-        _adapter_instance = get_database_adapter()
-
-    return _adapter_instance
+    return get_database_adapter()
 
 
 def reset_adapter():

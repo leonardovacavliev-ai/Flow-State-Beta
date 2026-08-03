@@ -9,8 +9,67 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
-from crawler import crawl_single_url
+from crawler import crawl_single_url, vectorize_single_document
 import os
+import json
+
+
+def check_admin_password():
+    """Check admin password from header, query param, or JSON body."""
+    admin_password = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
+    password = (
+        request.headers.get('X-Admin-Password', '')
+        or request.args.get('password', '')
+    )
+    if not password and request.is_json:
+        data = request.get_json(silent=True) or {}
+        password = data.get('password', '')
+    return password == admin_password
+
+
+def delete_document_artifacts(esp_name, urls, vectorizer, base_path):
+    """
+    Remove a document's vectors, saved file, and metadata entry, so a deleted
+    link actually stops being served as RAG context.
+    """
+    docs_path = os.path.join(base_path, 'docs')
+    metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+    esp_key = esp_name.lower()
+
+    metadata = {}
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            metadata = {}
+
+    for url in urls:
+        # Delete vector chunks for this URL
+        try:
+            if hasattr(vectorizer, 'delete_by_url'):
+                vectorizer.delete_by_url(url, esp_key)
+        except Exception as e:
+            print(f"[DELETE] Vector cleanup failed for {url}: {e}")
+
+        # Delete the saved file referenced by metadata
+        for doc in metadata.get(esp_key, []):
+            if doc.get('url') == url:
+                filepath = doc.get('filepath')
+                if filepath and os.path.exists(filepath):
+                    try:
+                        os.remove(filepath)
+                    except OSError as e:
+                        print(f"[DELETE] Could not remove {filepath}: {e}")
+
+    # Drop metadata entries so a later refresh doesn't resurrect the docs
+    if esp_key in metadata:
+        metadata[esp_key] = [d for d in metadata[esp_key] if d.get('url') not in urls]
+        try:
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2)
+        except OSError as e:
+            print(f"[DELETE] Could not update metadata: {e}")
 
 
 def register_esp_admin_routes(app, BASE_PATH, vectorizer):
@@ -57,6 +116,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/add-link', methods=['POST'])
     def add_esp_link(esp_name):
         """Add a new link to an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -81,6 +142,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/create', methods=['POST'])
     def create_esp():
         """Create a new ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -114,6 +177,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/crawl-selected', methods=['POST'])
     def crawl_esp_selected(esp_name):
         """Crawl selected URLs for an ESP and update database."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -132,6 +197,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             os.makedirs(esp_docs_path, exist_ok=True)
 
             for url in urls:
+                doc = None  # reset so the except block can't act on the previous URL's doc
                 try:
                     # Get document from database
                     esp = esp_mgr.get_esp_by_name(esp_name)
@@ -185,10 +251,11 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         with open(metadata_path, 'w') as f:
                             json.dump(metadata, f, indent=2)
 
-                        # Vectorize the content
+                        # Vectorize just this document — refresh_esp() would
+                        # delete the whole namespace and re-add only local
+                        # files, wiping prod knowledge on ephemeral storage.
                         try:
-                            # Refresh ESP in vector DB (will pick up the new file)
-                            vectorizer.refresh_esp(esp_name, base_docs_path)
+                            vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
                             print(f"[VECTORIZE] Successfully vectorized {filename}")
                         except Exception as ve:
                             print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
@@ -319,9 +386,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             with open(metadata_path, 'w') as f:
                 json.dump(metadata, f, indent=2)
 
-            # Vectorize the content
+            # Vectorize just this document (see crawl route for why not refresh_esp)
             try:
-                vectorizer.refresh_esp(esp_name, base_docs_path)
+                vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
                 print(f"[VECTORIZE] Successfully vectorized pasted content for {filename}")
             except Exception as ve:
                 print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
@@ -348,6 +415,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/delete-links', methods=['POST'])
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -358,6 +427,10 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
             # Delete from database
             deleted_count = esp_mgr.delete_documents_by_urls(esp_name, urls)
+
+            # Also remove vectors, files, and metadata so the deleted docs
+            # actually stop being served as RAG context
+            delete_document_artifacts(esp_name, urls, vectorizer, BASE_PATH)
 
             return jsonify({
                 'success': True,

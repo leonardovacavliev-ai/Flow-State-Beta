@@ -4,15 +4,24 @@
     {
       "name": "frontend",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "$PORT", "-d", "frontend"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "$PORT",
+        "-d",
+        "frontend"
+      ],
       "port": 3001,
       "autoPort": true
     },
     {
       "name": "backend",
       "runtimeExecutable": "sh",
-      "runtimeArgs": ["-c", "cd backend && python3 app.py"],
-      "port": 5000
+      "runtimeArgs": [
+        "-c",
+        "cd backend && PORT=5001 python3 app.py"
+      ],
+      "port": 5001
     }
   ]
 }

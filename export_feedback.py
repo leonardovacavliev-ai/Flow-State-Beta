@@ -2,12 +2,17 @@
 """
 Export feedback from production PostgreSQL database to CSV
 """
+import os
+import sys
 import psycopg2
 import csv
 from datetime import datetime
 
-# Production database connection
-DATABASE_URL = "postgresql://postgres:kWTbHNiMEoSTLJGdZWidWgVwMzplAuYH@tokaido.proxy.rlwy.net:14038/railway"
+# Production database connection (never hardcode credentials)
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    print("❌ DATABASE_URL environment variable is not set")
+    sys.exit(1)
 
 def export_feedback():
     """Export all feedback to CSV"""

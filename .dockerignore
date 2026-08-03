@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+!.env.example
+__pycache__
+**/__pycache__
+*.pyc
+backend/chroma_db
+backend/chroma_db_old_corrupted
+backend/analytics.db
+backend/*.log
+*.log
+feedback.csv
+node_modules
+.claude

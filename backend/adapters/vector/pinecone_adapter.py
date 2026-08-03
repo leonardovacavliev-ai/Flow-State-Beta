@@ -139,10 +139,11 @@ class PineconeAdapter(VectorAdapter):
         # Note: Pinecone requires fetching IDs before deleting
         # We'll use metadata filtering to get all docs for this ESP
         try:
-            # Query all vectors for this ESP (using dummy vector)
-            dummy_vector = [0.0] * self.dimension
+            # A zero vector is rejected by cosine-metric indexes, which made
+            # this delete silently fail forever — use a real query vector.
+            query_vector = self.embedding_model.encode("document content").tolist()
             existing = self.index.query(
-                vector=dummy_vector,
+                vector=query_vector,
                 top_k=10000,  # Large number to get all
                 filter={"esp": {"$eq": esp_name.lower()}},
                 include_metadata=False
@@ -223,6 +224,28 @@ class PineconeAdapter(VectorAdapter):
             for i in range(0, len(ids), batch_size):
                 batch = ids[i:i + batch_size]
                 self.index.delete(ids=batch)
+
+    def delete_by_url(self, url: str, esp_name: str) -> int:
+        """Delete all chunks belonging to a specific source URL."""
+        try:
+            query_vector = self.embedding_model.encode("document content").tolist()
+            results = self.index.query(
+                vector=query_vector,
+                top_k=10000,
+                filter={
+                    "esp": {"$eq": esp_name.lower()},
+                    "source_url": {"$eq": url}
+                },
+                include_metadata=False
+            )
+            ids = [match['id'] for match in results.get('matches', [])]
+            if ids:
+                self.delete_documents(ids)
+                print(f"  Deleted {len(ids)} chunks for {url}")
+            return len(ids)
+        except Exception as e:
+            print(f"Error deleting vectors for {url}: {e}")
+            return 0
 
     def get_collection_count(self) -> int:
         """Get total number of vectors in the index"""

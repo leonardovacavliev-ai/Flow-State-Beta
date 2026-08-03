@@ -22,5 +22,7 @@ WORKDIR /app/backend
 EXPOSE 8080
 
 # Run application with Gunicorn for production
-# Railway will inject $PORT, so we need a shell to expand it
-CMD gunicorn --bind 0.0.0.0:$PORT --workers 1 --threads 2 --worker-class gthread --timeout 120 --max-requests 1000 --max-requests-jitter 50 app:app
+# Railway will inject $PORT (default keeps `docker run` working locally).
+# No --max-requests: the single worker hosts in-process state (crawl worker
+# threads, analytics write queue, memory sessions) that a recycle would drop.
+CMD gunicorn --bind 0.0.0.0:${PORT:-8080} --workers 1 --threads 4 --worker-class gthread --timeout 120 app:app
