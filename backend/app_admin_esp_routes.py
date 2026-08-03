@@ -167,7 +167,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             docs = esp_mgr.list_documents(esp_name)
 
             # Convert to frontend format
-            # Map database crawl_status to frontend status field
+            # Map database crawl_status to frontend status field.
+            # needs_backfill: crawled before content persistence existed, so
+            # there is no database backup — a re-crawl will capture it.
             links = [{
                 'url': doc['url'],
                 'filename': doc['filename'],
@@ -175,7 +177,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 'crawl_status': doc['crawl_status'],  # Keep for backward compat
                 'last_crawled_at': doc['last_crawled_at'],
                 'error_message': doc.get('error_message'),
-                'crawled': doc['crawl_status'] == 'completed'
+                'crawled': doc['crawl_status'] == 'completed',
+                'needs_backfill': doc['crawl_status'] == 'completed' and not doc.get('has_content')
             } for doc in docs]
 
             return jsonify({'links': links})

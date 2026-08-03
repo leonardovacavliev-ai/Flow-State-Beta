@@ -1124,6 +1124,19 @@ def get_global_knowledge_links():
     except Exception as e:
         print(f"Error reading CSV: {e}")
 
+    # URLs whose content is backed up in the database (used for the
+    # needs_backfill flag below). If the DB has no 'global' docs yet,
+    # every crawled link correctly shows as needing backfill.
+    backed_up_urls = set()
+    try:
+        from esp_manager import get_esp_manager
+        backed_up_urls = {
+            doc['url'] for doc in get_esp_manager().list_documents('global')
+            if doc.get('has_content')
+        }
+    except Exception as e:
+        print(f"[GLOBAL PERSIST] Could not check backed-up docs: {e}")
+
     # Check actual vectorization status from vector DB
     links_with_status = []
     seen = set()
@@ -1141,7 +1154,8 @@ def get_global_knowledge_links():
 
             links_with_status.append({
                 'url': url,
-                'status': status
+                'status': status,
+                'needs_backfill': status == 'crawled' and url not in backed_up_urls
             })
 
     return jsonify({'links': links_with_status})

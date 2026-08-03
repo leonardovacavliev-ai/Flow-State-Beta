@@ -53,7 +53,9 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             esp_mgr = get_mgr()
             docs = esp_mgr.list_documents(esp_name)
 
-            # Convert to frontend format
+            # Convert to frontend format.
+            # needs_backfill: crawled before content persistence existed, so
+            # there is no database backup — a re-crawl will capture it.
             links = [{
                 'url': doc['url'],
                 'filename': doc['filename'],
@@ -62,7 +64,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 'last_crawled_at': doc['last_crawled_at'],
                 'error_message': doc.get('error_message'),
                 'crawled': doc['crawl_status'] == 'completed',
-                'is_crawling': doc.get('is_crawling', False)  # Show if currently being crawled
+                'is_crawling': doc.get('is_crawling', False),  # Show if currently being crawled
+                'needs_backfill': doc['crawl_status'] == 'completed' and not doc.get('has_content')
             } for doc in docs]
 
             return jsonify({'links': links})

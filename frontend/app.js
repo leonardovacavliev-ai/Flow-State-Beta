@@ -1044,8 +1044,9 @@ async function loadESPManagement() {
 
                     return `
                     <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${link.status === 'pending' ? 'checked' : ''}>
+                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
                         <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+                        ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Crawled before content backup existed — re-crawl once to store a copy in the database">no backup</span>' : ''}
                         <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                         ${link.status === 'pending' ? `
                             <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
@@ -2070,8 +2071,9 @@ async function loadGlobalKnowledge() {
 
             return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${link.status === 'pending' ? 'checked' : ''}>
+                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
                 <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Crawled before content backup existed — re-crawl once to store a copy in the database">no backup</span>' : ''}
                 <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                 ${link.status === 'pending' ? `
                     <button onclick="openPasteModal('global', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">

@@ -270,9 +270,12 @@ class ESPManager:
         if not esp:
             return []
 
+        # has_content: boolean expression instead of selecting the (large)
+        # content column itself; works in both SQLite (0/1) and Postgres
         query = """
             SELECT id, url, filename, content_hash, crawl_status,
-                   last_crawled_at, error_message, created_at, updated_at
+                   last_crawled_at, error_message, created_at, updated_at,
+                   content IS NOT NULL AS has_content
             FROM esp_documents
             WHERE esp_id = %s
             ORDER BY created_at DESC
@@ -290,7 +293,8 @@ class ESPManager:
                 'last_crawled_at': _iso(row[5]),
                 'error_message': row[6],
                 'created_at': _iso(row[7]),
-                'updated_at': _iso(row[8])
+                'updated_at': _iso(row[8]),
+                'has_content': bool(row[9])
             })
         return docs
 
