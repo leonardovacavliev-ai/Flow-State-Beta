@@ -1146,6 +1146,43 @@ def get_global_knowledge_links():
 
     return jsonify({'links': links_with_status})
 
+def _persist_global_doc(url, filename, filepath, file_content):
+    """
+    Mirror a global-knowledge doc into the database (under a hidden 'global'
+    ESP row) so its content survives container redeploys and can be rebuilt
+    via /api/admin/rebuild-vectors. Best-effort: DB problems must not break
+    the file-based flow.
+    """
+    try:
+        from esp_manager import get_esp_manager
+        esp_mgr = get_esp_manager()
+        esp = esp_mgr.get_esp_by_name('global')
+        if not esp:
+            esp = esp_mgr.create_esp('global', 'Global Knowledge',
+                                     'Internal: global knowledge base (not a selectable ESP)')
+        doc = esp_mgr.get_document_by_url(esp['id'], url)
+        if not doc:
+            doc = esp_mgr.add_document('global', url)
+        esp_mgr.update_document_crawl_status(
+            doc['id'],
+            status='completed',
+            content_hash=esp_mgr.calculate_content_hash(file_content),
+            content=file_content,
+            filename=filename
+        )
+    except Exception as e:
+        print(f"[GLOBAL PERSIST] Could not persist {url} to database: {e}")
+
+
+def _delete_global_docs(urls):
+    """Remove global-knowledge doc rows from the database (best-effort)."""
+    try:
+        from esp_manager import get_esp_manager
+        get_esp_manager().delete_documents_by_urls('global', urls)
+    except Exception as e:
+        print(f"[GLOBAL PERSIST] Could not delete from database: {e}")
+
+
 @app.route('/api/admin/global-knowledge/add-link', methods=['POST'])
 def add_global_knowledge_link():
     """Add a new link to global knowledge"""
@@ -1267,6 +1304,8 @@ def crawl_global_knowledge_links():
         # the global namespace and re-add only local files
         for result in results:
             vectorize_single_document(vectorizer, 'global', result['url'], result['filepath'], result['filename'])
+            with open(result['filepath'], 'r', encoding='utf-8') as f:
+                _persist_global_doc(result['url'], result['filename'], result['filepath'], f.read())
 
         return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
 
@@ -1336,6 +1375,9 @@ def paste_global_content():
         # Vectorize only this document (see crawl route for why not refresh_esp)
         vectorize_single_document(vectorizer, 'global', url, filepath, filename)
 
+        # Pasted content can't be re-crawled — persist it in the database
+        _persist_global_doc(url, filename, filepath, f"Source URL: {url}\n\n{content}")
+
         return jsonify({
             'success': True,
             'message': 'Content saved and vectorized successfully',
@@ -1393,6 +1435,9 @@ def delete_global_knowledge_links():
         if hasattr(vectorizer, 'delete_by_url'):
             for url in urls:
                 vectorizer.delete_by_url(url, 'global')
+
+        # Remove the persisted copies from the database as well
+        _delete_global_docs(urls)
 
         return jsonify({'success': True, 'message': f'Deleted {len(urls)} links'})
 

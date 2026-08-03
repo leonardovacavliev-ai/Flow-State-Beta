@@ -11,7 +11,7 @@ Usage:
 from flask import jsonify, request
 from esp_manager import get_esp_manager
 from crawler import vectorize_single_document
-from app_admin_esp_routes import check_admin_password, delete_document_artifacts
+from app_admin_esp_routes import check_admin_password, delete_document_artifacts, rebuild_esp_vectors
 import os
 import uuid
 
@@ -39,7 +39,9 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         """Get list of ESPs from database."""
         try:
             esp_mgr = get_mgr()
-            esps = esp_mgr.list_esps()
+            # 'global' is an internal row holding global-knowledge docs,
+            # not a selectable ESP
+            esps = [e for e in esp_mgr.list_esps() if e['name'] != 'global']
             return jsonify({'esps': esps})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -557,12 +559,14 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             except Exception as ve:
                 print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
 
-            # Update database
+            # Update database — persist the pasted content too (it can't be
+            # re-crawled, so losing it on redeploy would be permanent)
             esp_mgr.update_document_crawl_status(
                 doc['id'],
                 status='completed',
                 content_hash=content_hash,
-                vector_ids=None
+                content=f"Source URL: {url}\n\n{content}",
+                filename=filename
             )
 
             return jsonify({
@@ -574,6 +578,40 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         except Exception as e:
             import traceback
             traceback.print_exc()
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/admin/rebuild-vectors', methods=['POST'])
+    def rebuild_vectors():
+        """
+        Rebuild doc files and vectors from database-stored content.
+
+        Body: {"esp": "<name>"} for one ESP, or {} / {"esp": "all"} for all.
+        Use after a redeploy to restore the knowledge base, or to re-embed.
+        """
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
+        try:
+            esp_mgr = get_mgr()
+            data = request.get_json(silent=True) or {}
+            target = (data.get('esp') or 'all').lower()
+
+            if target == 'all':
+                esp_names = [esp['name'] for esp in esp_mgr.list_esps()]
+            else:
+                if not esp_mgr.get_esp_by_name(target):
+                    return jsonify({'error': f"ESP '{target}' not found"}), 404
+                esp_names = [target]
+
+            summary = {}
+            for name in esp_names:
+                rebuilt, skipped = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
+                summary[name] = {
+                    'rebuilt': len(rebuilt),
+                    'skipped_no_content': skipped
+                }
+
+            return jsonify({'success': True, 'results': summary})
+        except Exception as e:
             return jsonify({'error': str(e)}), 500
 
     print("[ESP Admin Routes] ASYNC version registered (job queue enabled)")

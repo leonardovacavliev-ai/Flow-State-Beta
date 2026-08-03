@@ -9,11 +9,78 @@ from datetime import datetime
 from typing import Dict, Any, Optional, List
 
 class ConfigManager:
+    """
+    Config + audit log storage.
+
+    Primary store is the database (app_settings table) so admin model/prompt
+    changes and the change history survive container redeploys — the JSON
+    files live on an ephemeral filesystem in production. The files are kept
+    as a local mirror and as a fallback when no database is reachable.
+    """
+
+    CONFIG_KEY = 'app_config'
+    AUDIT_KEY = 'config_audit_log'
+
     def __init__(self, base_path: str):
         self.base_path = base_path
         self.config_file = os.path.join(base_path, 'backend', 'app_config.json')
         self.audit_log_file = os.path.join(base_path, 'backend', 'config_audit_log.json')
+        self._db = self._connect_db()
         self._ensure_files_exist()
+        self._seed_db_from_files()
+
+    # ---------- database store ----------
+
+    def _connect_db(self):
+        """Get the shared database adapter; None if unavailable."""
+        try:
+            from adapters.database.db_manager import get_database_adapter
+            return get_database_adapter()
+        except Exception as e:
+            print(f"[CONFIG] Database unavailable, using file storage only: {e}")
+            return None
+
+    def _db_get(self, key: str) -> Optional[str]:
+        if not self._db:
+            return None
+        try:
+            rows = self._db.execute_query(
+                "SELECT value FROM app_settings WHERE key = %s", (key,), fetch=True
+            )
+            return rows[0][0] if rows else None
+        except Exception as e:
+            print(f"[CONFIG] Database read failed for {key}: {e}")
+            return None
+
+    def _db_set(self, key: str, value: str) -> bool:
+        if not self._db:
+            return False
+        try:
+            self._db.execute_query(
+                """
+                INSERT INTO app_settings (key, value, updated_at)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                (key, value)
+            )
+            return True
+        except Exception as e:
+            print(f"[CONFIG] Database write failed for {key}: {e}")
+            return False
+
+    def _seed_db_from_files(self):
+        """First run against a database: import existing file-based state."""
+        if not self._db:
+            return
+        if self._db_get(self.CONFIG_KEY) is None and os.path.exists(self.config_file):
+            with open(self.config_file, 'r') as f:
+                self._db_set(self.CONFIG_KEY, f.read())
+        if self._db_get(self.AUDIT_KEY) is None and os.path.exists(self.audit_log_file):
+            with open(self.audit_log_file, 'r') as f:
+                self._db_set(self.AUDIT_KEY, f.read())
 
     def _ensure_files_exist(self):
         """Ensure config and audit log files exist with defaults"""
@@ -55,9 +122,25 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
                 json.dump([], f, indent=2)
 
     def get_config(self) -> Dict[str, Any]:
-        """Get current configuration"""
+        """Get current configuration (database first, file fallback)"""
+        stored = self._db_get(self.CONFIG_KEY)
+        if stored:
+            try:
+                return json.loads(stored)
+            except json.JSONDecodeError as e:
+                print(f"[CONFIG] Corrupt config in database, falling back to file: {e}")
         with open(self.config_file, 'r') as f:
             return json.load(f)
+
+    def _save_config(self, config: Dict[str, Any]):
+        """Persist config to the database, mirroring to the local file."""
+        serialized = json.dumps(config, indent=2)
+        self._db_set(self.CONFIG_KEY, serialized)
+        try:
+            with open(self.config_file, 'w') as f:
+                f.write(serialized)
+        except OSError as e:
+            print(f"[CONFIG] Could not mirror config to file: {e}")
 
     def update_config(self, updates: Dict[str, Any], user_email: str, change_description: str) -> Dict[str, Any]:
         """
@@ -93,9 +176,8 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
         current_config['last_updated'] = datetime.now().isoformat()
         current_config['updated_by'] = user_email
 
-        # Save updated config
-        with open(self.config_file, 'w') as f:
-            json.dump(current_config, f, indent=2)
+        # Save updated config (database + file mirror)
+        self._save_config(current_config)
 
         # Append to audit log
         self._add_audit_entry(audit_entry)
@@ -103,17 +185,31 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
         return current_config
 
     def _add_audit_entry(self, entry: Dict[str, Any]):
-        """Add entry to audit log"""
+        """Add entry to audit log (database + file mirror)"""
         audit_log = self.get_audit_log()
         audit_log.append(entry)
 
-        with open(self.audit_log_file, 'w') as f:
-            json.dump(audit_log, f, indent=2)
+        serialized = json.dumps(audit_log, indent=2)
+        self._db_set(self.AUDIT_KEY, serialized)
+        try:
+            with open(self.audit_log_file, 'w') as f:
+                f.write(serialized)
+        except OSError as e:
+            print(f"[CONFIG] Could not mirror audit log to file: {e}")
 
     def get_audit_log(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get audit log entries"""
-        with open(self.audit_log_file, 'r') as f:
-            log = json.load(f)
+        """Get audit log entries (database first, file fallback)"""
+        log = None
+        stored = self._db_get(self.AUDIT_KEY)
+        if stored:
+            try:
+                log = json.loads(stored)
+            except json.JSONDecodeError as e:
+                print(f"[CONFIG] Corrupt audit log in database, falling back to file: {e}")
+
+        if log is None:
+            with open(self.audit_log_file, 'r') as f:
+                log = json.load(f)
 
         if limit:
             return log[-limit:]

@@ -297,7 +297,9 @@ class ESPManager:
     def update_document_crawl_status(self, doc_id: str, status: str,
                                       content_hash: str = None,
                                       error_message: str = None,
-                                      vector_ids: List[str] = None) -> bool:
+                                      vector_ids: List[str] = None,
+                                      content: str = None,
+                                      filename: str = None) -> bool:
         """
         Update document after crawl attempt.
 
@@ -307,6 +309,9 @@ class ESPManager:
             content_hash: SHA-256 hash of content (if successful)
             error_message: Error message (if failed)
             vector_ids: List of vector DB chunk IDs (if successful)
+            content: Crawled/pasted text — stored so the knowledge base can be
+                rebuilt after the ephemeral container filesystem is wiped
+            filename: Saved filename (keeps the DB record accurate)
         """
         # Only overwrite columns that were actually provided — a failed
         # re-crawl must not NULL out the previously good content_hash or
@@ -329,6 +334,14 @@ class ESPManager:
             sets.append("vector_ids = %s")
             params.append(json.dumps(vector_ids))
 
+        if content is not None:
+            sets.append("content = %s")
+            params.append(content)
+
+        if filename is not None:
+            sets.append("filename = %s")
+            params.append(filename)
+
         params.append(doc_id)
         query = f"""
             UPDATE esp_documents
@@ -337,6 +350,34 @@ class ESPManager:
         """
         self.db.execute_query(query, tuple(params))
         return True
+
+    def get_documents_with_content(self, esp_name: str) -> List[Dict]:
+        """
+        List an ESP's documents including their stored content.
+
+        Used to rebuild files/vectors after a redeploy wipes the container
+        filesystem.
+        """
+        esp = self.get_esp_by_name(esp_name)
+        if not esp:
+            return []
+
+        query = """
+            SELECT id, url, filename, content, content_hash, crawl_status
+            FROM esp_documents
+            WHERE esp_id = %s
+            ORDER BY created_at ASC
+        """
+        results = self.db.execute_query(query, (esp['id'],), fetch=True)
+
+        return [{
+            'id': row[0],
+            'url': row[1],
+            'filename': row[2],
+            'content': row[3],
+            'content_hash': row[4],
+            'crawl_status': row[5]
+        } for row in results]
 
     def delete_document(self, doc_id: str) -> bool:
         """Delete a document."""

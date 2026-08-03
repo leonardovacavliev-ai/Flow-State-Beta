@@ -9,7 +9,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
-from crawler import crawl_single_url, vectorize_single_document
+from crawler import crawl_single_url, vectorize_single_document, filename_from_url
 import os
 import json
 
@@ -72,6 +72,73 @@ def delete_document_artifacts(esp_name, urls, vectorizer, base_path):
             print(f"[DELETE] Could not update metadata: {e}")
 
 
+def rebuild_esp_vectors(esp_name, vectorizer, base_path):
+    """
+    Rebuild an ESP's local doc files and vectors from content stored in the
+    database.
+
+    On ephemeral hosting (Railway) the docs/ folder and crawl_metadata.json
+    are wiped on every redeploy; the database keeps the crawled text, so this
+    re-materializes the files, repairs the metadata, and re-vectorizes each
+    document per-URL.
+
+    Returns (rebuilt_urls, skipped_urls) — skipped means no stored content.
+    """
+    esp_mgr = get_esp_manager()
+    docs = esp_mgr.get_documents_with_content(esp_name)
+
+    esp_key = esp_name.lower()
+    esp_folder = os.path.join(base_path, 'docs', esp_key)
+    docs_path = os.path.join(base_path, 'docs')
+    metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+
+    rebuilt, skipped = [], []
+
+    metadata = {}
+    if os.path.exists(metadata_path):
+        try:
+            with open(metadata_path, 'r') as f:
+                metadata = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            metadata = {}
+    metadata.setdefault(esp_key, [])
+
+    for doc in docs:
+        if not doc.get('content'):
+            skipped.append(doc['url'])
+            continue
+
+        url = doc['url']
+        filename = doc.get('filename') or ''
+        if not filename.endswith('.txt'):
+            filename = filename_from_url(url)
+
+        os.makedirs(esp_folder, exist_ok=True)
+        filepath = os.path.join(esp_folder, filename)
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write(doc['content'])
+
+        metadata[esp_key] = [d for d in metadata[esp_key] if d.get('url') != url]
+        metadata[esp_key].append({
+            'url': url,
+            'filename': filename,
+            'filepath': filepath
+        })
+
+        try:
+            vectorize_single_document(vectorizer, esp_key, url, filepath, filename)
+            rebuilt.append(url)
+        except Exception as e:
+            print(f"[REBUILD] Vectorization failed for {url}: {e}")
+            skipped.append(url)
+
+    os.makedirs(docs_path, exist_ok=True)
+    with open(metadata_path, 'w') as f:
+        json.dump(metadata, f, indent=2)
+
+    return rebuilt, skipped
+
+
 def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     """Register all ESP admin routes with the Flask app."""
 
@@ -85,7 +152,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         """Get list of ESPs from database."""
         try:
             esp_mgr = get_mgr()
-            esps = esp_mgr.list_esps()
+            # 'global' is an internal row holding global-knowledge docs,
+            # not a selectable ESP
+            esps = [e for e in esp_mgr.list_esps() if e['name'] != 'global']
             return jsonify({'esps': esps})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -262,12 +331,15 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             import traceback
                             traceback.print_exc()
 
-                        # Update database
+                        # Update database — store the content itself so the
+                        # knowledge base survives redeploys of the ephemeral
+                        # container filesystem
                         esp_mgr.update_document_crawl_status(
                             doc['id'],
                             status='completed',
                             content_hash=content_hash,
-                            vector_ids=None
+                            content=content,
+                            filename=filename
                         )
 
                         results['success'].append({
@@ -395,12 +467,14 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 import traceback
                 traceback.print_exc()
 
-            # Update database
+            # Update database — persist the pasted content too (it can't be
+            # re-crawled, so losing it on redeploy would be permanent)
             esp_mgr.update_document_crawl_status(
                 doc['id'],
                 status='completed',
                 content_hash=content_hash,
-                vector_ids=None
+                content=f"Source URL: {url}\n\n{content}",
+                filename=filename
             )
 
             return jsonify({
@@ -451,6 +525,40 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
 
             return jsonify(stats)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/admin/rebuild-vectors', methods=['POST'])
+    def rebuild_vectors():
+        """
+        Rebuild doc files and vectors from database-stored content.
+
+        Body: {"esp": "<name>"} for one ESP, or {} / {"esp": "all"} for all.
+        Use after a redeploy to restore the knowledge base, or to re-embed.
+        """
+        if not check_admin_password():
+            return jsonify({'error': 'Invalid password'}), 403
+        try:
+            esp_mgr = get_mgr()
+            data = request.get_json(silent=True) or {}
+            target = (data.get('esp') or 'all').lower()
+
+            if target == 'all':
+                esp_names = [esp['name'] for esp in esp_mgr.list_esps()]
+            else:
+                if not esp_mgr.get_esp_by_name(target):
+                    return jsonify({'error': f"ESP '{target}' not found"}), 404
+                esp_names = [target]
+
+            summary = {}
+            for name in esp_names:
+                rebuilt, skipped = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
+                summary[name] = {
+                    'rebuilt': len(rebuilt),
+                    'skipped_no_content': skipped
+                }
+
+            return jsonify({'success': True, 'results': summary})
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 

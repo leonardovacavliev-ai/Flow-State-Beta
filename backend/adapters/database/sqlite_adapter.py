@@ -155,9 +155,25 @@ class SQLiteAdapter(DatabaseAdapter):
                     vector_ids TEXT,
                     crawl_job_id TEXT,
                     is_crawling INTEGER DEFAULT 0,
+                    content TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE(esp_id, url)
+                )
+            """)
+
+            # Migration for databases created before the content column existed
+            try:
+                cursor.execute("ALTER TABLE esp_documents ADD COLUMN content TEXT")
+            except Exception:
+                pass  # Column already exists
+
+            # App settings (config + audit log storage)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
 

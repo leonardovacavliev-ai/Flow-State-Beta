@@ -223,17 +223,20 @@ class CrawlWorker:
             import hashlib
             content_hash = hashlib.sha256(content.encode()).hexdigest()
 
-            # Update document status
+            # Update document status — store the content itself so the
+            # knowledge base can be rebuilt after the ephemeral container
+            # filesystem is wiped on redeploy
             update_query = """
                 UPDATE esp_documents
                 SET crawl_status = 'completed',
                     filename = %s,
                     content_hash = %s,
+                    content = %s,
                     last_crawled_at = NOW(),
                     is_crawling = FALSE
                 WHERE id = %s
             """
-            self.db.execute_query(update_query, (filename, content_hash, document_id))
+            self.db.execute_query(update_query, (filename, content_hash, content, document_id))
 
             # Mark job as completed
             complete_query = """

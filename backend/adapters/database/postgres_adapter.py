@@ -142,12 +142,82 @@ class PostgresAdapter(DatabaseAdapter):
                 )
             """)
 
+            # App settings (config + audit log) — persisted here so admin
+            # model/prompt changes survive container redeploys
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS app_settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ESP management tables (mirrors schema_esp.sql + migration 001,
+            # made idempotent so fresh databases need no manual migration)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS esps (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(100) UNIQUE NOT NULL,
+                    display_name VARCHAR(200) NOT NULL,
+                    description TEXT,
+                    status VARCHAR(20) DEFAULT 'active',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS esp_documents (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    esp_id UUID NOT NULL REFERENCES esps(id) ON DELETE CASCADE,
+                    url TEXT NOT NULL,
+                    filename VARCHAR(500),
+                    content_hash VARCHAR(64),
+                    crawl_status VARCHAR(20) DEFAULT 'pending',
+                    last_crawled_at TIMESTAMP,
+                    error_message TEXT,
+                    vector_ids JSONB,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(esp_id, url)
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS crawl_jobs (
+                    id UUID PRIMARY KEY,
+                    esp_id UUID,
+                    document_id UUID,
+                    priority INTEGER DEFAULT 10,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    attempts INTEGER DEFAULT 0,
+                    max_attempts INTEGER DEFAULT 3,
+                    worker_id TEXT,
+                    error_message TEXT,
+                    error_traceback TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP
+                )
+            """)
+
+            # Columns added after the original schema (idempotent):
+            # - is_crawling / crawl_job_id from migration 001
+            # - content: the crawled text itself, so the knowledge base can be
+            #   rebuilt/re-vectorized after the ephemeral filesystem is wiped
+            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS crawl_job_id UUID")
+            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS is_crawling BOOLEAN DEFAULT FALSE")
+            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS content TEXT")
+
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_selections_session ON esp_selections(session_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_feedback_submitted ON feedback(submitted_at)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_esps_name ON esps(name)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_esp_id ON esp_documents(esp_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_status ON esp_documents(crawl_status)")
 
             conn.commit()
             print("✓ PostgreSQL analytics database initialized")

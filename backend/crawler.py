@@ -100,6 +100,17 @@ def extract_main_content(url):
         print(f"Error fetching {url}: {e}")
         return None
 
+def filename_from_url(url):
+    """Derive the saved .txt filename for a URL (same rule used everywhere)."""
+    parsed = urlparse(url)
+    path_parts = parsed.path.strip('/').split('/')
+    filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
+    filename = filename.replace('.html', '').replace('.htm', '')
+    if not filename:
+        filename = 'index'
+    return f"{filename}.txt"
+
+
 def crawl_single_url(url, esp_name, base_path):
     """
     Crawl a single URL and save to ESP folder.
