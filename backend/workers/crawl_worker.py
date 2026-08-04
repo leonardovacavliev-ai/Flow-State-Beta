@@ -27,7 +27,7 @@ from typing import Optional, Dict
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from crawler import crawl_single_url
+from crawler import crawl_single_url_detailed
 from adapters.database.db_manager import get_database_adapter
 from adapters.vector.vector_manager import get_vector_adapter
 
@@ -204,10 +204,10 @@ class CrawlWorker:
             print(f"[WORKER] Processing job {job_id}: {url}")
 
             # Crawl the URL
-            filename = crawl_single_url(url, esp_name, self.base_path)
+            filename, crawl_error = crawl_single_url_detailed(url, esp_name, self.base_path)
 
             if not filename:
-                raise Exception("Crawler returned None (empty content or network error)")
+                raise Exception(f"Crawl failed: {crawl_error}")
 
             # Update crawl_metadata.json with file lock
             self._update_metadata_atomic(esp_name, url, filename)

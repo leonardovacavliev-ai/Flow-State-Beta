@@ -1155,7 +1155,10 @@ def get_global_knowledge_links():
             links_with_status.append({
                 'url': url,
                 'status': status,
-                'needs_backfill': status == 'crawled' and url not in backed_up_urls
+                'needs_backfill': status == 'crawled' and url not in backed_up_urls,
+                # local:// entries are pasted content — they can't be fetched,
+                # only backed up from the saved copy or re-pasted
+                'can_crawl': not url.startswith('local://')
             })
 
     return jsonify({'links': links_with_status})
@@ -1164,8 +1167,11 @@ def _persist_global_doc(url, filename, filepath, file_content):
     """
     Mirror a global-knowledge doc into the database (under a hidden 'global'
     ESP row) so its content survives container redeploys and can be rebuilt
-    via /api/admin/rebuild-vectors. Best-effort: DB problems must not break
-    the file-based flow.
+    via /api/admin/rebuild-vectors. Non-fatal for the file-based flow, but the
+    outcome must be surfaced: a silent failure here leaves the doc permanently
+    flagged NO BACKUP with no way for the admin to know why.
+
+    Returns None on success, or an error message.
     """
     try:
         from esp_manager import get_esp_manager
@@ -1184,8 +1190,10 @@ def _persist_global_doc(url, filename, filepath, file_content):
             content=file_content,
             filename=filename
         )
+        return None
     except Exception as e:
         print(f"[GLOBAL PERSIST] Could not persist {url} to database: {e}")
+        return str(e)
 
 
 def _delete_global_docs(urls):
@@ -1246,9 +1254,41 @@ def add_global_knowledge_link():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def _find_local_global_copy(url, global_folder, metadata):
+    """
+    Locate the saved .txt file for a global-knowledge URL, if one exists.
+
+    Used as a fallback when a URL can't be (re-)crawled — pasted local://
+    docs, or sites that started blocking the crawler — so its content can
+    still be backed up to the database from the copy on disk.
+    """
+    from crawler import filename_from_url
+
+    for doc in metadata.get('global', []):
+        if doc.get('url') == url:
+            filepath = doc.get('filepath')
+            if filepath and os.path.exists(filepath):
+                return doc.get('filename'), filepath
+
+    guess = filename_from_url(url)
+    guess_path = os.path.join(global_folder, guess)
+    if os.path.exists(guess_path):
+        return guess, guess_path
+    return None, None
+
+
 @app.route('/api/admin/global-knowledge/crawl-selected', methods=['POST'])
 def crawl_global_knowledge_links():
-    """Crawl selected global knowledge links"""
+    """
+    Crawl selected global knowledge links.
+
+    Reports the outcome per URL instead of a bare count: a URL that fails to
+    crawl (blocked site, timeout, pasted local:// doc) used to be silently
+    skipped while the response still claimed success, leaving admins unable
+    to trust which docs were actually captured. If a URL can't be crawled but
+    its saved file still exists on disk, its content is backed up to the
+    database from that copy ('backfilled') so the NO BACKUP flag can clear.
+    """
     data = request.json
     password = data.get('password', '')
     urls = data.get('urls', [])
@@ -1260,8 +1300,7 @@ def crawl_global_knowledge_links():
         return jsonify({'error': 'No URLs provided'}), 400
 
     try:
-        from crawler import extract_main_content
-        from urllib.parse import urlparse
+        from crawler import extract_main_content_detailed
         import json
         import time
 
@@ -1269,59 +1308,94 @@ def crawl_global_knowledge_links():
         global_folder = os.path.join(docs_path, 'global')
         os.makedirs(global_folder, exist_ok=True)
 
-        results = []
+        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
+        metadata = {}
+        if os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, 'r') as f:
+                    metadata = json.load(f)
+            except (json.JSONDecodeError, OSError) as e:
+                print(f"Warning: could not read crawl metadata, starting fresh: {e}")
+        metadata.setdefault('global', [])
+
+        succeeded = []
+        failed = []
+
         for url in urls:
             print(f"Crawling {url}...")
-            content = extract_main_content(url)
+            content, crawl_error = extract_main_content_detailed(url)
+            backfilled = False
 
-            if content:
-                parsed = urlparse(url)
-                path_parts = parsed.path.strip('/').split('/')
-                filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-                filename = filename.replace('.html', '').replace('.htm', '')
-                if not filename:
-                    filename = 'index'
-                filename = f"{filename}.txt"
-
+            if content is not None:
+                from crawler import filename_from_url
+                filename = filename_from_url(url)
                 filepath = os.path.join(global_folder, filename)
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(f"Source URL: {url}\n\n")
                     f.write(content)
-
-                results.append({
-                    'url': url,
-                    'filename': filename,
-                    'filepath': filepath
-                })
-
                 print(f"  Saved to {filepath}")
+                time.sleep(1)
+            else:
+                # Crawl failed — fall back to the saved copy on disk so the
+                # content can still be backed up to the database.
+                filename, filepath = _find_local_global_copy(url, global_folder, metadata)
+                if not filepath:
+                    failed.append({'url': url, 'error': crawl_error})
+                    continue
+                backfilled = True
+                print(f"  Crawl failed ({crawl_error}); backing up from local copy {filepath}")
 
-            time.sleep(1)
+            warnings = []
 
-        # Update metadata
-        metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
-        metadata = {}
-        if os.path.exists(metadata_path):
-            with open(metadata_path, 'r') as f:
-                metadata = json.load(f)
+            # Vectorize just this document — refresh_esp() would wipe the
+            # global namespace and re-add only local files
+            try:
+                vectorize_single_document(vectorizer, 'global', url, filepath, filename)
+            except Exception as ve:
+                print(f"[VECTORIZE ERROR] global/{filename}: {ve}")
+                warnings.append(f"vectorization failed: {ve}")
 
-        if 'global' not in metadata:
-            metadata['global'] = []
+            # Back up the content in the database (clears the NO BACKUP flag)
+            with open(filepath, 'r', encoding='utf-8') as f:
+                file_content = f.read()
+            persist_error = _persist_global_doc(url, filename, filepath, file_content)
+            if persist_error:
+                warnings.append(f"database backup failed: {persist_error}")
 
-        metadata['global'] = [doc for doc in metadata['global'] if doc['url'] not in urls]
-        metadata['global'].extend(results)
+            # Upsert this URL's metadata entry. Only touched on success — a
+            # failed re-crawl must not drop the entry for a good older crawl.
+            metadata['global'] = [d for d in metadata['global'] if d.get('url') != url]
+            metadata['global'].append({'url': url, 'filename': filename, 'filepath': filepath})
+
+            entry = {
+                'url': url,
+                'filename': filename,
+                'backfilled': backfilled,
+                'backed_up': persist_error is None
+            }
+            if backfilled:
+                entry['note'] = f"could not crawl ({crawl_error}); backed up from saved local copy"
+            if warnings:
+                entry['warnings'] = warnings
+            succeeded.append(entry)
 
         with open(metadata_path, 'w') as f:
             json.dump(metadata, f, indent=2)
 
-        # Vectorize only the crawled documents — refresh_esp() would wipe
-        # the global namespace and re-add only local files
-        for result in results:
-            vectorize_single_document(vectorizer, 'global', result['url'], result['filepath'], result['filename'])
-            with open(result['filepath'], 'r', encoding='utf-8') as f:
-                _persist_global_doc(result['url'], result['filename'], result['filepath'], f.read())
+        crawled_count = sum(1 for r in succeeded if not r['backfilled'])
+        backfilled_count = len(succeeded) - crawled_count
+        parts = [f"Crawled {crawled_count} link(s)"]
+        if backfilled_count:
+            parts.append(f"backed up {backfilled_count} from saved local copies")
+        if failed:
+            parts.append(f"{len(failed)} failed")
 
-        return jsonify({'success': True, 'message': f'Crawled {len(results)} links', 'count': len(results)})
+        return jsonify({
+            'success': True,
+            'message': ', '.join(parts),
+            'count': len(succeeded),  # backward compat with older frontend
+            'results': {'success': succeeded, 'failed': failed}
+        })
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1390,11 +1464,17 @@ def paste_global_content():
         vectorize_single_document(vectorizer, 'global', url, filepath, filename)
 
         # Pasted content can't be re-crawled — persist it in the database
-        _persist_global_doc(url, filename, filepath, f"Source URL: {url}\n\n{content}")
+        persist_error = _persist_global_doc(url, filename, filepath, f"Source URL: {url}\n\n{content}")
+
+        message = 'Content saved and vectorized successfully'
+        if persist_error:
+            message += (f" — WARNING: database backup failed ({persist_error}); "
+                        "the content will be lost on the next redeploy")
 
         return jsonify({
             'success': True,
-            'message': 'Content saved and vectorized successfully',
+            'message': message,
+            'backed_up': persist_error is None,
             'filename': filename
         })
 

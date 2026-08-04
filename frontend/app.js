@@ -1046,7 +1046,7 @@ async function loadESPManagement() {
                     <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
                         <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
                         <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
-                        ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Crawled before content backup existed — re-crawl once to store a copy in the database">no backup</span>' : ''}
+                        ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)">no backup</span>' : ''}
                         <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                         ${link.status === 'pending' ? `
                             <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
@@ -1203,8 +1203,9 @@ async function crawlAllSelectedAsync() {
         }
 
         // Crawl global knowledge URLs. There is no async global endpoint —
-        // this one runs synchronously and returns a count, not job_ids.
+        // this one runs synchronously and returns per-URL results.
         let globalCrawledCount = 0;
+        const globalIssues = [];
         if (globalUrls.length > 0) {
             try {
                 const response = await fetch(`${API_URL}/admin/global-knowledge/crawl-selected`, {
@@ -1219,16 +1220,34 @@ async function crawlAllSelectedAsync() {
                     allJobIds = allJobIds.concat(data.job_ids);
                 } else if (data.success) {
                     globalCrawledCount = data.count || 0;
+                    (data.results?.failed || []).forEach(f => {
+                        globalIssues.push(`${f.url} — ${f.error}`);
+                    });
+                    (data.results?.success || []).forEach(s => {
+                        (s.warnings || []).forEach(w => {
+                            globalIssues.push(`${s.url} — warning: ${w}`);
+                        });
+                    });
                 } else {
+                    globalIssues.push(data.error || 'Unknown error');
                     console.error('Failed to crawl global knowledge:', data.error);
                 }
             } catch (error) {
+                globalIssues.push(error.message);
                 console.error('Error queueing global knowledge:', error);
             }
         }
 
-        if (allJobIds.length === 0 && globalCrawledCount > 0) {
-            alert(`Crawled ${globalCrawledCount} global knowledge link(s).`);
+        // Surface global-knowledge failures even when ESP jobs were queued —
+        // a silently dropped URL leaves the admin unable to trust the state
+        if (globalIssues.length > 0) {
+            alert(`Global knowledge: ${globalCrawledCount} link(s) processed, ${globalIssues.length} issue(s):\n\n${globalIssues.join('\n')}`);
+        }
+
+        if (allJobIds.length === 0 && globalUrls.length > 0) {
+            if (globalIssues.length === 0) {
+                alert(`Processed ${globalCrawledCount} global knowledge link(s).`);
+            }
             crawlButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.innerHTML = 'Crawl Selected';
@@ -1348,8 +1367,8 @@ async function crawlAllSelectedSync() {
                     totalCrawled += successCount;
 
                     if (failedCount > 0) {
-                        const failedUrls = data.results.failed.map(f => f.url).join(', ');
-                        errors.push(`${espName}: ${failedCount} failed (${failedUrls})`);
+                        const failedDetails = data.results.failed.map(f => `${f.url} — ${f.error}`).join('\n');
+                        errors.push(`${espName}: ${failedCount} failed:\n${failedDetails}`);
                     }
                 } else {
                     errors.push(`${espName}: ${data.error || 'Unknown error'}`);
@@ -1373,8 +1392,18 @@ async function crawlAllSelectedSync() {
                 const data = await response.json();
 
                 if (data.success) {
-                    // Global knowledge returns count field
                     totalCrawled += (data.count || 0);
+                    // Per-URL failures (site blocked, pasted local:// doc
+                    // with no saved copy, ...) — surface them instead of
+                    // silently under-counting
+                    (data.results?.failed || []).forEach(f => {
+                        errors.push(`Global Knowledge: ${f.url} — ${f.error}`);
+                    });
+                    (data.results?.success || []).forEach(s => {
+                        (s.warnings || []).forEach(w => {
+                            errors.push(`Global Knowledge: ${s.url} — warning: ${w}`);
+                        });
+                    });
                 } else {
                     errors.push(`Global Knowledge: ${data.error || 'Unknown error'}`);
                 }
@@ -2069,13 +2098,19 @@ async function loadGlobalKnowledge() {
                 badgeClass = 'bg-blue-100 text-blue-800';
             }
 
+            const isPasted = link.can_crawl === false;
+            const backfillTitle = isPasted
+                ? 'Pasted content with no database backup — run Crawl Selected to back it up from the saved copy, or re-paste the content'
+                : 'No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)';
+
             return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
                 <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
                 <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
-                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Crawled before content backup existed — re-crawl once to store a copy in the database">no backup</span>' : ''}
+                ${link.needs_backfill ? `<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="${escapeAttr(backfillTitle)}">no backup</span>` : ''}
+                ${isPasted ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wide" title="Manually pasted content — cannot be re-crawled from a website">pasted</span>' : ''}
                 <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
-                ${link.status === 'pending' ? `
+                ${(link.status === 'pending' || (link.needs_backfill && isPasted)) ? `
                     <button onclick="openPasteModal('global', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                         📋 Paste Content
                     </button>

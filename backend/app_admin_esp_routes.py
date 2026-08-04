@@ -9,7 +9,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 
 from flask import jsonify, request
 from esp_manager import get_esp_manager
-from crawler import crawl_single_url, vectorize_single_document, filename_from_url
+from crawler import crawl_single_url_detailed, vectorize_single_document, filename_from_url
 import os
 import json
 
@@ -287,7 +287,21 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         doc = esp_mgr.add_document(esp_name, url)
 
                     # Crawl the URL
-                    filename = crawl_single_url(url, esp_name, BASE_PATH)
+                    filename, crawl_error = crawl_single_url_detailed(url, esp_name, BASE_PATH)
+                    backfilled = False
+
+                    if not filename:
+                        # Crawl failed — if the saved file from an earlier
+                        # crawl/paste still exists on disk, back up its
+                        # content to the database instead of losing the doc
+                        # (clears the NO BACKUP flag for pre-persistence docs)
+                        candidate = doc.get('filename') or filename_from_url(url)
+                        if not candidate.endswith('.txt'):
+                            candidate = filename_from_url(url)
+                        if os.path.exists(os.path.join(esp_docs_path, candidate)):
+                            filename = candidate
+                            backfilled = True
+                            print(f"[CRAWL] {url} failed ({crawl_error}); backing up from local copy")
 
                     if filename:
                         # Read content to calculate hash
@@ -326,6 +340,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         # Vectorize just this document — refresh_esp() would
                         # delete the whole namespace and re-add only local
                         # files, wiping prod knowledge on ephemeral storage.
+                        warnings = []
                         try:
                             vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
                             print(f"[VECTORIZE] Successfully vectorized {filename}")
@@ -333,6 +348,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
                             import traceback
                             traceback.print_exc()
+                            warnings.append(f"vectorization failed: {ve}")
 
                         # Update database — store the content itself so the
                         # knowledge base survives redeploys of the ephemeral
@@ -345,20 +361,27 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             filename=filename
                         )
 
-                        results['success'].append({
+                        entry = {
                             'url': url,
-                            'filename': filename
-                        })
+                            'filename': filename,
+                            'backfilled': backfilled
+                        }
+                        if backfilled:
+                            entry['note'] = (f"could not crawl ({crawl_error}); "
+                                             "backed up from saved local copy")
+                        if warnings:
+                            entry['warnings'] = warnings
+                        results['success'].append(entry)
                     else:
-                        # Mark as failed
+                        # Mark as failed with the actual reason
                         esp_mgr.update_document_crawl_status(
                             doc['id'],
                             status='failed',
-                            error_message='Crawl returned empty content'
+                            error_message=crawl_error
                         )
                         results['failed'].append({
                             'url': url,
-                            'error': 'Crawl returned empty content'
+                            'error': crawl_error
                         })
 
                 except Exception as e:

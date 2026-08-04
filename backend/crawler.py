@@ -5,23 +5,42 @@ import os
 import time
 from urllib.parse import urlparse
 
-def extract_main_content(url):
+def extract_main_content_detailed(url):
     """
-    Fetch URL and extract main text content with preserved structure
+    Fetch URL and extract main text content with preserved structure.
 
-    Improvements over old version:
+    Returns (content, error): exactly one of the two is None. The error is a
+    human-readable reason (HTTP status, timeout, unsupported scheme, ...) so
+    admin endpoints can report per-URL failures instead of silently skipping.
+
     - Preserves HTML headers as markdown headers (h1 -> ##, h2 -> ###, etc.)
     - Converts lists to markdown format (- Item)
     - Keeps code blocks intact
     - Maintains document hierarchy for better chunking
     """
+    if url.startswith('local://'):
+        return None, ("This entry is manually pasted content (local:// URL) and "
+                      "cannot be crawled. Use 'Paste' to update it.")
+    if not url.startswith(('http://', 'https://')):
+        return None, f"Unsupported URL scheme: '{url.split(':', 1)[0]}'"
+
     try:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
         }
         response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
+    except requests.exceptions.Timeout:
+        return None, "Request timed out after 10 seconds"
+    except requests.exceptions.HTTPError as e:
+        status = e.response.status_code if e.response is not None else '?'
+        return None, f"Server returned HTTP {status}"
+    except requests.exceptions.ConnectionError:
+        return None, "Could not connect to the server"
+    except requests.exceptions.RequestException as e:
+        return None, f"Request failed: {e}"
 
+    try:
         soup = BeautifulSoup(response.content, 'html.parser')
 
         # Remove script, style, nav, footer elements
@@ -94,11 +113,22 @@ def extract_main_content(url):
 
         cleaned_text = '\n'.join(cleaned_lines)
 
-        return cleaned_text
+        if not cleaned_text.strip():
+            return None, "Page fetched but no text content could be extracted"
+
+        return cleaned_text, None
 
     except Exception as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+        print(f"Error parsing {url}: {e}")
+        return None, f"Failed to parse page content: {e}"
+
+
+def extract_main_content(url):
+    """Backwards-compatible wrapper: content on success, None on failure."""
+    content, error = extract_main_content_detailed(url)
+    if error:
+        print(f"Error fetching {url}: {error}")
+    return content
 
 def filename_from_url(url):
     """Derive the saved .txt filename for a URL (same rule used everywhere)."""
@@ -111,7 +141,7 @@ def filename_from_url(url):
     return f"{filename}.txt"
 
 
-def crawl_single_url(url, esp_name, base_path):
+def crawl_single_url_detailed(url, esp_name, base_path):
     """
     Crawl a single URL and save to ESP folder.
 
@@ -121,24 +151,18 @@ def crawl_single_url(url, esp_name, base_path):
         base_path: Base path of the application
 
     Returns:
-        filename if successful, None if failed
+        (filename, error): filename on success, error message on failure
+        (exactly one is None)
     """
     try:
         print(f"[CRAWLER] Crawling {url}...")
-        content = extract_main_content(url)
+        content, error = extract_main_content_detailed(url)
 
-        if not content:
-            print(f"[CRAWLER] Failed to extract content from {url}")
-            return None
+        if error:
+            print(f"[CRAWLER] Failed to extract content from {url}: {error}")
+            return None, error
 
-        # Generate filename from URL
-        parsed = urlparse(url)
-        path_parts = parsed.path.strip('/').split('/')
-        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-        filename = filename.replace('.html', '').replace('.htm', '')
-        if not filename:
-            filename = 'index'
-        filename = f"{filename}.txt"
+        filename = filename_from_url(url)
 
         # Save to ESP folder
         docs_path = os.path.join(base_path, 'docs')
@@ -151,11 +175,17 @@ def crawl_single_url(url, esp_name, base_path):
             f.write(content)
 
         print(f"[CRAWLER] Saved to {filepath}")
-        return filename
+        return filename, None
 
     except Exception as e:
         print(f"[CRAWLER] Error crawling {url}: {e}")
-        return None
+        return None, str(e)
+
+
+def crawl_single_url(url, esp_name, base_path):
+    """Backwards-compatible wrapper: filename on success, None on failure."""
+    filename, _error = crawl_single_url_detailed(url, esp_name, base_path)
+    return filename
 
 def vectorize_single_document(vectorizer, esp_name, url, filepath, filename):
     """
