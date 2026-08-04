@@ -1176,10 +1176,18 @@ def _persist_global_doc(url, filename, filepath, file_content):
     try:
         from esp_manager import get_esp_manager
         esp_mgr = get_esp_manager()
-        esp = esp_mgr.get_esp_by_name('global')
+        # Look up including archived rows: esps.name is UNIQUE, so an
+        # archived 'global' row (hidden from the UI the old way, by
+        # archiving) made this lookup miss and the create below fail with a
+        # duplicate-key error on every crawl — the docs were never backed up.
+        esp = esp_mgr.get_esp_by_name('global', include_archived=True)
         if not esp:
             esp = esp_mgr.create_esp('global', 'Global Knowledge',
                                      'Internal: global knowledge base (not a selectable ESP)')
+        elif esp.get('status') != 'active':
+            # Reactivate: it's filtered out of the selectable ESP list by
+            # name, and add_document/list_documents only see active ESPs
+            esp_mgr.restore_esp(esp['id'])
         doc = esp_mgr.get_document_by_url(esp['id'], url)
         if not doc:
             doc = esp_mgr.add_document('global', url)

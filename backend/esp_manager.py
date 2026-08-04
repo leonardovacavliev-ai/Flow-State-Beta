@@ -48,8 +48,12 @@ class ESPManager:
         # Normalize name (lowercase, replace spaces with underscores)
         name = name.lower().replace(' ', '_').replace('/', '_')
 
-        # Check if exists
-        if self.get_esp_by_name(name):
+        # Check if exists — including archived rows, since the name column
+        # is UNIQUE regardless of status and the INSERT would fail anyway
+        existing = self.get_esp_by_name(name, include_archived=True)
+        if existing:
+            if existing.get('status') != 'active':
+                raise ValueError(f"ESP '{name}' already exists but is archived — restore it instead")
             raise ValueError(f"ESP '{name}' already exists")
 
         query = """
@@ -73,14 +77,21 @@ class ESPManager:
             }
         return None
 
-    def get_esp_by_name(self, name: str) -> Optional[Dict]:
-        """Get ESP by name."""
+    def get_esp_by_name(self, name: str, include_archived: bool = False) -> Optional[Dict]:
+        """
+        Get ESP by name.
+
+        include_archived matters when the row must be found even if soft
+        deleted: esps.name is UNIQUE regardless of status, so code that does
+        "look up, create if missing" would hit a duplicate-key error on an
+        archived row it couldn't see.
+        """
         query = """
             SELECT id, name, display_name, description, status, created_at, updated_at
             FROM esps
-            WHERE name = %s AND status = 'active'
+            WHERE name = %s AND (status = 'active' OR %s = true)
         """
-        result = self.db.execute_query(query, (name,), fetch=True)
+        result = self.db.execute_query(query, (name, include_archived), fetch=True)
         if result:
             row = result[0]
             return {
@@ -182,6 +193,12 @@ class ESPManager:
     def archive_esp(self, esp_id: str) -> bool:
         """Archive an ESP (soft delete)."""
         query = "UPDATE esps SET status = 'archived' WHERE id = %s"
+        self.db.execute_query(query, (esp_id,))
+        return True
+
+    def restore_esp(self, esp_id: str) -> bool:
+        """Reactivate an archived ESP."""
+        query = "UPDATE esps SET status = 'active' WHERE id = %s"
         self.db.execute_query(query, (esp_id,))
         return True
 
