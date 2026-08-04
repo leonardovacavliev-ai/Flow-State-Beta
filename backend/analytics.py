@@ -482,38 +482,24 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
         cursor = _dict_cursor(conn)
 
         def get_metrics(start_date, end_date=None):
-            """Get metrics for a date range"""
-            if start_date is None:
-                # All time - use aggregates + today's live data
-                cursor.execute("""
-                    SELECT
-                        COALESCE(SUM(total_sessions), 0) as total_sessions,
-                        COALESCE(SUM(total_messages), 0) as total_messages,
-                        COALESCE(SUM(total_user_messages), 0) as total_user_messages,
-                        COALESCE(SUM(total_feedback), 0) as total_feedback,
-                        COALESCE(AVG(avg_session_duration), 0) as avg_duration,
-                        COALESCE(AVG(avg_message_length), 0) as avg_length,
-                        COALESCE(SUM(unique_users), 0) as unique_users,
-                        COALESCE(AVG(avg_messages_per_conversation), 0) as avg_messages
-                    FROM daily_aggregates
-                """)
-                row = cursor.fetchone()
-                return {
-                    'total_sessions': _int(row['total_sessions']),
-                    'total_messages': _int(row['total_messages']),
-                    'total_user_messages': _int(row['total_user_messages']),
-                    'total_feedback': _int(row['total_feedback']),
-                    'avg_duration': _num(row['avg_duration']),
-                    'avg_length': _num(row['avg_length']),
-                    'unique_users': _int(row['unique_users']),
-                    'avg_messages': _num(row['avg_messages'])
-                }
+            """Get metrics for a date range (start_date=None means all time).
 
-            # Specific range - query raw data
-            date_filter = "timestamp >= ?" if end_date is None else "timestamp >= ? AND timestamp < ?"
-            session_filter = "start_time >= ?" if end_date is None else "start_time >= ? AND start_time < ?"
-            feedback_filter = "submitted_at >= ?" if end_date is None else "submitted_at >= ? AND submitted_at < ?"
-            params = (start_date.isoformat(),) if end_date is None else (start_date.isoformat(), end_date.isoformat())
+            All ranges query the raw tables so every view uses identical
+            math; daily_aggregates is only used for sparklines.
+            """
+            if start_date is None:
+                date_filter = session_filter = feedback_filter = "1=1"
+                params = ()
+            elif end_date is None:
+                date_filter = "timestamp >= ?"
+                session_filter = "start_time >= ?"
+                feedback_filter = "submitted_at >= ?"
+                params = (start_date.isoformat(),)
+            else:
+                date_filter = "timestamp >= ? AND timestamp < ?"
+                session_filter = "start_time >= ? AND start_time < ?"
+                feedback_filter = "submitted_at >= ? AND submitted_at < ?"
+                params = (start_date.isoformat(), end_date.isoformat())
 
             # Sessions
             cursor.execute(_sql(f"""
