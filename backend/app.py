@@ -886,7 +886,7 @@ def get_analytics_data():
 
     time_range = request.args.get('time_range', 'all_time')
 
-    if time_range not in ['all_time', 'last_90_days', 'last_7_days']:
+    if time_range not in ['all_time', 'last_90_days', 'last_7_days', 'last_24_hours']:
         return jsonify({'error': 'Invalid time range'}), 400
 
     try:

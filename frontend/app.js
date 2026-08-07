@@ -726,6 +726,12 @@ async function loadAnalytics() {
             return;
         }
 
+        // Reveal the dashboard before drawing anything into it: the sparkline
+        // canvases size themselves from offsetWidth, which is 0 while their
+        // container is display:none, so they must be visible first.
+        loading.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+
         // Update KPI cards
         updateKPI('sessions', data.sessions.value, data.sessions.change, timeRange);
         updateKPI('unique-users', data.unique_users.value, data.unique_users.change, timeRange);
@@ -734,7 +740,8 @@ async function loadAnalytics() {
         updateKPI('session-time', data.avg_session_time.value, data.avg_session_time.change, timeRange);
         updateKPI('msg-length', data.avg_message_length.value, data.avg_message_length.change, timeRange);
 
-        // Render sparklines
+        // Render sparklines (always a fixed 6-week, week-over-week trend,
+        // independent of the selected time range)
         if (data.sparkline && data.sparkline.dates && data.sparkline.dates.length > 0) {
             renderSparkline('sparkline-sessions', data.sparkline.sessions, data.sparkline.dates, 'Sessions');
             renderSparkline('sparkline-unique-users', data.sparkline.unique_users, data.sparkline.dates, 'Users');
@@ -749,9 +756,6 @@ async function loadAnalytics() {
 
         // Country breakdown table
         renderCountryBreakdown(data.country_breakdown);
-
-        loading.classList.add('hidden');
-        dashboard.classList.remove('hidden');
     } catch (error) {
         alert('Error loading analytics: ' + error.message);
         loading.classList.add('hidden');

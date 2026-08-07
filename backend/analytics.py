@@ -454,7 +454,7 @@ def refresh_aggregates_if_needed():
 def get_analytics(time_range: str = 'all_time') -> Dict:
     """
     Get analytics for dashboard with percentage changes
-    time_range: 'all_time', 'last_90_days', 'last_7_days'
+    time_range: 'all_time', 'last_90_days', 'last_7_days', 'last_24_hours'
     """
     # Refresh aggregates if needed
     refresh_aggregates_if_needed()
@@ -465,7 +465,11 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
     now = datetime.utcnow()
 
     # Calculate date ranges
-    if time_range == 'last_7_days':
+    if time_range == 'last_24_hours':
+        current_start = now - timedelta(hours=24)
+        previous_start = now - timedelta(hours=48)
+        previous_end = current_start
+    elif time_range == 'last_7_days':
         current_start = now - timedelta(days=7)
         previous_start = now - timedelta(days=14)
         previous_end = current_start
@@ -652,46 +656,64 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 return None if current_val == 0 else 100
             return ((current_val - previous_val) / previous_val) * 100
 
-        # Get daily sparkline data for the current period
-        sparkline_data = {}
-        if current_start:
-            # For time-based ranges, get daily data
-            if time_range == 'last_7_days':
-                days = 7
-            elif time_range == 'last_90_days':
-                days = 30  # Show last 30 days for 90-day view (for readability)
-            else:
-                days = 7
+        # Sparklines always show a fixed trailing 6-week, week-over-week trend,
+        # independent of the `time_range` filter above (which only scopes the
+        # KPI cards/tables). Bucketing is done in Python rather than SQL so the
+        # 7-day-aligned-on-today buckets are identical across SQLite/Postgres.
+        sparkline_weeks = 6
+        sparkline_window_start = now - timedelta(days=sparkline_weeks * 7)
 
-            sparkline_start = now - timedelta(days=days)
+        cursor.execute(_sql("""
+            SELECT
+                date,
+                total_sessions,
+                unique_users,
+                avg_messages_per_conversation,
+                total_feedback,
+                avg_session_duration,
+                avg_message_length
+            FROM daily_aggregates
+            WHERE date >= ? AND date <= ?
+            ORDER BY date ASC
+        """), (sparkline_window_start.date().isoformat(), now.date().isoformat()))
 
-            # Get daily aggregates for sparkline
-            cursor.execute(_sql("""
-                SELECT
-                    date,
-                    total_sessions,
-                    unique_users,
-                    avg_messages_per_conversation,
-                    total_feedback,
-                    avg_session_duration,
-                    avg_message_length
-                FROM daily_aggregates
-                WHERE date >= ? AND date <= ?
-                ORDER BY date ASC
-            """), (sparkline_start.date().isoformat(), now.date().isoformat()))
+        # Postgres returns datetime.date objects for `date`; str() normalizes
+        # both dialects to ISO date strings for use as a dict key.
+        by_date = {str(row['date']): row for row in cursor.fetchall()}
 
-            daily_data = cursor.fetchall()
+        def _mean(values):
+            return sum(values) / len(values) if values else 0.0
 
-            sparkline_data = {
-                # Postgres returns datetime.date objects; str() gives ISO dates
-                'dates': [str(row['date']) for row in daily_data],
-                'sessions': [_int(row['total_sessions']) for row in daily_data],
-                'unique_users': [_int(row['unique_users']) for row in daily_data],
-                'avg_messages': [round(_num(row['avg_messages_per_conversation']), 1) for row in daily_data],
-                'feedback': [_int(row['total_feedback']) for row in daily_data],
-                'session_time': [round(_num(row['avg_session_duration']), 1) for row in daily_data],
-                'msg_length': [round(_num(row['avg_message_length']), 1) for row in daily_data]
-            }
+        today = now.date()
+        dates, sessions_wk, unique_users_wk = [], [], []
+        avg_messages_wk, feedback_wk, session_time_wk, msg_length_wk = [], [], [], []
+
+        for week_index in range(sparkline_weeks):
+            week_end = today - timedelta(days=7 * (sparkline_weeks - 1 - week_index))
+            week_start = week_end - timedelta(days=6)
+            week_rows = [
+                by_date[d] for d in (
+                    (week_start + timedelta(days=offset)).isoformat() for offset in range(7)
+                ) if d in by_date
+            ]
+
+            dates.append(week_start.isoformat())
+            sessions_wk.append(sum(_int(row['total_sessions']) for row in week_rows))
+            unique_users_wk.append(sum(_int(row['unique_users']) for row in week_rows))
+            feedback_wk.append(sum(_int(row['total_feedback']) for row in week_rows))
+            avg_messages_wk.append(round(_mean([_num(row['avg_messages_per_conversation']) for row in week_rows]), 1))
+            session_time_wk.append(round(_mean([_num(row['avg_session_duration']) for row in week_rows]), 1))
+            msg_length_wk.append(round(_mean([_num(row['avg_message_length']) for row in week_rows]), 1))
+
+        sparkline_data = {
+            'dates': dates,
+            'sessions': sessions_wk,
+            'unique_users': unique_users_wk,
+            'avg_messages': avg_messages_wk,
+            'feedback': feedback_wk,
+            'session_time': session_time_wk,
+            'msg_length': msg_length_wk
+        }
 
         result = {
             'sessions': {
