@@ -922,9 +922,15 @@ function renderSparkline(canvasId, data, dates, label) {
         tooltip.innerHTML = `<div>${dateStr}</div><div><strong>${point.value}</strong> ${label}</div>`;
         tooltip.classList.add('visible');
 
-        // Position tooltip
-        const tooltipX = point.x + rect.left;
-        const tooltipY = rect.top - 10;
+        // Position tooltip. `tooltip` is `position: absolute`, so its
+        // left/top are relative to its offsetParent's box, not the
+        // viewport. Since the admin panel is a centered modal, the
+        // offsetParent's viewport origin isn't (0,0) — so we measure the
+        // canvas-to-offsetParent delta in viewport space (which cancels out
+        // scroll/transform) instead of using rect.left/top directly.
+        const containerRect = (tooltip.offsetParent || canvas.parentElement).getBoundingClientRect();
+        const tooltipX = rect.left - containerRect.left + point.x;
+        const tooltipY = rect.top - containerRect.top - 10;
         tooltip.style.left = `${tooltipX}px`;
         tooltip.style.top = `${tooltipY}px`;
         tooltip.style.transform = 'translate(-50%, -100%)';
