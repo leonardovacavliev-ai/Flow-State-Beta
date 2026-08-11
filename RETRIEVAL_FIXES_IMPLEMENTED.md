@@ -265,10 +265,34 @@ Endpoint verification stubs the AI call, analytics writes and session store, so
 it spends no tokens and writes no rows to the production analytics database.
 Pinecone is read live.
 
-**Not verified**: no end-to-end answer-quality test was run — that needs the
-eval set from plan §5, which does not exist yet. These changes put the right
-chunk in front of the model; whether the model then uses it is what §2's prompt
-work and the eval set are for.
+### Post-deploy result: retrieval fixed, answer NOT fixed
+
+Verified against production after rollout. Retrieval works exactly as measured
+locally — 17 sources, 5 chunks from the mechanics article, chunk 9 present.
+
+**The answer did not change.** Asked the original test question, production
+still returns:
+
+> Set this delay to '16 days' (30 - 14 = 16 days delay from the first email).
+
+That is the original defect, unchanged: event as metric trigger, then a linear
+delay chain, which duplicate-sends because the Yotpo event fires three times
+per customer.
+
+So the load-bearing sentence is now in the context window and **the model reads
+past it**. This settles two open questions:
+
+1. These retrieval changes are **necessary but not sufficient**. They are a
+   precondition for a correct answer, not a cause of one.
+2. An earlier note in this document suggested that, with chunk 9 now retrieved,
+   plan §3's invariants block might no longer earn its human sign-off. That is
+   **refuted**. Retrieval alone does not change the answer. Plan §2 (the
+   pre-drafting checklist) and/or §3 (invariants stated as authoritative rather
+   than buried in an excerpt) are now the load-bearing changes.
+
+Plan §5.4 predicted "C and D carry most of the gain; B alone will underperform."
+The measured result is the opposite of the second half: **D alone carries no
+visible gain on answer correctness.** B is not optional.
 
 ---
 
@@ -286,8 +310,9 @@ work and the eval set are for.
    nowhere. I tested the cross-encoder over an n=30 pool: it does **not**
    surface chunk 9, so it is not a substitute for §2. Either wire them up
    deliberately or delete them.
-4. **Plan §2 and §3** remain unimplemented and are still the load-bearing
-   changes for answer quality. Note that §3's invariants hand-write the same
-   rule §2-here now retrieves — with chunk 9 reaching the model, it is worth
-   re-measuring whether the invariants block is still needed before investing
-   in the human sign-off it requires.
+4. **Plan §2 and §3 are now the priority**, and this is no longer a
+   prediction — see the post-deploy result above. The correct chunk reaches the
+   model in production and the answer is still wrong, so prompt-level work is
+   what remains. §2 is 15 minutes and reversible through the admin panel's
+   audit log; it should be tried first, and re-measured against this same
+   question before deciding whether §3's invariants are also needed.
