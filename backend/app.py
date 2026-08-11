@@ -460,10 +460,26 @@ def chat():
     if RETRIEVAL_DEBUG and cache_hit:
         print(f"[MECHANICS CACHE] hit for esp={esp_normalized}")
 
-    # Task results first: they answer the question, mechanics results constrain
-    # how. Dedupe is by chunk id, so overlap between the two queries is free.
-    esp_results = merge_dedupe(esp_results, mech_results)
-    log_retrieval('merged/post-filter', f'A={enhanced_query} | B={mechanics_query}', esp_results)
+    # Mechanics chunks are presented FIRST, in their own section, and removed
+    # from the task set so they are not repeated.
+    #
+    # Ordering is not cosmetic. When mechanics trailed the task results, the
+    # sentence stating that trigger filters are not re-checked at send time
+    # arrived as source 11 of 17, after ten sources describing what the Yotpo
+    # event is -- and the model read past it, producing the same duplicate-
+    # sending flow as before the retrieval fix. A rule that should govern how
+    # every other excerpt is read has to arrive before them, not after.
+    esp_results = merge_dedupe(esp_results)
+    mech_ids = set((mech_results.get('ids') or [[]])[0])
+    if mech_ids:
+        keep = [i for i, cid in enumerate((esp_results.get('ids') or [[]])[0])
+                if cid not in mech_ids]
+        esp_results = {
+            key: [[(esp_results[key][0])[i] for i in keep]]
+            for key in ('ids', 'documents', 'metadatas', 'distances')
+        }
+    log_retrieval('mechanics/final', mechanics_query, mech_results)
+    log_retrieval('task/final', enhanced_query, esp_results)
 
     # Search global knowledge (2 results) - also use enhanced query
     global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
@@ -475,8 +491,23 @@ def chat():
     # Build context from search results
     context = "# Relevant Documentation:\n\n"
 
-    # Add ESP-specific results
     source_index = 1
+
+    # Platform mechanics first. These describe how the platform behaves --
+    # trigger types, how often a trigger fires, which filters are re-evaluated
+    # at send time. They constrain whether a setup actually works, so they are
+    # placed ahead of the task documentation rather than after it.
+    if mech_results['documents'] and mech_results['documents'][0]:
+        context += "## Platform Mechanics (read these first — they determine "
+        context += "whether a setup works, not just what it is called):\n"
+        for doc, metadata in zip(mech_results['documents'][0], mech_results['metadatas'][0]):
+            context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
+            context += f"ESP: {metadata.get('esp', 'Unknown')}\n"
+            context += f"URL: {metadata.get('source_url', 'N/A')}\n"
+            context += f"{doc}\n\n"
+            source_index += 1
+
+    # Add ESP-specific results
     if esp_results['documents'] and esp_results['documents'][0]:
         context += "## ESP-Specific Knowledge:\n"
         for doc, metadata in zip(esp_results['documents'][0], esp_results['metadatas'][0]):
@@ -501,8 +532,10 @@ def chat():
     elif source_index <= 4:  # Very few sources (3 or fewer)
         context += "\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n"
 
-    # Combine results for source display
+    # Combine results for source display, in the same order as the context.
     all_metadatas = []
+    if mech_results['metadatas'] and mech_results['metadatas'][0]:
+        all_metadatas.extend(mech_results['metadatas'][0])
     if esp_results['metadatas'] and esp_results['metadatas'][0]:
         all_metadatas.extend(esp_results['metadatas'][0])
     if global_results['metadatas'] and global_results['metadatas'][0]:
