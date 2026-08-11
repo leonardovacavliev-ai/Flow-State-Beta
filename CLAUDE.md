@@ -14,7 +14,7 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 
 ### Tech Stack
 - **Backend**: Flask REST API (Python)
-- **AI**: OpenAI GPT-4o (default) / Google Gemini Flash / Claude 3.5 Sonnet (configurable)
+- **AI**: Google Gemini Flash (`gemini-flash-latest`, default) / OpenAI GPT-4o / Claude 3.5 Sonnet (configurable)
 - **Vector Database**: ChromaDB (local) / Pinecone (cloud)
 - **Analytics Database**: SQLite (local) / PostgreSQL (cloud)
 - **Frontend**: Vanilla JavaScript (served via Python HTTP server)
@@ -51,7 +51,10 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 - Provider abstraction (Gemini/Claude)
 - Handles conversation history formatting
 - RAG context injection
-- Model selection: Gemini Flash (default) or Claude 3.5 Sonnet
+- Model selection: Gemini Flash (default), OpenAI GPT-4o, or Claude 3.5 Sonnet
+- Default lives in `config_manager.py` `_ensure_files_exist()`; the live value is
+  stored in PostgreSQL (`app_settings`) and only falls back to that default on a
+  fresh install
 
 #### 6. Web Crawler ([crawler.py](backend/crawler.py))
 - BeautifulSoup-based content extraction

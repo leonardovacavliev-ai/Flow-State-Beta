@@ -87,8 +87,17 @@ class ConfigManager:
         if not os.path.exists(self.config_file):
             default_config = {
                 'ai_model': {
-                    'provider': 'openai',  # 'gemini', 'claude', or 'openai'
-                    'model_name': 'gpt-4o',  # or 'gemini-flash-latest' or 'claude-3-5-sonnet-20241022'
+                    # Gemini is the default because it reasons about platform
+                    # mechanics that gpt-4o consistently missed. Measured on the
+                    # "3 emails off Loyalty Expiration Reminder" question, which
+                    # requires noticing the Yotpo event fires 3x per customer so
+                    # a linear delay chain duplicates sends:
+                    #   gpt-4o          caught it 0 of 6 samples
+                    #   gemini-flash    caught it 5 of 5 samples
+                    # Simple questions stayed short and no overcorrection was
+                    # seen on single-fire triggers (birthday/date-property).
+                    'provider': 'gemini',  # 'gemini', 'claude', or 'openai'
+                    'model_name': 'gemini-flash-latest',  # or 'gpt-4o' or 'claude-3-5-sonnet-20241022'
                     'api_key_set': bool(os.environ.get('GEMINI_API_KEY')),
                     'claude_api_key_set': bool(os.environ.get('ANTHROPIC_API_KEY')),
                     'openai_api_key_set': bool(os.environ.get('OPENAI_API_KEY'))
