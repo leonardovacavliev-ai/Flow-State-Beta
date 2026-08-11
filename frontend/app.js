@@ -1944,7 +1944,17 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
         'claude': 'Anthropic Claude',
         'openai': 'OpenAI'
     };
-    const userEmail = prompt(`You are about to change the AI configuration to:\n\nProvider: ${providerNames[provider] || provider}\nModel: ${availableModels[provider]?.find(m => m.name === modelName)?.display || modelName}${apiKey ? '\nAPI Key: [will be updated]' : ''}\n\nThis will affect all users immediately.\n\nEnter your email address to confirm:`);
+    // The provider/model choice is stored in the database and persists. An API
+    // key is only written to the running process and to a container-local .env,
+    // so it is lost on the next deploy or restart. Say so here, because the
+    // request succeeds either way and the difference is otherwise invisible.
+    const apiKeyNotice = apiKey
+        ? '\nAPI Key: TEMPORARY OVERRIDE\n  - applies to all users right away'
+          + '\n  - WIPED on the next deploy or restart'
+          + '\n  - to set a key permanently, use your hosting provider\'s'
+          + '\n    variables for the app service instead'
+        : '';
+    const userEmail = prompt(`You are about to change the AI configuration to:\n\nProvider: ${providerNames[provider] || provider}\nModel: ${availableModels[provider]?.find(m => m.name === modelName)?.display || modelName}${apiKeyNotice}\n\nProvider and model are saved permanently.\nThis will affect all users immediately.\n\nEnter your email address to confirm:`);
 
     if (!userEmail) {
         // User cancelled or didn't enter email
