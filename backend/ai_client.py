@@ -7,6 +7,30 @@ import os
 from typing import List, Dict, Any, Optional
 import google.generativeai as genai
 
+
+def get_temperature() -> Optional[float]:
+    """
+    Sampling temperature, from the AI_TEMPERATURE environment variable.
+
+    Returns None when unset, in which case each provider keeps the behavior it
+    had before this was configurable (OpenAI 0.7, Claude and Gemini use their
+    own defaults). Production is therefore unchanged unless the variable is set.
+
+    Set AI_TEMPERATURE=0 when running evals. Comparing a baseline answer to a
+    new one at temperature 0.7 mostly measures sampling noise, which makes a
+    "step count within +/-2" style format assertion unreliable -- reruns of the
+    *same* config will fail it.
+    """
+    raw = os.environ.get('AI_TEMPERATURE')
+    if raw is None or raw.strip() == '':
+        return None
+    try:
+        return float(raw)
+    except ValueError:
+        print(f"Warning: AI_TEMPERATURE={raw!r} is not a number; ignoring.")
+        return None
+
+
 class AIClient:
     def __init__(self, provider: str, model_name: str, system_prompt: str):
         self.provider = provider
@@ -187,9 +211,16 @@ class AIClient:
         })
 
         # Call Gemini API
+        gemini_kwargs = {}
+        if get_temperature() is not None:
+            gemini_kwargs['generation_config'] = genai.types.GenerationConfig(
+                temperature=get_temperature()
+            )
+
         model = genai.GenerativeModel(
             model_name=f'models/{self.model_name}',
-            system_instruction=self.system_prompt
+            system_instruction=self.system_prompt,
+            **gemini_kwargs
         )
 
         # Start chat with history
@@ -224,11 +255,16 @@ class AIClient:
         })
 
         # Call Claude API
+        claude_kwargs = {}
+        if get_temperature() is not None:
+            claude_kwargs['temperature'] = get_temperature()
+
         response = self.client.messages.create(
             model=self.model_name,
             max_tokens=4096,
             system=self.system_prompt,
-            messages=messages
+            messages=messages,
+            **claude_kwargs
         )
 
         return response.content[0].text
@@ -264,7 +300,7 @@ class AIClient:
             model=self.model_name,
             messages=messages,
             max_tokens=4096,
-            temperature=0.7
+            temperature=0.7 if get_temperature() is None else get_temperature()
         )
 
         return response.choices[0].message.content
