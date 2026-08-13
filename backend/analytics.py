@@ -228,15 +228,19 @@ def _resolve_country_async(session_id: str, ip_address: str):
         )
 
 
-def create_session(session_id: str, ip_address: Optional[str] = None,
-                   user_id: Optional[str] = None):
-    """Create a new session (geolocation happens off the request path)"""
+def create_session(session_id: str, ip_address: Optional[str] = None):
+    """Create a new session (geolocation happens off the request path)
+
+    Never records an account: /api/session/init fires at script load, before
+    the frontend has restored a stored token, so nobody is signed in yet as far
+    as this request can tell. Attribution happens in attach_user_to_session.
+    """
     operation = """
-        INSERT INTO sessions (session_id, start_time, country, ip_address, user_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO sessions (session_id, start_time, country, ip_address)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT (session_id) DO NOTHING
     """
-    params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address, user_id)
+    params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address)
     batch_queue.add(operation, params)
 
     if ip_address:
@@ -250,11 +254,12 @@ def create_session(session_id: str, ip_address: Optional[str] = None,
 def attach_user_to_session(session_id: str, user_id: str):
     """Attribute an existing session to a signed-in account.
 
-    The session row is created at page load, which is usually *before* anyone
-    signs in -- so the stamp has to happen again on the first authenticated
-    request of that session, or every sign-in would still be counted as a
-    guest. Last account to act in the session wins, which is the right answer
-    when two people share a browser.
+    The single point where a session learns who it belongs to, called from
+    /api/chat. That is enough by construction: only sessions with a message
+    are ever counted, and the chat request is the one that carries the token.
+
+    Last account to act in the session wins, which is the right answer when
+    two people share a browser.
     """
     operation = """
         UPDATE sessions SET user_id = ? WHERE session_id = ?

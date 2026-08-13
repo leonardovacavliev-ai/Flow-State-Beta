@@ -145,14 +145,13 @@ def run_checks():
         "INSERT INTO users (id, google_sub, email, name) VALUES (%s, %s, %s, %s)",
         (account_id, f"sub-{account_id}", 'Signed.In@example.com', 'Signed In')
     )
-    signed_at_init, signed_mid_session = f"test-{uuid.uuid4()}", f"test-{uuid.uuid4()}"
-    # Already signed in when the page loaded
-    analytics.create_session(signed_at_init, '198.51.100.1', account_id)
-    analytics.track_message(signed_at_init, 'user', 'Signed-in question', 'klaviyo')
-    # Signed in after the session row existed -- the common case
-    analytics.create_session(signed_mid_session, '198.51.100.2')
-    analytics.attach_user_to_session(signed_mid_session, account_id)
-    analytics.track_message(signed_mid_session, 'user', 'Another question', 'klaviyo')
+    # Sessions always start anonymous -- /api/session/init carries no token --
+    # and are attributed when the account sends its first message.
+    signed_first, signed_second = f"test-{uuid.uuid4()}", f"test-{uuid.uuid4()}"
+    for signed_session, ip in ((signed_first, '198.51.100.1'), (signed_second, '198.51.100.2')):
+        analytics.create_session(signed_session, ip)
+        analytics.attach_user_to_session(signed_session, account_id)
+        analytics.track_message(signed_session, 'user', 'Signed-in question', 'klaviyo')
 
     analytics.batch_queue.force_flush()
 

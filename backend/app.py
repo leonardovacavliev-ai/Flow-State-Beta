@@ -389,6 +389,9 @@ def _signed_in_user_id():
     Auth is registered defensively (see AUTH_AVAILABLE) and analytics must not
     be the thing that takes chat down, so a broken auth import degrades this
     visitor to a guest rather than failing the request.
+
+    Only meaningful on requests the frontend sends a token with -- /api/chat
+    does, /api/session/init does not.
     """
     if not AUTH_AVAILABLE:
         return None
@@ -403,7 +406,7 @@ def init_session():
     """Initialize a new analytics session"""
     session_id = str(uuid.uuid4())
     ip_address = request.remote_addr
-    create_session(session_id, ip_address, _signed_in_user_id())
+    create_session(session_id, ip_address)
     return jsonify({'session_id': session_id})
 
 @app.route('/api/session/end', methods=['POST'])
