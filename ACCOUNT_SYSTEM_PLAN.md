@@ -1,8 +1,8 @@
 # Account System Plan — Google Login, Saved Conversations, Yotpo-Only Admin
 
-**Status**: In progress — steps 1-6 of §9 done. Sign-in and Yotpo-gated admin are
-live in production; conversation persistence is built but unpushed, pending the
-history panel (step 7).
+**Status**: Feature complete — steps 1-7 of §9 done. Google sign-in, saved
+conversations and Yotpo-gated admin all built and verified. Step 8 (cleanup) is
+optional polish.
 **Created**: 2026-08-13
 **Owner**: Leo Vacavliev
 
@@ -25,7 +25,7 @@ last. Keep it in the repo root next to the other phase docs.
 | Admin gating switched from password → email domain | ✅ Session 1 — 44 routes, probed with 3 identities |
 | Frontend sign-in UI (`frontend/auth.js`) | ✅ Session 1, verified in browser |
 | Conversation lifecycle (begin/end) wired in frontend | ✅ Session 1, 35 checks + browser-verified |
-| History panel rebuilt (conversations, not messages) | ⬜ |
+| History panel rebuilt (conversations, not messages) | ✅ Session 1, browser-verified |
 | Deployed to Railway | ✅ Steps 2-5 live (`717ee0f`), admin gate verified in production |
 
 **Production**: https://flow-state-beta-production.up.railway.app/ — real Google sign-in
@@ -61,6 +61,7 @@ _(nothing blocking — all of §8 is answered)_
 | 2026-08-13 | 1 (cont.) | Pushed steps 2-4 (`08627f8`). **Step 5 done** — one shared `admin_request_ok()` swapped in behind the existing `is_admin_request()` / `check_admin_password()` names, so all 44 admin routes converted without a decorator retrofit. Closed 4 endpoints that were open (`esp/<n>/links`, `esp/<n>/stats` ×2, `crawl-status`, `settings/api-status`). Frontend password removed entirely. Probed every route with none/gmail/yotpo tokens: 403/403/pass. | Leo to confirm on production with a real `@yotpo.com` account, then Step 6 (conversation persistence). |
 | 2026-08-13 | 1 (cont.) | **Step 5 deployed** (`717ee0f`). Verified on production: `RICHCSM` rejected with 403 on every admin route, `/api/admin/esps` and `/api/auth/config` still public, guest chat still 200, Admin button hidden and password field gone from the DOM. **Leo has not yet opened the admin panel with his real account — that is the one untested path.** | Leo signs in on production and opens Admin. Then Step 6 (conversation persistence). |
 | 2026-08-13 | 1 (cont.) | **Step 6 done** — `backend/conversations.py` (CRUD, resume, idle sweep, 90-day purge), `/api/chat` accepts `conversation_id` and loads history from the DB, frontend lifecycle wired to first-message / ESP-click / tab-close. 35 automated checks + browser-verified. **Not pushed** — the clock modal still reads sessionStorage, so a signed-in user would see an empty history until step 7. Ship 6+7 together. | Step 7: rebuild the clock modal against `/api/conversations`, plus the three disclaimer variants (§11.3/§11.4). |
+| 2026-08-13 | 1 (cont.) | **Step 7 done** — clock modal rebuilt against `/api/conversations`: per-ESP list, open-to-resume, per-row delete, guest vs signed-in disclaimers. Browser-verified incl. resume appending to the same conversation (seq 1-4, still 2 conversations not 3), cross-ESP open switching the sidebar, and titles escaped against XSS. Old `i`/`i+1` pairing and single-pair Restore removed. | Deploy 6+7 together, then optional Step 8 cleanup. |
 
 ### Gotchas discovered so far
 - `messages` table stores **`message_length` only, never content** — the app has never

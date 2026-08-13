@@ -1752,126 +1752,199 @@ const historyContent = document.getElementById('historyContent');
 const historyTitle = document.getElementById('historyTitle');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
-function showHistory(esp) {
-    const history = conversationHistories[esp] || [];
-    const espName = esp === 'other/webhook' ? 'Other/Webhook' :
-                    esp === 'klaviyo' ? 'Klaviyo' :
-                    esp === 'dotdigital' ? 'DotDigital' :
-                    esp === 'attentive' ? 'Attentive' : esp;
+// The clock button opens this per-ESP. For a signed-in user it lists saved
+// conversations from the server; for a guest it explains why there are none.
+//
+// The old version walked a flat sessionStorage array two entries at a time,
+// assuming perfect user/assistant alternation. `seq` from the server removes
+// that assumption entirely.
 
-    historyTitle.textContent = `${espName} - Conversation History`;
+let historyESP = null;   // which ESP's history is currently open
 
-    if (history.length === 0) {
-        historyContent.innerHTML = `
-            <div class="text-center py-12 text-muted-foreground">
-                <svg class="w-16 h-16 mx-auto mb-4 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <p>No conversation history yet for this ESP.</p>
-            </div>
-        `;
-    } else {
-        // Group messages into conversations (pairs of user + assistant)
-        let conversationsHTML = '';
-
-        for (let i = 0; i < history.length; i += 2) {
-            const userMsg = history[i];
-            const assistantMsg = history[i + 1];
-
-            if (userMsg) {
-                const timestamp = new Date(userMsg.timestamp).toLocaleString();
-                let assistantContent = '';
-
-                if (assistantMsg) {
-                    if (typeof marked !== 'undefined') {
-                        try {
-                            assistantContent = assistantMsg.content && typeof assistantMsg.content === 'string'
-                                ? renderMarkdown(assistantMsg.content)
-                                : escapeHtml(assistantMsg.content || '');
-                        } catch (error) {
-                            console.error('Markdown parsing error in history:', error);
-                            assistantContent = escapeHtml(assistantMsg.content || '');
-                        }
-                    } else {
-                        assistantContent = escapeHtml(assistantMsg.content || '');
-                    }
-                }
-
-                conversationsHTML += `
-                    <div class="bg-muted/50 rounded-lg p-4 mb-4 border border-border">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="text-xs text-muted-foreground font-medium">${timestamp}</div>
-                            <button class="restore-conversation-btn flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 font-medium transition-colors" data-index="${i}" title="Restore this conversation to main chat">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="23 4 23 10 17 10"></polyline>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
-                                </svg>
-                                Restore
-                            </button>
-                        </div>
-                        <div class="bg-primary text-primary-foreground rounded-lg p-3 mb-2">
-                            <div class="text-xs font-medium mb-1 opacity-70 uppercase tracking-wide">You</div>
-                            <div class="text-sm">${escapeHtml(userMsg.content)}</div>
-                        </div>
-                        ${assistantMsg ? `
-                            <div class="bg-background text-foreground rounded-lg p-3 border border-border">
-                                <div class="text-xs font-medium mb-1 opacity-70 uppercase tracking-wide">Assistant</div>
-                                <div class="text-sm prose prose-xs max-w-none">${assistantContent}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }
-        }
-
-        historyContent.innerHTML = conversationsHTML;
-
-        // Add event listeners to restore buttons
-        document.querySelectorAll('.restore-conversation-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const index = parseInt(e.currentTarget.dataset.index);
-                restoreConversation(esp, index);
-            });
-        });
-    }
-
-    historyModal.classList.remove('hidden');
+function espDisplayName(esp) {
+    const btn = document.querySelector(`.esp-item[data-esp="${esp}"]`);
+    if (btn && btn.textContent.trim()) return btn.textContent.trim();
+    return esp === 'other/webhook' ? 'Other/Webhook' : esp;
 }
 
-function restoreConversation(esp, index) {
-    const history = conversationHistories[esp] || [];
-    const userMsg = history[index];
-    const assistantMsg = history[index + 1];
+function relativeTime(iso) {
+    if (!iso) return '';
+    // Server timestamps are UTC without a zone marker; say so explicitly or
+    // the browser reads them as local and every conversation looks hours old.
+    const then = new Date(/[Z+]/.test(iso) ? iso : iso.replace(' ', 'T') + 'Z');
+    if (isNaN(then)) return '';
+    const mins = Math.round((Date.now() - then.getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins} min ago`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.round(hours / 24);
+    if (days < 30) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return then.toLocaleDateString();
+}
 
-    if (!userMsg) return;
+function historyEmptyState(message) {
+    return `
+        <div class="text-center py-12 text-muted-foreground">
+            <svg class="w-16 h-16 mx-auto mb-4 opacity-30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <p>${message}</p>
+        </div>
+    `;
+}
 
-    // Clear current chat display
-    chatMessages.innerHTML = '';
+async function showHistory(esp) {
+    historyESP = esp;
+    historyTitle.textContent = `${espDisplayName(esp)} — Saved conversations`;
+    historyModal.classList.remove('hidden');
+    updateHistoryDisclaimer();
 
-    // Add the restored conversation to the chat
-    addMessage('user', userMsg.content);
-    if (assistantMsg) {
-        addMessage('assistant', assistantMsg.content);
+    // Deleting is per-conversation now; the bulk "Clear History" button only
+    // makes sense for a guest's sessionStorage.
+    clearHistoryBtn.classList.toggle('hidden', !!(window.Auth && window.Auth.isSignedIn()));
+
+    if (!window.Auth || !window.Auth.isSignedIn()) {
+        historyContent.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto mb-4 opacity-30 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <p class="text-card-foreground font-medium mb-1">You're not signed in</p>
+                <p class="text-sm text-muted-foreground max-w-sm mx-auto">
+                    This conversation won't be saved. Sign in with Google — using the button
+                    at the top right — to keep your conversations and come back to them later.
+                </p>
+            </div>
+        `;
+        return;
     }
 
-    // Close the history modal
-    historyModal.classList.add('hidden');
+    historyContent.innerHTML = historyEmptyState('Loading…');
 
-    // Scroll to top of chat
-    chatMessages.scrollTop = 0;
+    let conversations = [];
+    try {
+        const espParam = encodeURIComponent(esp.replace('/', '_'));
+        const response = await fetch(`${API_URL}/conversations?esp=${espParam}`, {
+            headers: window.Auth.headers()
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        conversations = (await response.json()).conversations || [];
+    } catch (error) {
+        console.error('Could not load conversations:', error);
+        historyContent.innerHTML = historyEmptyState(
+            "Couldn't load your conversations. Please try again.");
+        return;
+    }
+
+    if (conversations.length === 0) {
+        historyContent.innerHTML = historyEmptyState(
+            `No saved conversations for ${escapeHtml(espDisplayName(esp))} yet.`);
+        return;
+    }
+
+    historyContent.innerHTML = conversations.map(c => `
+        <div class="bg-muted/50 rounded-lg p-4 mb-3 border border-border flex items-start gap-3">
+            <button class="open-conversation-btn flex-1 text-left min-w-0" data-id="${escapeAttr(c.id)}">
+                <div class="text-sm font-medium text-card-foreground truncate">${escapeHtml(c.title || 'Untitled conversation')}</div>
+                <div class="text-xs text-muted-foreground mt-1">
+                    ${relativeTime(c.last_message_at)} · ${c.message_count} message${c.message_count === 1 ? '' : 's'}
+                </div>
+            </button>
+            <button class="delete-conversation-btn flex-shrink-0 text-muted-foreground hover:text-destructive transition-colors p-1"
+                    data-id="${escapeAttr(c.id)}" title="Delete this conversation" aria-label="Delete conversation">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+            </button>
+        </div>
+    `).join('');
+
+    historyContent.querySelectorAll('.open-conversation-btn').forEach(btn => {
+        btn.addEventListener('click', () => openConversation(btn.dataset.id, esp));
+    });
+    historyContent.querySelectorAll('.delete-conversation-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteConversation(btn.dataset.id, esp));
+    });
+}
+
+/** Load a saved conversation into the chat pane and resume it. */
+async function openConversation(conversationId, esp) {
+    let conv;
+    try {
+        const response = await fetch(`${API_URL}/conversations/${conversationId}`, {
+            headers: window.Auth.headers()
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        conv = await response.json();
+    } catch (error) {
+        console.error('Could not open conversation:', error);
+        alert('Could not open that conversation. Please try again.');
+        return;
+    }
+
+    // Switch to the conversation's ESP if it isn't the selected one. Ends the
+    // current conversation first -- the same rule as clicking an ESP.
+    if (esp && esp !== selectedESP) {
+        const espButton = document.querySelector(`.esp-item[data-esp="${esp}"]`);
+        if (espButton) espButton.click();   // ends the active conversation
+    } else {
+        await endActiveConversation();
+    }
+
+    // Render the transcript. No gradient intro: we are mid-conversation, not
+    // at the start of one.
+    chatMessages.innerHTML = '';
+    conv.messages.forEach(m => addMessage(m.role, m.content));
+
+    // Resuming means new messages append to this same conversation.
+    activeConversationId = conv.id;
+
+    historyModal.classList.add('hidden');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function deleteConversation(conversationId, esp) {
+    if (!confirm('Delete this conversation? This cannot be undone.')) return;
+    try {
+        const response = await fetch(`${API_URL}/conversations/${conversationId}`, {
+            method: 'DELETE',
+            headers: window.Auth.headers()
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+        console.error('Could not delete conversation:', error);
+        alert('Could not delete that conversation. Please try again.');
+        return;
+    }
+
+    // If they deleted the conversation they're currently in, stop writing to it.
+    if (activeConversationId === conversationId) activeConversationId = null;
+    showHistory(esp);
+}
+
+/** The modal's footnote differs for guests and signed-in users. */
+function updateHistoryDisclaimer() {
+    const el = document.getElementById('historyDisclaimer');
+    if (!el) return;
+    el.textContent = (window.Auth && window.Auth.isSignedIn())
+        ? 'Your conversations are saved to your account and deleted after 90 days of inactivity.'
+        : "You're not signed in, so this conversation won't be saved.";
 }
 
 closeHistory.addEventListener('click', () => {
     historyModal.classList.add('hidden');
 });
 
+// Guests only: clears this ESP's sessionStorage history. Signed-in users
+// delete individual conversations instead, so the button is hidden for them.
 clearHistoryBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to clear the conversation history for this ESP? This cannot be undone.')) {
+    if (confirm('Clear this browser session\'s history for this ESP? This cannot be undone.')) {
         clearCurrentHistory();
         historyModal.classList.add('hidden');
-        alert('History cleared for current session.');
     }
 });
 
