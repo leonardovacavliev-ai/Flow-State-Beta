@@ -194,8 +194,8 @@ function renderAccountControl() {
             </button>
             <!-- The chip background is not decoration: this sits on top of the
                  gradient intro, where plain muted text is unreadable. -->
-            <p class="mt-1.5 ml-auto w-fit px-2 py-0.5 rounded-full bg-card/85 backdrop-blur-sm border border-border text-[11px] text-muted-foreground leading-tight">
-                Not signed in — chats aren't saved
+            <p class="mt-1.5 px-2 py-1 rounded-lg bg-card/85 backdrop-blur-sm border border-border text-[11px] text-right text-muted-foreground leading-tight">
+                Not signed in<br>Chats aren't saved
             </p>
         `;
     }
