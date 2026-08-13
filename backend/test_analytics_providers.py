@@ -153,9 +153,26 @@ def run_checks():
         analytics.attach_user_to_session(signed_session, account_id)
         analytics.track_message(signed_session, 'user', 'Signed-in question', 'klaviyo')
 
+    # Usage by ESP is per *chat*, not per session: sess_a already asked about
+    # klaviyo, and asking about attentive in the same session must add to
+    # attentive without taking anything away from klaviyo.
+    analytics.track_message(sess_a, 'user', 'And the same in Attentive?', 'attentive')
+    # ESP selections are dropdown clicks, not chats -- picking an ESP and
+    # never typing must not appear in the table.
+    analytics.track_esp_selection(bounced, 'dotdigital')
+
     analytics.batch_queue.force_flush()
 
     engaged = analytics.get_analytics('last_7_days')
+    by_esp = {row['esp']: row['conversations'] for row in engaged['esp_breakdown']}
+    # klaviyo: sess_a, 2 guests, 2 signed-in. attentive: sess_a, sess_b.
+    check("ESP counted per chat, so one session counts toward both its ESPs",
+          by_esp.get('klaviyo') == 5 and by_esp.get('attentive') == 2)
+    check("ESP totals exceed sessions when a session spans two ESPs",
+          sum(by_esp.values()) == 7 and engaged['sessions']['value'] == 6)
+    check("selecting an ESP without chatting is not counted",
+          'dotdigital' not in by_esp)
+
     # sess_a, sess_b, 2 guests, 2 signed-in = 6 engaged; bounced excluded
     check("bounced page load not counted as a session",
           engaged['sessions']['value'] == 6)
