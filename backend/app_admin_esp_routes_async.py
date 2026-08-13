@@ -11,7 +11,12 @@ Usage:
 from flask import jsonify, request
 from esp_manager import get_esp_manager
 from crawler import vectorize_single_document
-from app_admin_esp_routes import check_admin_password, delete_document_artifacts, rebuild_esp_vectors
+from app_admin_esp_routes import (
+    check_admin_password,
+    delete_document_artifacts,
+    rebuild_esp_vectors,
+    register_esp_rename_route,
+)
 import os
 import uuid
 
@@ -30,6 +35,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     def get_db():
         """Get database adapter instance."""
         return get_database_adapter()
+
+    register_esp_rename_route(app)
 
     # ==================== EXISTING ROUTES (unchanged) ====================
     # These routes work exactly the same way

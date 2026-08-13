@@ -137,6 +137,47 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
     return rebuilt, skipped
 
 
+def register_esp_rename_route(app):
+    """Register the ESP rename endpoint.
+
+    Shared by the sync and async registrars -- only one of them runs per app,
+    so the endpoint name can't collide.
+
+    Renaming changes the display name only. The internal `name` is the key for
+    vector metadata, the docs/ folder, analytics rows and saved conversations,
+    so changing it would orphan all of that.
+    """
+
+    @app.route('/api/admin/esp/<esp_name>/rename', methods=['POST'])
+    def rename_esp(esp_name):
+        """Change an ESP's display name."""
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+        try:
+            esp_mgr = get_esp_manager()
+            data = request.get_json(silent=True) or {}
+            display_name = (data.get('display_name') or '').strip()
+
+            if not display_name:
+                return jsonify({'error': 'Display name is required'}), 400
+            if len(display_name) > 200:
+                return jsonify({'error': 'Display name must be 200 characters or fewer'}), 400
+
+            esp = esp_mgr.get_esp_by_name(esp_name)
+            if not esp:
+                return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
+
+            esp_mgr.update_esp(esp['id'], display_name=display_name)
+
+            return jsonify({
+                'success': True,
+                'message': f"Renamed to '{display_name}'",
+                'esp': {**esp, 'display_name': display_name}
+            })
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
 def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     """Register all ESP admin routes with the Flask app."""
 
@@ -144,6 +185,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def get_mgr():
         """Get ESP manager instance (lazy initialization)."""
         return get_esp_manager()
+
+    register_esp_rename_route(app)
 
     @app.route('/api/admin/esps', methods=['GET'])
     def get_esps():

@@ -1188,7 +1188,15 @@ async function loadESPManagement() {
             }
 
             espDiv.innerHTML = `
-                <h4 class="text-base font-semibold text-card-foreground mb-3">${displayName} (${esp.doc_count} documents)</h4>
+                <h4 class="text-base font-semibold text-card-foreground mb-3 flex items-center gap-2">
+                    <span>${escapeHtml(displayName)} (${esp.doc_count} documents)</span>
+                    <button type="button" class="esp-rename-btn text-muted-foreground hover:text-primary transition-colors" data-esp="${escapeAttr(esp.name)}" data-display-name="${escapeAttr(displayName)}" title="Rename ${escapeAttr(displayName)}" aria-label="Rename ${escapeAttr(displayName)}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                        </svg>
+                    </button>
+                </h4>
                 <div class="space-y-2 mb-4" id="links-${esp.name}">
                     ${linksHTML}
                 </div>
@@ -1199,6 +1207,13 @@ async function loadESPManagement() {
             `;
 
             container.appendChild(espDiv);
+
+            const renameBtn = espDiv.querySelector('.esp-rename-btn');
+            if (renameBtn) {
+                renameBtn.addEventListener('click', () => {
+                    renameESP(renameBtn.dataset.esp, renameBtn.dataset.displayName);
+                });
+            }
 
             // Add checkbox change listeners for global bulk actions
             const checkboxes = espDiv.querySelectorAll('.link-checkbox');
@@ -1214,6 +1229,35 @@ async function loadESPManagement() {
 
     } catch (error) {
         console.error('Error loading ESP management:', error);
+    }
+}
+
+// Rename an ESP's display name. The internal name stays put -- it keys the
+// vectors, docs folder and analytics -- so only the label users see changes.
+async function renameESP(espName, currentDisplayName) {
+    const newName = prompt(`Rename "${currentDisplayName}":`, currentDisplayName);
+
+    if (newName === null) return;                     // cancelled
+    const trimmed = newName.trim();
+    if (!trimmed || trimmed === currentDisplayName) return;
+
+    try {
+        const response = await fetch(`${API_URL}/admin/esp/${espName}/rename`, {
+            method: 'POST',
+            headers: adminHeaders(),
+            body: JSON.stringify({ display_name: trimmed })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            await loadESPManagement();
+            await reloadSidebar();
+        } else {
+            alert('Error: ' + (data.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error renaming ESP: ' + error.message);
     }
 }
 
