@@ -28,13 +28,14 @@ function renderMarkdown(content) {
 }
 
 let selectedESP = 'klaviyo';
-let adminPassword = '';
 
-// Headers for authenticated admin requests (GETs can't carry a body)
+// Headers for admin requests. Admin is now a verified @yotpo.com Google
+// account rather than a shared password, so every admin call carries the
+// session token issued by /api/auth/google (see auth.js).
 function adminHeaders() {
     return {
         'Content-Type': 'application/json',
-        'X-Admin-Password': adminPassword
+        ...(window.Auth ? window.Auth.headers() : {})
     };
 }
 let sessionId = null;
@@ -570,42 +571,61 @@ document.getElementById('feedbackForm').addEventListener('submit', async (e) => 
 });
 
 // Admin Modal
-adminBtn.addEventListener('click', () => {
+//
+// Access is a verified @yotpo.com Google account. Opening the modal asks the
+// server whether this caller qualifies rather than trusting the local
+// is_admin flag -- and every admin route enforces it again regardless, so
+// this only decides which of the two panes to show.
+let adminTabsInitialized = false;
+
+async function openAdminPanel() {
+    const authPane = document.getElementById('adminAuth');
+    const panelPane = document.getElementById('adminPanel');
+
     adminModal.classList.remove('hidden');
-});
+    authPane.style.display = 'block';
+    panelPane.style.display = 'none';
+
+    if (!window.Auth || !window.Auth.isSignedIn()) return;
+
+    try {
+        const response = await fetch(`${API_URL}/admin/verify`, {
+            method: 'POST',
+            headers: adminHeaders()
+        });
+        const data = await response.json();
+        if (!data.valid) return;
+
+        authPane.style.display = 'none';
+        panelPane.style.display = 'block';
+        if (!adminTabsInitialized) {
+            initializeAdminTabs();
+            adminTabsInitialized = true;
+        }
+        loadAnalytics();
+    } catch (error) {
+        console.error('Could not check admin access:', error);
+    }
+}
+
+adminBtn.addEventListener('click', openAdminPanel);
 
 closeAdmin.addEventListener('click', () => {
     adminModal.classList.add('hidden');
 });
 
-document.getElementById('verifyAdmin').addEventListener('click', async () => {
-    const password = document.getElementById('adminPassword').value;
+// The Admin button is only shown to @yotpo.com accounts. This is cosmetic --
+// the server rejects everyone else regardless of what the UI displays.
+function syncAdminButtonVisibility() {
+    const isAdmin = !!(window.Auth && window.Auth.isAdmin());
+    adminBtn.classList.toggle('hidden', !isAdmin);
+    if (!isAdmin) adminModal.classList.add('hidden');
+}
 
-    try {
-        const response = await fetch(`${API_URL}/admin/verify`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ password })
-        });
-
-        const data = await response.json();
-
-        if (data.valid) {
-            adminPassword = password;
-            document.getElementById('adminAuth').style.display = 'none';
-            document.getElementById('adminPanel').style.display = 'block';
-            initializeAdminTabs();
-            // Load analytics by default (first tab)
-            loadAnalytics();
-        } else {
-            alert('Invalid password');
-        }
-    } catch (error) {
-        alert('Error verifying password: ' + error.message);
-    }
-});
+if (window.Auth) {
+    window.Auth.onChange(syncAdminButtonVisibility);
+}
+syncAdminButtonVisibility();
 
 function initializeAdminTabs() {
     const tabs = document.querySelectorAll('.admin-tab');
@@ -1024,7 +1044,7 @@ async function loadESPManagement() {
 
         // Fetch all ESP links in parallel (performance optimization)
         const espPromises = data.esps.map(async esp => {
-            const linksResponse = await fetch(`${API_URL}/admin/esp/${esp.name}/links`);
+            const linksResponse = await fetch(`${API_URL}/admin/esp/${esp.name}/links`, { headers: adminHeaders() });
             const linksData = await linksResponse.json();
             return { esp, links: linksData.links };
         });
@@ -1125,11 +1145,13 @@ async function checkAsyncCrawlSupport() {
     try {
         // Try to access the async endpoint - if it exists, async is enabled
         const response = await fetch(`${API_URL}/admin/crawl-status?job_ids=00000000-0000-0000-0000-000000000000`, {
-            method: 'GET'
+            method: 'GET',
+            headers: adminHeaders()
         });
-        // If we get 200 (even with empty results), async is enabled
-        // If we get 404, async endpoints don't exist
-        USE_ASYNC_CRAWL = response.status !== 404;
+        // 200 means the async endpoints exist; 404 means they don't.
+        // 401/403 means we simply aren't admin, which says nothing about
+        // whether async crawl is available -- don't infer it's enabled.
+        USE_ASYNC_CRAWL = response.ok;
     } catch (error) {
         USE_ASYNC_CRAWL = false;
     }
@@ -1196,8 +1218,8 @@ async function crawlAllSelectedAsync() {
             try {
                 const response = await fetch(`${API_URL}/admin/esp/${espName}/crawl-selected`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: adminPassword, urls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls })
                 });
 
                 const data = await response.json();
@@ -1220,8 +1242,8 @@ async function crawlAllSelectedAsync() {
             try {
                 const response = await fetch(`${API_URL}/admin/global-knowledge/crawl-selected`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password: adminPassword, urls: globalUrls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls: globalUrls })
                 });
 
                 const data = await response.json();
@@ -1362,10 +1384,8 @@ async function crawlAllSelectedSync() {
             try {
                 const response = await fetch(`${API_URL}/admin/esp/${espName}/crawl-selected`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ password: adminPassword, urls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls })
                 });
 
                 const data = await response.json();
@@ -1393,10 +1413,8 @@ async function crawlAllSelectedSync() {
             try {
                 const response = await fetch(`${API_URL}/admin/global-knowledge/crawl-selected`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ password: adminPassword, urls: globalUrls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls: globalUrls })
                 });
 
                 const data = await response.json();
@@ -1498,10 +1516,8 @@ async function deleteAllSelected() {
             try {
                 const response = await fetch(`${API_URL}/admin/esp/${espName}/delete-links`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ password: adminPassword, urls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls })
                 });
 
                 const data = await response.json();
@@ -1521,10 +1537,8 @@ async function deleteAllSelected() {
             try {
                 const response = await fetch(`${API_URL}/admin/global-knowledge/delete-links`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ password: adminPassword, urls: globalUrls })
+                    headers: adminHeaders(),
+                    body: JSON.stringify({ urls: globalUrls })
                 });
 
                 const data = await response.json();
@@ -1568,10 +1582,8 @@ async function addLink(espName) {
     try {
         const response = await fetch(`${API_URL}/admin/esp/${espName}/add-link`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ password: adminPassword, url })
+            headers: adminHeaders(),
+            body: JSON.stringify({ url })
         });
 
         const data = await response.json();
@@ -1597,10 +1609,8 @@ document.getElementById('createESPBtn').addEventListener('click', async () => {
     try {
         const response = await fetch(`${API_URL}/admin/esp/create`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ password: adminPassword, name })
+            headers: adminHeaders(),
+            body: JSON.stringify({ name })
         });
 
         const data = await response.json();
@@ -1624,10 +1634,8 @@ document.getElementById('refreshAllBtn').addEventListener('click', async () => {
     try {
         const response = await fetch(`${API_URL}/admin/refresh`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ password: adminPassword })
+            headers: adminHeaders(),
+            body: JSON.stringify({})
         });
 
         const data = await response.json();
@@ -1971,9 +1979,8 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
         if (apiKey) {
             const apiKeyResponse = await fetch(`${API_URL}/admin/settings/api-key`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: adminHeaders(),
                 body: JSON.stringify({
-                    password: adminPassword,
                     provider,
                     api_key: apiKey,
                     user_email: userEmail
@@ -1990,9 +1997,8 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
         // Update model configuration
         const response = await fetch(`${API_URL}/admin/settings/ai-model`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
-                password: adminPassword,
                 provider,
                 model_name: modelName,
                 user_email: userEmail
@@ -2035,9 +2041,8 @@ document.getElementById('updatePromptBtn').addEventListener('click', async () =>
     try {
         const response = await fetch(`${API_URL}/admin/settings/system-prompt`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
-                password: adminPassword,
                 system_prompt: systemPrompt,
                 user_email: userEmail
             })
@@ -2072,9 +2077,8 @@ async function restoreFromBackup(auditIndex, timestamp) {
     try {
         const response = await fetch(`${API_URL}/admin/settings/restore`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
-                password: adminPassword,
                 audit_index: auditIndex,
                 user_email: userEmail
             })
@@ -2161,8 +2165,8 @@ async function addGlobalKnowledgeLink() {
     try {
         const response = await fetch(`${API_URL}/admin/global-knowledge/add-link`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: adminPassword, url })
+            headers: adminHeaders(),
+            body: JSON.stringify({ url })
         });
 
         const data = await response.json();

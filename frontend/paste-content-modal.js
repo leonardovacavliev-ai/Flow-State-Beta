@@ -64,9 +64,8 @@ async function submitPasteContent() {
 
         const response = await fetch(endpoint, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminHeaders(),
             body: JSON.stringify({
-                password: adminPassword,
                 url: currentPasteContext.url,
                 content: content
             })

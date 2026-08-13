@@ -46,15 +46,14 @@ if 'ADMIN_PASSWORD' not in os.environ:
           "Set ADMIN_PASSWORD in the environment for production.")
 
 def is_admin_request():
-    """Check admin password from header, query param, or JSON body."""
-    password = (
-        request.headers.get('X-Admin-Password', '')
-        or request.args.get('password', '')
-    )
-    if not password and request.is_json:
-        data = request.get_json(silent=True) or {}
-        password = data.get('password', '')
-    return password == ADMIN_PASSWORD
+    """True when the caller is a verified @yotpo.com Google account.
+
+    Was a shared-password check. The password now only works as the
+    break-glass path (ADMIN_PASSWORD_FALLBACK=true), handled inside
+    admin_request_ok().
+    """
+    from auth import admin_request_ok
+    return admin_request_ok()
 
 # Initialize configuration manager
 config_manager = ConfigManager(BASE_PATH)
@@ -635,11 +634,12 @@ def submit_feedback():
 
 @app.route('/api/admin/verify', methods=['POST'])
 def verify_admin():
-    """Verify admin password"""
-    data = request.json
-    password = data.get('password', '')
+    """Report whether the caller may use the admin panel.
 
-    return jsonify({'valid': password == ADMIN_PASSWORD})
+    Used to gate the UI only. Every admin route enforces access itself, so a
+    forged 'valid': true here buys nothing.
+    """
+    return jsonify({'valid': is_admin_request()})
 
 # ========== OLD FILESYSTEM-BASED ESP ROUTES (Phase 4: Disabled by default) ==========
 # These routes are replaced by database-backed routes in app_admin_esp_routes.py
@@ -678,6 +678,8 @@ if not USE_DATABASE_ESP_ROUTES:
     @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
     def get_esp_links(esp_name):
         """Get links for a specific ESP with crawl status"""
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
         metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
 
@@ -757,11 +759,10 @@ if not USE_DATABASE_ESP_ROUTES:
     def add_esp_link(esp_name):
         """Add a new link to an ESP"""
         data = request.json
-        password = data.get('password', '')
         url = data.get('url', '')
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({'error': 'Invalid password'}), 403
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
@@ -811,11 +812,10 @@ if not USE_DATABASE_ESP_ROUTES:
     def create_esp():
         """Create a new ESP directory"""
         data = request.json
-        password = data.get('password', '')
         esp_name = data.get('name', '').lower()
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({'error': 'Invalid password'}), 403
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
         if not esp_name:
             return jsonify({'error': 'No ESP name provided'}), 400
@@ -836,11 +836,10 @@ if not USE_DATABASE_ESP_ROUTES:
     def crawl_selected_links(esp_name):
         """Crawl selected links for a specific ESP"""
         data = request.json
-        password = data.get('password', '')
         urls = data.get('urls', [])
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({'error': 'Invalid password'}), 403
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
         if not urls:
             return jsonify({'error': 'No URLs provided'}), 400
@@ -917,12 +916,11 @@ if not USE_DATABASE_ESP_ROUTES:
     def paste_content(esp_name):
         """Manually add content for a link that can't be crawled"""
         data = request.json
-        password = data.get('password', '')
         url = data.get('url', '')
         content = data.get('content', '')
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({'error': 'Invalid password'}), 403
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
         if not url or not content:
             return jsonify({'error': 'URL and content are required'}), 400
@@ -990,11 +988,10 @@ if not USE_DATABASE_ESP_ROUTES:
     def delete_esp_links(esp_name):
         """Delete selected links for a specific ESP"""
         data = request.json
-        password = data.get('password', '')
         urls = data.get('urls', [])
 
-        if password != ADMIN_PASSWORD:
-            return jsonify({'error': 'Invalid password'}), 403
+        if not is_admin_request():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
         if not urls:
             return jsonify({'error': 'No URLs provided'}), 400
@@ -1048,8 +1045,8 @@ if not USE_DATABASE_ESP_ROUTES:
 def debug_pinecone_sample():
     """Debug endpoint to see what's actually in Pinecone (admin only)"""
     password = request.args.get('password', '') or request.headers.get('X-Admin-Password', '')
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if VECTOR_PROVIDER != 'pinecone':
         return jsonify({'error': f'Not using Pinecone (provider: {VECTOR_PROVIDER})'}), 400
@@ -1089,10 +1086,9 @@ def debug_pinecone_sample():
 def refresh_all():
     """Re-crawl all links and update vector database"""
     data = request.json
-    password = data.get('password', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     try:
         # Re-crawl
@@ -1113,7 +1109,7 @@ def refresh_all():
 def get_analytics_data():
     """Get analytics data for dashboard (admin only)"""
     if not is_admin_request():
-        return jsonify({'error': 'Invalid password'}), 403
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     time_range = request.args.get('time_range', 'all_time')
 
@@ -1132,7 +1128,7 @@ def get_analytics_data():
 def get_ai_model_config():
     """Get current AI model configuration (admin only)"""
     if not is_admin_request():
-        return jsonify({'error': 'Invalid password'}), 403
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
     try:
         config = config_manager.get_model_config()
         available_models = AIClient.get_available_models()
@@ -1149,13 +1145,12 @@ def get_ai_model_config():
 def update_ai_model_config():
     """Update AI model configuration"""
     data = request.json
-    password = data.get('password', '')
     provider = data.get('provider', '')
     model_name = data.get('model_name', '')
     user_email = data.get('user_email', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -1184,13 +1179,12 @@ def update_ai_model_config():
 def update_api_key():
     """Update API key for a provider"""
     data = request.json
-    password = data.get('password', '')
     provider = data.get('provider', '')
     api_key = data.get('api_key', '')
     user_email = data.get('user_email', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -1225,6 +1219,8 @@ def update_api_key():
 @app.route('/api/admin/settings/api-status', methods=['GET'])
 def check_api_status():
     """Check current API status"""
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
     try:
         status = ai_client.check_status()
         return jsonify(status)
@@ -1235,7 +1231,7 @@ def check_api_status():
 def get_system_prompt():
     """Get current system prompt (admin only)"""
     if not is_admin_request():
-        return jsonify({'error': 'Invalid password'}), 403
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
     try:
         prompt = config_manager.get_system_prompt()
         return jsonify({'system_prompt': prompt})
@@ -1246,12 +1242,11 @@ def get_system_prompt():
 def update_system_prompt():
     """Update system prompt"""
     data = request.json
-    password = data.get('password', '')
     new_prompt = data.get('system_prompt', '')
     user_email = data.get('user_email', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -1282,7 +1277,7 @@ def update_system_prompt():
 def get_audit_log():
     """Get configuration change audit log (admin only)"""
     if not is_admin_request():
-        return jsonify({'error': 'Invalid password'}), 403
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
     try:
         limit = request.args.get('limit', type=int, default=50)
         audit_log = config_manager.get_audit_log(limit=limit)
@@ -1295,12 +1290,11 @@ def get_audit_log():
 def restore_from_backup():
     """Restore configuration from backup"""
     data = request.json
-    password = data.get('password', '')
     audit_index = data.get('audit_index', -1)
     user_email = data.get('user_email', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -1332,7 +1326,7 @@ def restore_from_backup():
 def get_global_knowledge_links():
     """Get links for global knowledge base (admin only)"""
     if not is_admin_request():
-        return jsonify({'error': 'Invalid password'}), 403
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
     metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
@@ -1448,11 +1442,10 @@ def _delete_global_docs(urls):
 def add_global_knowledge_link():
     """Add a new link to global knowledge"""
     data = request.json
-    password = data.get('password', '')
     url = data.get('url', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
@@ -1529,11 +1522,10 @@ def crawl_global_knowledge_links():
     database from that copy ('backfilled') so the NO BACKUP flag can clear.
     """
     data = request.json
-    password = data.get('password', '')
     urls = data.get('urls', [])
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not urls:
         return jsonify({'error': 'No URLs provided'}), 400
@@ -1643,12 +1635,11 @@ def crawl_global_knowledge_links():
 def paste_global_content():
     """Manually add content for a global knowledge link that can't be crawled"""
     data = request.json
-    password = data.get('password', '')
     url = data.get('url', '')
     content = data.get('content', '')
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not url or not content:
         return jsonify({'error': 'URL and content are required'}), 400
@@ -1724,11 +1715,10 @@ def paste_global_content():
 def delete_global_knowledge_links():
     """Delete selected global knowledge links"""
     data = request.json
-    password = data.get('password', '')
     urls = data.get('urls', [])
 
-    if password != ADMIN_PASSWORD:
-        return jsonify({'error': 'Invalid password'}), 403
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not urls:
         return jsonify({'error': 'No URLs provided'}), 400

@@ -1,6 +1,7 @@
 # Account System Plan — Google Login, Saved Conversations, Yotpo-Only Admin
 
-**Status**: Planning. No code written yet.
+**Status**: In progress — steps 1-5 of §9 done. Sign-in works and admin is
+Yotpo-gated; conversation persistence (steps 6-8) is not built yet.
 **Created**: 2026-08-13
 **Owner**: Leo Vacavliev
 
@@ -15,12 +16,12 @@ last. Keep it in the repo root next to the other phase docs.
 ### Current state of the work
 | Item | State |
 |---|---|
-| Plan approved | ⬜ Not yet — open questions in §8 unanswered |
+| Plan approved | ✅ All of §8 answered by Leo |
 | Google Cloud OAuth client created | ✅ `906346920698-mb6i2n452iagsblgiduocgrtfcdt0dcs.apps.googleusercontent.com` |
 | DB schema written (users / conversations / conversation_messages) | ✅ Both dialects, session 1 |
 | DB schema applied to Railway | ⬜ Happens automatically on next deploy |
 | Backend auth module (`backend/auth.py`) | ✅ Session 1, 37 unit checks passing |
-| Admin gating switched from password → email domain | ⬜ **Next** — decorators exist, not yet applied to routes |
+| Admin gating switched from password → email domain | ✅ Session 1 — 44 routes, probed with 3 identities |
 | Frontend sign-in UI (`frontend/auth.js`) | ✅ Session 1, verified in browser |
 | Conversation lifecycle (begin/end) wired in frontend | ⬜ |
 | History panel rebuilt (conversations, not messages) | ⬜ |
@@ -52,6 +53,7 @@ _(nothing blocking — all of §8 is answered)_
 | 2026-08-13 | 1 (cont.) | Leo: 90-day retention, keep break-glass. All of §8 closed. **Step 2 done** — schema added to both `postgres_adapter.py` and `sqlite_adapter.py`, verified fresh + migrated (SQLite) and against Railway in a rolled-back transaction (Postgres). Nothing else reads the tables yet. | Leo creates the Google Cloud OAuth client (§3); then Step 3, `backend/auth.py`. |
 | 2026-08-13 | 1 (cont.) | Leo supplied the client id and set `GOOGLE_CLIENT_ID` + `SECRET_KEY` in Railway. **Step 3 done** — `backend/auth.py` (token verification, user upsert, `require_auth`/`require_admin`, `/api/auth/*`), registered in `app.py`, deps added. 37 unit checks pass; app boots with routes intact. Nothing is gated yet: admin still uses the old password path. | Step 4, frontend sign-in (§11.1). Then Step 5, the risky one. |
 | 2026-08-13 | 1 (cont.) | **Step 4 done** — `frontend/auth.js` + markup in `index.html`. Verified live in the browser: popup opens/closes (click, Escape, outside-click, toggle), Google button renders, avatar falls back to initials on a broken picture URL, admin badge shows only for `@yotpo.com`, sign-out clears storage, expired token is purged on load. Synthetic test users deleted afterwards. Nothing gated yet. | Step 5: swap the 3 admin auth implementations for `@require_admin`. Test with a real `@yotpo.com` account **before** merging. |
+| 2026-08-13 | 1 (cont.) | Pushed steps 2-4 (`08627f8`). **Step 5 done** — one shared `admin_request_ok()` swapped in behind the existing `is_admin_request()` / `check_admin_password()` names, so all 44 admin routes converted without a decorator retrofit. Closed 4 endpoints that were open (`esp/<n>/links`, `esp/<n>/stats` ×2, `crawl-status`, `settings/api-status`). Frontend password removed entirely. Probed every route with none/gmail/yotpo tokens: 403/403/pass. | Leo to confirm on production with a real `@yotpo.com` account, then Step 6 (conversation persistence). |
 
 ### Gotchas discovered so far
 - `messages` table stores **`message_length` only, never content** — the app has never

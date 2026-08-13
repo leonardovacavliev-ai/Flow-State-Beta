@@ -272,10 +272,24 @@ def _password_fallback_ok() -> bool:
     if not supplied:
         return False
     if supplied == os.environ.get('ADMIN_PASSWORD', 'RICHCSM'):
+        # flush=True: this is an audit line. Buffered stdout can hold it
+        # indefinitely, and a record of emergency access that might not
+        # reach the log is not a record.
         print(f"[ADMIN FALLBACK] password auth used on {request.method} {request.path} "
-              f"from {request.remote_addr} - Google auth should be fixed")
+              f"from {request.remote_addr} - Google auth should be fixed", flush=True)
         return True
     return False
+
+
+def admin_request_ok() -> bool:
+    """Boolean form of the admin check, for call sites that aren't decorators.
+
+    The existing admin routes are written as `if not check(): return 403`, so
+    swapping this one function's implementation converts every one of them at
+    once -- including the async ESP routes, which import their checker from
+    app_admin_esp_routes rather than defining their own.
+    """
+    return current_user_is_admin() or _password_fallback_ok()
 
 
 def require_admin(fn):
@@ -285,7 +299,7 @@ def require_admin(fn):
     """
     @wraps(fn)
     def wrapper(*args, **kwargs):
-        if current_user_is_admin() or _password_fallback_ok():
+        if admin_request_ok():
             return fn(*args, **kwargs)
         if current_user():
             return jsonify({'error': f'Admin access is limited to @{ADMIN_EMAIL_DOMAIN} accounts'}), 403

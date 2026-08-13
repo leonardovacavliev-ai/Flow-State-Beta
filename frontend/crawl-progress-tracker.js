@@ -59,9 +59,11 @@ class CrawlProgressTracker {
 
     async updateProgress() {
         try {
+            // crawl-status is admin-only now, so the poll has to carry the
+            // session token or every tick comes back 403.
             const response = await fetch(
                 `${this.apiUrl}/admin/crawl-status?job_ids=${this.jobIds.join(',')}`,
-                { method: 'GET' }
+                { method: 'GET', headers: (window.Auth ? window.Auth.headers() : {}) }
             );
 
             if (!response.ok) {
@@ -157,7 +159,10 @@ class CrawlProgressTracker {
 
             const response = await fetch(`${this.apiUrl}/admin/crawl-cancel`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(window.Auth ? window.Auth.headers() : {})
+                },
                 body: JSON.stringify({ job_ids: this.jobIds })
             });
 

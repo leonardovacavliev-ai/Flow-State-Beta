@@ -49,6 +49,10 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
     def get_esp_links(esp_name):
         """Get links for a specific ESP from database."""
+        # This endpoint had no check at all -- it exposed the whole crawl
+        # inventory, including failed URLs and error messages, to anyone.
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             docs = esp_mgr.list_documents(esp_name)
@@ -76,7 +80,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     def add_esp_link(esp_name):
         """Add a new link to an ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -102,7 +106,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     def create_esp():
         """Create a new ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -137,7 +141,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -165,6 +169,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/stats', methods=['GET'])
     def get_esp_stats(esp_name):
         """Get statistics for an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             stats = esp_mgr.get_esp_stats(esp_name)
@@ -199,7 +205,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             }
         """
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             db = get_db()
@@ -308,6 +314,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 }
             }
         """
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             db = get_db()
             job_ids_str = request.args.get('job_ids', '')
@@ -425,7 +433,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             }
         """
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             db = get_db()
             data = request.json
@@ -487,14 +495,13 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            password = data.get('password', '')
             url = data.get('url', '')
             content = data.get('content', '')
 
             # Verify admin password
             ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
-            if password != ADMIN_PASSWORD:
-                return jsonify({'error': 'Invalid password'}), 403
+            if not check_admin_password():
+                return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
             if not url or not content:
                 return jsonify({'error': 'URL and content are required'}), 400
@@ -592,7 +599,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         Use after a redeploy to restore the knowledge base, or to re-embed.
         """
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.get_json(silent=True) or {}

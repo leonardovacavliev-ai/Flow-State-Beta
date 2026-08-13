@@ -15,16 +15,14 @@ import json
 
 
 def check_admin_password():
-    """Check admin password from header, query param, or JSON body."""
-    admin_password = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
-    password = (
-        request.headers.get('X-Admin-Password', '')
-        or request.args.get('password', '')
-    )
-    if not password and request.is_json:
-        data = request.get_json(silent=True) or {}
-        password = data.get('password', '')
-    return password == admin_password
+    """True when the caller is a verified @yotpo.com Google account.
+
+    Name kept so the ~12 existing call sites -- including those in
+    app_admin_esp_routes_async.py, which imports this function -- switch over
+    without being touched. The password is now only the break-glass path.
+    """
+    from auth import admin_request_ok
+    return admin_request_ok()
 
 
 def delete_document_artifacts(esp_name, urls, vectorizer, base_path):
@@ -162,6 +160,10 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/links', methods=['GET'])
     def get_esp_links(esp_name):
         """Get links for a specific ESP from database."""
+        # This endpoint had no check at all -- it exposed the whole crawl
+        # inventory, including failed URLs and error messages, to anyone.
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             docs = esp_mgr.list_documents(esp_name)
@@ -189,7 +191,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def add_esp_link(esp_name):
         """Add a new link to an ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -215,7 +217,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def create_esp():
         """Create a new ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -250,7 +252,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def crawl_esp_selected(esp_name):
         """Crawl selected URLs for an ESP and update database."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -413,14 +415,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            password = data.get('password', '')
             url = data.get('url', '')
             content = data.get('content', '')
 
             # Verify admin password
             ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'RICHCSM')
-            if password != ADMIN_PASSWORD:
-                return jsonify({'error': 'Invalid password'}), 403
+            if not check_admin_password():
+                return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
             if not url or not content:
                 return jsonify({'error': 'URL and content are required'}), 400
@@ -516,7 +517,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     def delete_esp_links(esp_name):
         """Delete selected links from an ESP."""
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -544,6 +545,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
     @app.route('/api/admin/esp/<esp_name>/stats', methods=['GET'])
     def get_esp_stats(esp_name):
         """Get statistics for an ESP."""
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             stats = esp_mgr.get_esp_stats(esp_name)
@@ -563,7 +566,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         Use after a redeploy to restore the knowledge base, or to re-embed.
         """
         if not check_admin_password():
-            return jsonify({'error': 'Invalid password'}), 403
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             esp_mgr = get_mgr()
             data = request.get_json(silent=True) or {}
