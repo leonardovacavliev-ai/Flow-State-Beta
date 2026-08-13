@@ -87,6 +87,20 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
+# Saved conversations. Requires auth, so it is only registered when auth
+# loaded -- and is non-fatal for the same reason: losing saved history should
+# not take chat down.
+CONVERSATIONS_AVAILABLE = False
+if AUTH_AVAILABLE:
+    try:
+        from conversations import register_conversation_routes
+        register_conversation_routes(app)
+        CONVERSATIONS_AVAILABLE = True
+    except Exception as e:
+        print(f"[ERROR] Conversation routes unavailable: {e}")
+        import traceback
+        traceback.print_exc()
+
 # Register database-backed ESP admin routes (Phase 4)
 # Set to False to revert to filesystem-based routes
 USE_DATABASE_ESP_ROUTES = True
@@ -414,10 +428,32 @@ def chat():
     if not session_id:
         return jsonify({'error': 'No session_id provided'}), 400
 
+    # A signed-in user with a conversation_id gets their history from the
+    # database, which is authoritative. get_history_for_ai scopes by user_id,
+    # so a forged id cannot pull someone else's chat into this prompt.
+    #
+    # Guests have no conversation, so they keep the original path: the browser
+    # sends its own history and the server trusts it for the length of the tab.
+    conversation_id = data.get('conversation_id')
+    conversation_user_id = None
+    if conversation_id and CONVERSATIONS_AVAILABLE:
+        from auth import current_user_id
+        conversation_user_id = current_user_id()
+        if not conversation_user_id:
+            conversation_id = None
+
+    if conversation_id and conversation_user_id:
+        from conversations import get_history_for_ai
+        conversation_history = get_history_for_ai(conversation_id, conversation_user_id)
+    else:
+        conversation_history = None
+
     # Prefer the client's per-ESP history (it isolates conversations per ESP
     # and honors "Clear History"); fall back to the server-side session store.
     client_history = data.get('history')
-    if isinstance(client_history, list):
+    if conversation_history is not None:
+        pass  # already loaded from the database
+    elif isinstance(client_history, list):
         conversation_history = [
             {'role': m['role'], 'content': m['content']}
             for m in client_history[-20:]
@@ -433,6 +469,13 @@ def chat():
 
     # Add user message to session history
     session_adapter.add_message(session_id, 'user', message)
+
+    # The saved conversation is written only after the AI answers -- see the
+    # success path below. Saving the user's message here instead would leave a
+    # dangling user turn in the transcript whenever generation fails, so a
+    # reopened conversation would show questions with no answers and feed the
+    # model two user turns in a row. The old client-side history recorded on
+    # success only; this matches it.
 
     # Search vector database for relevant context
     # Normalize ESP name for database lookup
@@ -573,6 +616,17 @@ def chat():
 
         # Track assistant message in analytics
         track_message(session_id, 'assistant', assistant_message, esp)
+
+        # Persist the exchange as a pair, now that it actually is one.
+        # Failing to save history must not cost the user their answer, so this
+        # never raises out of the request.
+        if conversation_id and conversation_user_id:
+            from conversations import append_message
+            try:
+                if append_message(conversation_id, conversation_user_id, 'user', message) is not None:
+                    append_message(conversation_id, conversation_user_id, 'assistant', assistant_message)
+            except Exception as e:
+                print(f"[CONVERSATION] Could not save exchange: {e}")
 
         return jsonify({
             'response': assistant_message,
@@ -1766,6 +1820,34 @@ def delete_global_knowledge_links():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ==================== CONVERSATION MAINTENANCE ====================
+# Retention (90 days) and the idle-conversation sweep run on their own
+# scheduler, deliberately NOT the one below. That one only exists when
+# USE_ASYNC_CRAWL is true, and a retention promise made to users in the UI
+# cannot quietly stop being kept because an unrelated crawl flag was turned off.
+
+if CONVERSATIONS_AVAILABLE:
+    try:
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from conversations import purge_expired_conversations, sweep_idle_conversations
+
+        conversation_scheduler = BackgroundScheduler()
+        conversation_scheduler.add_job(
+            func=purge_expired_conversations,
+            trigger='interval', hours=24, id='purge_expired_conversations',
+        )
+        conversation_scheduler.add_job(
+            func=sweep_idle_conversations,
+            trigger='interval', minutes=15, id='sweep_idle_conversations',
+        )
+        conversation_scheduler.start()
+        print("[CONVERSATIONS] Retention + idle sweep scheduler started")
+
+        import atexit
+        atexit.register(lambda: conversation_scheduler.shutdown(wait=False))
+    except Exception as e:
+        print(f"[ERROR] Could not start conversation maintenance scheduler: {e}")
 
 # ==================== ASYNC CRAWL WORKER SETUP ====================
 # Start background worker threads if async crawl is enabled

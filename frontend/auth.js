@@ -111,6 +111,12 @@ async function handleCredentialResponse(response) {
 
 function signOut() {
     const wasSignedIn = !!currentUser;
+
+    // Fired while the token is still valid, so listeners can make their last
+    // authenticated call (ending the open conversation). Clearing the token
+    // first would make that call 401.
+    if (wasSignedIn) document.dispatchEvent(new CustomEvent('auth:signingout'));
+
     authToken = null;
     currentUser = null;
     storeToken(null);

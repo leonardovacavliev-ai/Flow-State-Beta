@@ -41,6 +41,65 @@ function adminHeaders() {
 let sessionId = null;
 let sessionStartTime = null;
 
+// ===== Saved conversations (signed-in users only) =====
+//
+// A conversation begins with the first message after the gradient intro and
+// ends when the user picks an ESP again or closes the window. Guests never
+// get one; their history stays in sessionStorage as before.
+let activeConversationId = null;
+
+/** Start a conversation if the user is signed in and none is active. */
+async function ensureConversation() {
+    if (activeConversationId) return activeConversationId;
+    if (!window.Auth || !window.Auth.isSignedIn()) return null;
+
+    try {
+        const response = await fetch(`${API_URL}/conversations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...window.Auth.headers() },
+            body: JSON.stringify({ esp: selectedESP.replace('/', '_'), session_id: sessionId })
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        activeConversationId = data.conversation_id;
+        return activeConversationId;
+    } catch (error) {
+        // Losing history is bad; losing the ability to ask a question is worse.
+        console.error('Could not start a saved conversation:', error);
+        return null;
+    }
+}
+
+/** End the active conversation, if there is one. */
+async function endActiveConversation() {
+    const id = activeConversationId;
+    activeConversationId = null;
+    if (!id || !window.Auth || !window.Auth.isSignedIn()) return;
+
+    try {
+        await fetch(`${API_URL}/conversations/${id}/end`, {
+            method: 'POST',
+            headers: window.Auth.headers()
+        });
+    } catch (error) {
+        // The server's idle sweep closes it anyway, so this is best-effort.
+        console.error('Could not end conversation:', error);
+    }
+}
+
+/** End the conversation on tab close. Must be sync-safe, hence sendBeacon. */
+function endConversationOnUnload() {
+    if (!activeConversationId || !window.Auth || !window.Auth.getToken()) return;
+    // sendBeacon can't set an Authorization header, so the token rides in the
+    // body. The endpoint accepts either.
+    const payload = new Blob(
+        [JSON.stringify({ token: window.Auth.getToken() })],
+        { type: 'application/json' }
+    );
+    navigator.sendBeacon(`${API_URL}/conversations/${activeConversationId}/end`, payload);
+    activeConversationId = null;
+}
+
 // Store conversation history per ESP in session storage
 let conversationHistories = {
     'klaviyo': [],
@@ -106,6 +165,7 @@ async function initializeSession() {
 
 // End session on page unload
 window.addEventListener('beforeunload', () => {
+    endConversationOnUnload();
     if (sessionId) {
         // Plain-string beacons post as text/plain, which Flask rejects with
         // 415 — send a JSON-typed Blob so the backend can parse the body.
@@ -115,6 +175,23 @@ window.addEventListener('beforeunload', () => {
         );
         navigator.sendBeacon(`${API_URL}/session/end`, payload);
     }
+});
+
+// Signing out ends the conversation rather than leaving it active and
+// orphaned. auth.js fires 'auth:signingout' while the token is still valid,
+// which is what makes the end call possible.
+document.addEventListener('auth:signingout', () => {
+    endActiveConversation();
+});
+document.addEventListener('auth:signedout', () => {
+    activeConversationId = null;
+});
+
+// beforeunload does not fire on mobile backgrounding or a tab crash, so the
+// conversation would sit 'active' forever. This covers the common case; the
+// server's idle sweep covers the rest.
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') endConversationOnUnload();
 });
 
 // Track ESP selection
@@ -166,6 +243,11 @@ function initializeESPButtons() {
             });
             btn.classList.remove('bg-transparent', 'text-sidebar-foreground', 'border-sidebar-border', 'hover:bg-sidebar-accent', 'hover:text-sidebar-accent-foreground');
             btn.classList.add('bg-primary', 'text-primary-foreground', 'border-primary', 'hover:bg-primary', 'hover:text-primary-foreground');
+
+            // Picking an ESP brings the gradient intro back, which is exactly
+            // what "the conversation ended" means here. Ends the previous one
+            // before the new ESP is selected, so it is attributed correctly.
+            endActiveConversation();
 
             selectedESP = btn.dataset.esp;
 
@@ -311,15 +393,25 @@ async function sendMessage() {
         // Normalize ESP name for API (other/webhook -> other_webhook)
         const espNormalized = selectedESP.replace('/', '_');
 
+        // This is where a conversation begins: the first message sent after
+        // the gradient intro. Returns null for guests, who keep the
+        // sessionStorage path below.
+        const conversationId = await ensureConversation();
+
         const response = await fetch(`${API_URL}/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                ...(window.Auth ? window.Auth.headers() : {})
             },
             body: JSON.stringify({
                 message,
                 esp: espNormalized,
-                history: getCurrentHistory(),
+                // When a conversation is active the server loads history from
+                // the database; sending the client copy too would be ignored.
+                ...(conversationId
+                    ? { conversation_id: conversationId }
+                    : { history: getCurrentHistory() }),
                 session_id: sessionId
             })
         });
@@ -342,9 +434,14 @@ async function sendMessage() {
         } else if (data.response) {
             addMessage('assistant', data.response);
 
-            // Save to conversation history
-            addToHistory('user', message);
-            addToHistory('assistant', data.response);
+            // Guests only. When a conversation is active the exchange is
+            // already saved to the account, and duplicating it into
+            // sessionStorage would leave account chat content sitting in the
+            // browser after sign-out.
+            if (!conversationId) {
+                addToHistory('user', message);
+                addToHistory('assistant', data.response);
+            }
         } else {
             console.error('Invalid response format:', data);
             addMessage('assistant', 'Error: Received invalid response from server. Please try again.');
