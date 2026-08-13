@@ -25,7 +25,7 @@ last. Keep it in the repo root next to the other phase docs.
 | Frontend sign-in UI (`frontend/auth.js`) | ✅ Session 1, verified in browser |
 | Conversation lifecycle (begin/end) wired in frontend | ⬜ |
 | History panel rebuilt (conversations, not messages) | ⬜ |
-| Deployed to Railway | 🟡 Steps 2-4 live (`08627f8`). Step 5 (`c8a300e`) committed, **not pushed** |
+| Deployed to Railway | ✅ Steps 2-5 live (`717ee0f`), admin gate verified in production |
 
 **Production**: https://flow-state-beta-production.up.railway.app/ — real Google sign-in
 confirmed working end to end (a `@yotpo.com` account with Workspace `hd=yotpo.com` is
@@ -58,6 +58,7 @@ _(nothing blocking — all of §8 is answered)_
 | 2026-08-13 | 1 (cont.) | Leo supplied the client id and set `GOOGLE_CLIENT_ID` + `SECRET_KEY` in Railway. **Step 3 done** — `backend/auth.py` (token verification, user upsert, `require_auth`/`require_admin`, `/api/auth/*`), registered in `app.py`, deps added. 37 unit checks pass; app boots with routes intact. Nothing is gated yet: admin still uses the old password path. | Step 4, frontend sign-in (§11.1). Then Step 5, the risky one. |
 | 2026-08-13 | 1 (cont.) | **Step 4 done** — `frontend/auth.js` + markup in `index.html`. Verified live in the browser: popup opens/closes (click, Escape, outside-click, toggle), Google button renders, avatar falls back to initials on a broken picture URL, admin badge shows only for `@yotpo.com`, sign-out clears storage, expired token is purged on load. Synthetic test users deleted afterwards. Nothing gated yet. | Step 5: swap the 3 admin auth implementations for `@require_admin`. Test with a real `@yotpo.com` account **before** merging. |
 | 2026-08-13 | 1 (cont.) | Pushed steps 2-4 (`08627f8`). **Step 5 done** — one shared `admin_request_ok()` swapped in behind the existing `is_admin_request()` / `check_admin_password()` names, so all 44 admin routes converted without a decorator retrofit. Closed 4 endpoints that were open (`esp/<n>/links`, `esp/<n>/stats` ×2, `crawl-status`, `settings/api-status`). Frontend password removed entirely. Probed every route with none/gmail/yotpo tokens: 403/403/pass. | Leo to confirm on production with a real `@yotpo.com` account, then Step 6 (conversation persistence). |
+| 2026-08-13 | 1 (cont.) | **Step 5 deployed** (`717ee0f`). Verified on production: `RICHCSM` rejected with 403 on every admin route, `/api/admin/esps` and `/api/auth/config` still public, guest chat still 200, Admin button hidden and password field gone from the DOM. **Leo has not yet opened the admin panel with his real account — that is the one untested path.** | Leo signs in on production and opens Admin. Then Step 6 (conversation persistence). |
 
 ### Gotchas discovered so far
 - `messages` table stores **`message_length` only, never content** — the app has never
