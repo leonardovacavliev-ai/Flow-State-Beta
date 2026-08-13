@@ -205,6 +205,62 @@ class PostgresAdapter(DatabaseAdapter):
                 )
             """)
 
+            # Account system: Google-authenticated users and their saved
+            # conversations. `google_sub` is the identity key, not email --
+            # Google's subject id is permanent, email addresses are not.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    google_sub    TEXT UNIQUE NOT NULL,
+                    email         TEXT NOT NULL,
+                    name          TEXT,
+                    picture_url   TEXT,
+                    hd            TEXT,
+                    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_login_at TIMESTAMP
+                )
+            """)
+
+            # A conversation spans from the first message after the gradient
+            # intro until the user picks an ESP again or closes the window.
+            # Reopening one resumes it, so `ended_at` is "last time it ended",
+            # not an immutable close, and a conversation may have many spans.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversations (
+                    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    esp             TEXT NOT NULL,
+                    title           TEXT,
+                    status          TEXT DEFAULT 'active',
+                    started_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ended_at        TIMESTAMP,
+                    last_message_at TIMESTAMP,
+                    message_count   INTEGER DEFAULT 0,
+                    session_id      TEXT
+                )
+            """)
+
+            # `seq` gives explicit ordering. The old client-side history relied
+            # on strict user/assistant alternation, which desynchronized
+            # whenever a request failed.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_messages (
+                    id              BIGSERIAL PRIMARY KEY,
+                    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                    seq             INTEGER NOT NULL,
+                    role            TEXT NOT NULL,
+                    content         TEXT NOT NULL,
+                    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (conversation_id, seq)
+                )
+            """)
+
+            # Account attribution on the existing analytics tables. Nullable
+            # and deliberately un-keyed: anonymous visitors still produce
+            # sessions, and a FK would force a join on the hot path.
+            cursor.execute("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS user_id UUID")
+            cursor.execute("ALTER TABLE messages ADD COLUMN IF NOT EXISTS conversation_id UUID")
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS crawl_jobs (
                     id UUID PRIMARY KEY,
@@ -240,6 +296,13 @@ class PostgresAdapter(DatabaseAdapter):
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esps_name ON esps(name)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_esp_id ON esp_documents(esp_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_status ON esp_documents(crawl_status)")
+            cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email))")
+            # Serves the per-ESP history modal: this user's conversations for
+            # one ESP, newest first.
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_user_esp ON conversations(user_id, esp, last_message_at DESC)")
+            # Serves the 90-day retention purge.
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_last_message ON conversations(last_message_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_convmsg_conv ON conversation_messages(conversation_id, seq)")
 
             conn.commit()
             print("✓ PostgreSQL analytics database initialized")

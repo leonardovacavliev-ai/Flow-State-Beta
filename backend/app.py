@@ -70,6 +70,24 @@ ai_client = AIClient(
     system_prompt=system_prompt
 )
 
+# Register Google account authentication routes.
+# Nothing is gated behind these yet -- admin still uses the password path
+# below, and chat is unchanged. Signing in is currently a no-op for the user.
+#
+# Deliberately non-fatal: auth depends on two packages added late (google-auth,
+# PyJWT). If either fails to install on a deploy, the app should lose sign-in,
+# not fall over and take the chat down with it. The frontend hides the sign-in
+# control when /api/auth/config is unavailable.
+AUTH_AVAILABLE = False
+try:
+    from auth import register_auth_routes
+    register_auth_routes(app)
+    AUTH_AVAILABLE = True
+except Exception as e:
+    print(f"[ERROR] Auth routes unavailable: {e}")
+    import traceback
+    traceback.print_exc()
+
 # Register database-backed ESP admin routes (Phase 4)
 # Set to False to revert to filesystem-based routes
 USE_DATABASE_ESP_ROUTES = True

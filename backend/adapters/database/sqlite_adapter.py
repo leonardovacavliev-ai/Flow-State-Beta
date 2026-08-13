@@ -188,6 +188,60 @@ class SQLiteAdapter(DatabaseAdapter):
                 )
             """)
 
+            # Account system (SQLite dialect of the PostgreSQL schema).
+            # SQLite has no gen_random_uuid(), so ids are generated in Python
+            # and stored as TEXT -- the same convention the esps table uses.
+            # Application code must therefore always supply the id explicitly,
+            # in both dialects, rather than relying on the Postgres default.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id            TEXT PRIMARY KEY,
+                    google_sub    TEXT UNIQUE NOT NULL,
+                    email         TEXT NOT NULL,
+                    name          TEXT,
+                    picture_url   TEXT,
+                    hd            TEXT,
+                    created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_login_at DATETIME
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversations (
+                    id              TEXT PRIMARY KEY,
+                    user_id         TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    esp             TEXT NOT NULL,
+                    title           TEXT,
+                    status          TEXT DEFAULT 'active',
+                    started_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    ended_at        DATETIME,
+                    last_message_at DATETIME,
+                    message_count   INTEGER DEFAULT 0,
+                    session_id      TEXT
+                )
+            """)
+
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS conversation_messages (
+                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                    conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+                    seq             INTEGER NOT NULL,
+                    role            TEXT NOT NULL,
+                    content         TEXT NOT NULL,
+                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (conversation_id, seq)
+                )
+            """)
+
+            # Account attribution on the existing analytics tables. SQLite has
+            # no ADD COLUMN IF NOT EXISTS, hence the try/except -- same pattern
+            # as the esp_documents.content migration above.
+            for table, column in (('sessions', 'user_id'), ('messages', 'conversation_id')):
+                try:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} TEXT")
+                except Exception:
+                    pass  # Column already exists
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS crawl_jobs (
                     id TEXT PRIMARY KEY,
@@ -214,6 +268,10 @@ class SQLiteAdapter(DatabaseAdapter):
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_start ON sessions(start_time)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_esp_id ON esp_documents(esp_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_esp_docs_status ON esp_documents(crawl_status)")
+            cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users (LOWER(email))")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_user_esp ON conversations(user_id, esp, last_message_at DESC)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_conv_last_message ON conversations(last_message_at)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_convmsg_conv ON conversation_messages(conversation_id, seq)")
 
             conn.commit()
             print("✓ SQLite analytics database initialized")
