@@ -5,7 +5,7 @@ from adapters.session.session_manager import get_session_adapter
 from crawler import crawl_and_save, vectorize_single_document
 from analytics import (
     create_session, track_message, track_esp_selection,
-    track_feedback, get_analytics, end_session
+    track_feedback, get_analytics, end_session, attach_user_to_session
 )
 from config_manager import ConfigManager
 from ai_client import AIClient
@@ -383,12 +383,27 @@ def serve_static(path):
     """Serve static files (CSS, JS, images)"""
     return send_from_directory(FRONTEND_PATH, path)
 
+def _signed_in_user_id():
+    """The signed-in account for this request, or None. Never raises.
+
+    Auth is registered defensively (see AUTH_AVAILABLE) and analytics must not
+    be the thing that takes chat down, so a broken auth import degrades this
+    visitor to a guest rather than failing the request.
+    """
+    if not AUTH_AVAILABLE:
+        return None
+    try:
+        from auth import current_user_id
+        return current_user_id()
+    except Exception:
+        return None
+
 @app.route('/api/session/init', methods=['POST'])
 def init_session():
     """Initialize a new analytics session"""
     session_id = str(uuid.uuid4())
     ip_address = request.remote_addr
-    create_session(session_id, ip_address)
+    create_session(session_id, ip_address, _signed_in_user_id())
     return jsonify({'session_id': session_id})
 
 @app.route('/api/session/end', methods=['POST'])
@@ -463,6 +478,13 @@ def chat():
         ]
     else:
         conversation_history = session_adapter.get_conversation_history(session_id)
+
+    # Sign-in almost always happens after the session row was created, so the
+    # account is stamped here too -- without this, analytics would count every
+    # signed-in visitor as a guest IP.
+    signed_in_user_id = conversation_user_id or _signed_in_user_id()
+    if signed_in_user_id:
+        attach_user_to_session(session_id, signed_in_user_id)
 
     # Track user message in analytics
     track_message(session_id, 'user', message, esp)

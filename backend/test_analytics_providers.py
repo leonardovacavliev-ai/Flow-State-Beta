@@ -127,6 +127,52 @@ def run_checks():
             "SELECT end_time FROM sessions WHERE session_id = ?"), (sess_a,))
         check("end_session recorded", cur.fetchone()['end_time'] is not None)
 
+    # --- session counting: page loads vs engaged sessions ---
+    # A bare page load creates a session row and must not be counted, nor may
+    # its IP show up as a user.
+    bounced = f"test-{uuid.uuid4()}"
+    analytics.create_session(bounced, '203.0.113.99')
+
+    # Two page loads from one IP that do send a message: 2 sessions, 1 guest.
+    guest_1, guest_2 = f"test-{uuid.uuid4()}", f"test-{uuid.uuid4()}"
+    for guest_session in (guest_1, guest_2):
+        analytics.create_session(guest_session, '203.0.113.50')
+        analytics.track_message(guest_session, 'user', 'Guest question', 'klaviyo')
+
+    # One Google account across two sessions and two IPs: 2 sessions, 1 user.
+    account_id = str(uuid.uuid4())
+    analytics._get_adapter().execute_query(
+        "INSERT INTO users (id, google_sub, email, name) VALUES (%s, %s, %s, %s)",
+        (account_id, f"sub-{account_id}", 'Signed.In@example.com', 'Signed In')
+    )
+    signed_at_init, signed_mid_session = f"test-{uuid.uuid4()}", f"test-{uuid.uuid4()}"
+    # Already signed in when the page loaded
+    analytics.create_session(signed_at_init, '198.51.100.1', account_id)
+    analytics.track_message(signed_at_init, 'user', 'Signed-in question', 'klaviyo')
+    # Signed in after the session row existed -- the common case
+    analytics.create_session(signed_mid_session, '198.51.100.2')
+    analytics.attach_user_to_session(signed_mid_session, account_id)
+    analytics.track_message(signed_mid_session, 'user', 'Another question', 'klaviyo')
+
+    analytics.batch_queue.force_flush()
+
+    engaged = analytics.get_analytics('last_7_days')
+    # sess_a, sess_b, 2 guests, 2 signed-in = 6 engaged; bounced excluded
+    check("bounced page load not counted as a session",
+          engaged['sessions']['value'] == 6)
+    # 203.0.113.10, .11 and .50 (shared by two sessions); .99 bounced
+    check("guest users = distinct IPs of engaged guest sessions",
+          engaged['unique_users']['guest'] == 3)
+    check("one account across two IPs counts once",
+          engaged['unique_users']['signed_in'] == 1)
+    check("unique users = guests + signed in",
+          engaged['unique_users']['value'] == 4)
+    check("signed-in sessions excluded from guest IP count",
+          engaged['unique_users']['guest'] == 3)
+    country_sessions = sum(c['sessions'] for c in engaged['country_breakdown'])
+    check("country breakdown sums to the sessions KPI",
+          country_sessions == engaged['sessions']['value'])
+
     # --- read path: full dashboard shape for every time range ---
     kpi_keys = ['sessions', 'unique_users', 'avg_messages',
                 'feedback_count', 'avg_session_time', 'avg_message_length']

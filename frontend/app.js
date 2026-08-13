@@ -852,6 +852,7 @@ async function loadAnalytics() {
         // Update KPI cards
         updateKPI('sessions', data.sessions.value, data.sessions.change, timeRange);
         updateKPI('unique-users', data.unique_users.value, data.unique_users.change, timeRange);
+        updateUserSplit(data.unique_users);
         updateKPI('avg-messages', data.avg_messages.value, data.avg_messages.change, timeRange);
         updateKPI('feedback', data.feedback_count.value, data.feedback_count.change, timeRange);
         updateKPI('session-time', data.avg_session_time.value, data.avg_session_time.change, timeRange);
@@ -877,6 +878,25 @@ async function loadAnalytics() {
         alert('Error loading analytics: ' + error.message);
         loading.classList.add('hidden');
     }
+}
+
+// Breakdown line under the Unique Users headline. Signed-in users are counted
+// by Google account, guests by IP, so the two halves are counted differently
+// on purpose -- the label says which is which.
+function updateUserSplit(uniqueUsers) {
+    const element = document.getElementById('kpi-unique-users-split');
+    if (!element) return;
+
+    const signedIn = uniqueUsers.signed_in;
+    const guest = uniqueUsers.guest;
+
+    // An older backend has no split; leave the line empty rather than show 0s.
+    if (signedIn === undefined || guest === undefined) {
+        element.textContent = '';
+        return;
+    }
+
+    element.textContent = `${signedIn} signed in · ${guest} guest`;
 }
 
 function updateKPI(kpiId, value, change, timeRange) {

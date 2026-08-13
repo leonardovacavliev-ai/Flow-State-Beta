@@ -74,6 +74,34 @@ def _day(col: str) -> str:
     return f"DATE({col})"
 
 
+# Every reported session metric counts *engaged* sessions: ones where the
+# visitor actually sent a message. A session row is created on script load,
+# before any interaction, and the id is never persisted client-side -- so a
+# bounce, a refresh and a second tab each add a row. Counting rows would
+# report page loads, not usage.
+#
+# Written against the alias `s`, so every query that uses it must say
+# `FROM sessions s`.
+_ENGAGED_SESSION = """
+    EXISTS (
+        SELECT 1 FROM messages m
+        WHERE m.session_id = s.session_id AND m.role = 'user'
+    )
+"""
+
+# Users are counted in two disjoint populations, because IP is a poor identity
+# (one office NAT collapses a team into one "user"; one person on wifi then
+# mobile counts twice) and we have a real one for anybody signed in:
+#   - signed in: distinct Google account, via sessions.user_id -> users.email
+#   - guests:    distinct IP among sessions with no account attached
+_GUEST_USER = "s.user_id IS NULL AND s.ip_address IS NOT NULL AND s.ip_address != ''"
+
+# Bumped whenever a metric's definition changes. Daily rows already stored
+# under the old definition feed the sparklines, so they are recomputed on the
+# next dashboard load rather than left to mix old and new math in one chart.
+_AGGREGATE_DEFINITION_VERSION = '2'
+
+
 def _num(value, default=0.0) -> float:
     """Coerce SQL numerics (incl. psycopg2 Decimal) to float for JSON."""
     return float(value) if value is not None else default
@@ -200,14 +228,15 @@ def _resolve_country_async(session_id: str, ip_address: str):
         )
 
 
-def create_session(session_id: str, ip_address: Optional[str] = None):
+def create_session(session_id: str, ip_address: Optional[str] = None,
+                   user_id: Optional[str] = None):
     """Create a new session (geolocation happens off the request path)"""
     operation = """
-        INSERT INTO sessions (session_id, start_time, country, ip_address)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO sessions (session_id, start_time, country, ip_address, user_id)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (session_id) DO NOTHING
     """
-    params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address)
+    params = (session_id, datetime.utcnow().isoformat(), 'Unknown', ip_address, user_id)
     batch_queue.add(operation, params)
 
     if ip_address:
@@ -216,6 +245,21 @@ def create_session(session_id: str, ip_address: Optional[str] = None):
             args=(session_id, ip_address),
             daemon=True
         ).start()
+
+
+def attach_user_to_session(session_id: str, user_id: str):
+    """Attribute an existing session to a signed-in account.
+
+    The session row is created at page load, which is usually *before* anyone
+    signs in -- so the stamp has to happen again on the first authenticated
+    request of that session, or every sign-in would still be counted as a
+    guest. Last account to act in the session wins, which is the right answer
+    when two people share a browser.
+    """
+    operation = """
+        UPDATE sessions SET user_id = ? WHERE session_id = ?
+    """
+    batch_queue.add(operation, (user_id, session_id))
 
 
 def end_session(session_id: str):
@@ -267,11 +311,11 @@ def calculate_daily_aggregates(target_date: datetime):
     with get_db_connection() as conn:
         cursor = _dict_cursor(conn)
 
-        # Total sessions
+        # Total sessions (engaged only, matching the dashboard KPI)
         cursor.execute(_sql(f"""
-            SELECT COUNT(DISTINCT session_id) as count
-            FROM sessions
-            WHERE {_day('start_time')} = ?
+            SELECT COUNT(*) as count
+            FROM sessions s
+            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION}
         """), (date_str,))
         total_sessions = _int(cursor.fetchone()['count'])
 
@@ -310,9 +354,9 @@ def calculate_daily_aggregates(target_date: datetime):
 
         # Country breakdown
         cursor.execute(_sql(f"""
-            SELECT s.country, COUNT(DISTINCT s.session_id) as count
+            SELECT s.country, COUNT(*) as count
             FROM sessions s
-            WHERE {_day('s.start_time')} = ?
+            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION}
             GROUP BY s.country
         """), (date_str,))
         country_breakdown = {row['country']: _int(row['count']) for row in cursor.fetchall()}
@@ -326,8 +370,8 @@ def calculate_daily_aggregates(target_date: datetime):
                     ELSE NULL
                 END
             ) as avg_duration
-            FROM sessions
-            WHERE {_day('start_time')} = ?
+            FROM sessions s
+            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION}
         """), (date_str,))
         avg_session_duration = _num(cursor.fetchone()['avg_duration'])
 
@@ -352,13 +396,24 @@ def calculate_daily_aggregates(target_date: datetime):
         """), (date_str,))
         avg_message_length = _num(cursor.fetchone()['avg_conv_length'])
 
-        # Unique users (by IP)
+        # Unique users: guest IPs + signed-in accounts, same split as the KPI.
+        # Only the total is stored -- the daily rows exist to draw sparklines,
+        # and the pill's breakdown comes from the raw tables.
         cursor.execute(_sql(f"""
-            SELECT COUNT(DISTINCT ip_address) as count
-            FROM sessions
-            WHERE {_day('start_time')} = ? AND ip_address IS NOT NULL AND ip_address != ''
+            SELECT COUNT(DISTINCT s.ip_address) as count
+            FROM sessions s
+            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION} AND {_GUEST_USER}
         """), (date_str,))
         unique_users = _int(cursor.fetchone()['count'])
+
+        cursor.execute(_sql(f"""
+            SELECT COUNT(DISTINCT LOWER(u.email)) as count
+            FROM sessions s
+            JOIN users u ON u.id = s.user_id
+            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION}
+            AND u.email IS NOT NULL AND u.email != ''
+        """), (date_str,))
+        unique_users += _int(cursor.fetchone()['count'])
 
         # Insert or update aggregate
         cursor.execute(_sql("""
@@ -408,24 +463,54 @@ def should_refresh_aggregates() -> bool:
         return (now - last_refresh).total_seconds() > 86400
 
 
+def _stored_definition_version() -> Optional[str]:
+    """Which metric definitions the stored daily rows were computed under."""
+    with get_db_connection() as conn:
+        cursor = _dict_cursor(conn)
+        cursor.execute("""
+            SELECT value FROM aggregation_metadata WHERE key = 'definition_version'
+        """)
+        row = cursor.fetchone()
+        return row['value'] if row else None
+
+
+def _set_metadata(key: str, value: str):
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute(_sql("""
+            INSERT INTO aggregation_metadata (key, value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+                value = excluded.value,
+                updated_at = excluded.updated_at
+        """), (key, value, datetime.utcnow().isoformat()))
+        conn.commit()
+
+
 def refresh_aggregates_if_needed():
-    """Refresh aggregates if 24+ hours have passed"""
-    if not should_refresh_aggregates():
+    """Refresh aggregates if 24+ hours have passed, or definitions changed"""
+    definitions_changed = _stored_definition_version() != _AGGREGATE_DEFINITION_VERSION
+
+    if not definitions_changed and not should_refresh_aggregates():
         return
 
     today = datetime.utcnow()
 
-    # Backfill every day since the last aggregated date (capped at 60 days)
-    # so quiet periods with no dashboard views don't leave permanent gaps.
     with get_db_connection() as conn:
         cursor = _dict_cursor(conn)
-        cursor.execute("SELECT MAX(date) as last_date FROM daily_aggregates")
+        # A definition change invalidates every stored row, so recompute from
+        # the earliest one; otherwise resume from the latest, which backfills
+        # quiet periods rather than leaving permanent gaps. Either way the
+        # window is capped at 60 days.
+        cursor.execute(
+            "SELECT MIN(date) as first_date, MAX(date) as last_date FROM daily_aggregates"
+        )
         row = cursor.fetchone()
-        last_date = row['last_date'] if row else None
+        anchor_date = (row['first_date'] if definitions_changed else row['last_date']) if row else None
 
-    if last_date:
+    if anchor_date:
         # SQLite returns TEXT, Postgres a datetime.date — str() normalizes both
-        start_day = datetime.fromisoformat(str(last_date))
+        start_day = datetime.fromisoformat(str(anchor_date))
     else:
         start_day = today - timedelta(days=1)
 
@@ -438,17 +523,8 @@ def refresh_aggregates_if_needed():
         calculate_daily_aggregates(day)
         day += timedelta(days=1)
 
-    # Update last refresh timestamp
-    with get_db_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute(_sql("""
-            INSERT INTO aggregation_metadata (key, value, updated_at)
-            VALUES ('last_refresh', ?, ?)
-            ON CONFLICT(key) DO UPDATE SET
-                value = excluded.value,
-                updated_at = excluded.updated_at
-        """), (datetime.utcnow().isoformat(), datetime.utcnow().isoformat()))
-        conn.commit()
+    _set_metadata('last_refresh', datetime.utcnow().isoformat())
+    _set_metadata('definition_version', _AGGREGATE_DEFINITION_VERSION)
 
 
 def get_analytics(time_range: str = 'all_time') -> Dict:
@@ -505,11 +581,11 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 feedback_filter = "submitted_at >= ? AND submitted_at < ?"
                 params = (start_date.isoformat(), end_date.isoformat())
 
-            # Sessions
+            # Sessions (engaged only -- see _ENGAGED_SESSION)
             cursor.execute(_sql(f"""
-                SELECT COUNT(DISTINCT session_id) as count
-                FROM sessions
-                WHERE {session_filter}
+                SELECT COUNT(*) as count
+                FROM sessions s
+                WHERE {session_filter} AND {_ENGAGED_SESSION}
             """), params)
             total_sessions = _int(cursor.fetchone()['count'])
 
@@ -537,7 +613,8 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             """), params)
             total_feedback = _int(cursor.fetchone()['count'])
 
-            # Avg session duration
+            # Avg session duration (engaged sessions, so it measures time spent
+            # using the tool rather than being averaged down by bounces)
             cursor.execute(_sql(f"""
                 SELECT AVG(
                     CASE
@@ -546,8 +623,8 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                         ELSE NULL
                     END
                 ) as avg_duration
-                FROM sessions
-                WHERE {session_filter}
+                FROM sessions s
+                WHERE {session_filter} AND {_ENGAGED_SESSION}
             """), params)
             avg_duration = _num(cursor.fetchone()['avg_duration'])
 
@@ -563,14 +640,30 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             """), params)
             avg_length = _num(cursor.fetchone()['avg_conv_length'])
 
-            # Unique users (by IP)
+            # Guest users: distinct IP among engaged sessions with no account
             cursor.execute(_sql(f"""
-                SELECT COUNT(DISTINCT ip_address) as count
-                FROM sessions
-                WHERE {session_filter}
-                AND ip_address IS NOT NULL AND ip_address != ''
+                SELECT COUNT(DISTINCT s.ip_address) as count
+                FROM sessions s
+                WHERE {session_filter} AND {_ENGAGED_SESSION} AND {_GUEST_USER}
             """), params)
-            unique_users = _int(cursor.fetchone()['count'])
+            guest_users = _int(cursor.fetchone()['count'])
+
+            # Signed-in users: distinct Google account. Counted by email rather
+            # than by session or IP, so the same person on a laptop and a phone
+            # is one user. LOWER matches the unique index on users(email).
+            cursor.execute(_sql(f"""
+                SELECT COUNT(DISTINCT LOWER(u.email)) as count
+                FROM sessions s
+                JOIN users u ON u.id = s.user_id
+                WHERE {session_filter} AND {_ENGAGED_SESSION}
+                AND u.email IS NOT NULL AND u.email != ''
+            """), params)
+            signed_in_users = _int(cursor.fetchone()['count'])
+
+            # The two populations are disjoint by construction (a session
+            # either has an account attached or it doesn't), so the headline
+            # number is simply their sum.
+            unique_users = guest_users + signed_in_users
 
             # Average messages per conversation (count unique session+ESP combinations)
             cursor.execute(_sql(f"""
@@ -589,6 +682,8 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 'avg_duration': avg_duration,
                 'avg_length': avg_length,
                 'unique_users': unique_users,
+                'guest_users': guest_users,
+                'signed_in_users': signed_in_users,
                 'avg_messages': avg_messages
             }
 
@@ -628,19 +723,21 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             for row in cursor.fetchall()
         ]
 
-        # Get country breakdown (current period)
+        # Get country breakdown (current period). Engaged sessions only, so
+        # this table adds up to the Sessions KPI above it.
         if current_start:
-            cursor.execute(_sql("""
-                SELECT s.country, COUNT(DISTINCT s.session_id) as count
+            cursor.execute(_sql(f"""
+                SELECT s.country, COUNT(*) as count
                 FROM sessions s
-                WHERE s.start_time >= ?
+                WHERE s.start_time >= ? AND {_ENGAGED_SESSION}
                 GROUP BY s.country
                 ORDER BY count DESC
             """), (current_start.isoformat(),))
         else:
-            cursor.execute("""
-                SELECT s.country, COUNT(DISTINCT s.session_id) as count
+            cursor.execute(f"""
+                SELECT s.country, COUNT(*) as count
                 FROM sessions s
+                WHERE {_ENGAGED_SESSION}
                 GROUP BY s.country
                 ORDER BY count DESC
             """)
@@ -722,7 +819,9 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             },
             'unique_users': {
                 'value': current['unique_users'],
-                'change': calc_change(current['unique_users'], previous['unique_users']) if previous else None
+                'change': calc_change(current['unique_users'], previous['unique_users']) if previous else None,
+                'guest': current['guest_users'],
+                'signed_in': current['signed_in_users']
             },
             'avg_messages': {
                 'value': round(current['avg_messages'], 1),
