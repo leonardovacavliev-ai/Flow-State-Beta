@@ -19,13 +19,17 @@ last. Keep it in the repo root next to the other phase docs.
 | Plan approved | ✅ All of §8 answered by Leo |
 | Google Cloud OAuth client created | ✅ `906346920698-mb6i2n452iagsblgiduocgrtfcdt0dcs.apps.googleusercontent.com` |
 | DB schema written (users / conversations / conversation_messages) | ✅ Both dialects, session 1 |
-| DB schema applied to Railway | ⬜ Happens automatically on next deploy |
+| DB schema applied to Railway | ✅ Verified live: 3 tables, 2 columns, 4 indexes |
 | Backend auth module (`backend/auth.py`) | ✅ Session 1, 37 unit checks passing |
 | Admin gating switched from password → email domain | ✅ Session 1 — 44 routes, probed with 3 identities |
 | Frontend sign-in UI (`frontend/auth.js`) | ✅ Session 1, verified in browser |
 | Conversation lifecycle (begin/end) wired in frontend | ⬜ |
 | History panel rebuilt (conversations, not messages) | ⬜ |
-| Deployed to Railway | ⬜ |
+| Deployed to Railway | 🟡 Steps 2-4 live (`08627f8`). Step 5 (`c8a300e`) committed, **not pushed** |
+
+**Production**: https://flow-state-beta-production.up.railway.app/ — real Google sign-in
+confirmed working end to end (a `@yotpo.com` account with Workspace `hd=yotpo.com` is
+already registered in `users`, so it will pass the step-5 admin gate).
 
 ### Decisions locked in
 _(Leo, 2026-08-13, session 1)_
