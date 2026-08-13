@@ -26,7 +26,7 @@ last. Keep it in the repo root next to the other phase docs.
 | Frontend sign-in UI (`frontend/auth.js`) | ✅ Session 1, verified in browser |
 | Conversation lifecycle (begin/end) wired in frontend | ✅ Session 1, 35 checks + browser-verified |
 | History panel rebuilt (conversations, not messages) | ✅ Session 1, browser-verified |
-| Deployed to Railway | ✅ Steps 2-5 live (`717ee0f`), admin gate verified in production |
+| Deployed to Railway | ✅ **Steps 2-7 all live** (`10d0b2e`), verified in production |
 
 **Production**: https://flow-state-beta-production.up.railway.app/ — real Google sign-in
 confirmed working end to end (a `@yotpo.com` account with Workspace `hd=yotpo.com` is
@@ -62,6 +62,7 @@ _(nothing blocking — all of §8 is answered)_
 | 2026-08-13 | 1 (cont.) | **Step 5 deployed** (`717ee0f`). Verified on production: `RICHCSM` rejected with 403 on every admin route, `/api/admin/esps` and `/api/auth/config` still public, guest chat still 200, Admin button hidden and password field gone from the DOM. **Leo has not yet opened the admin panel with his real account — that is the one untested path.** | Leo signs in on production and opens Admin. Then Step 6 (conversation persistence). |
 | 2026-08-13 | 1 (cont.) | **Step 6 done** — `backend/conversations.py` (CRUD, resume, idle sweep, 90-day purge), `/api/chat` accepts `conversation_id` and loads history from the DB, frontend lifecycle wired to first-message / ESP-click / tab-close. 35 automated checks + browser-verified. **Not pushed** — the clock modal still reads sessionStorage, so a signed-in user would see an empty history until step 7. Ship 6+7 together. | Step 7: rebuild the clock modal against `/api/conversations`, plus the three disclaimer variants (§11.3/§11.4). |
 | 2026-08-13 | 1 (cont.) | **Step 7 done** — clock modal rebuilt against `/api/conversations`: per-ESP list, open-to-resume, per-row delete, guest vs signed-in disclaimers. Browser-verified incl. resume appending to the same conversation (seq 1-4, still 2 conversations not 3), cross-ESP open switching the sidebar, and titles escaped against XSS. Old `i`/`i+1` pairing and single-pair Restore removed. | Deploy 6+7 together, then optional Step 8 cleanup. |
+| 2026-08-13 | 1 (cont.) | **Steps 6+7 deployed** (`10d0b2e`). Production verified: conversation routes 401 without a token and reject forged bearers, admin gate still holds, guest chat still answers with the real model, new history modal live with the guest disclaimer. Production tables: 1 user, 0 conversations (all testing was local). | Leo to sign in on production and confirm a conversation saves + reopens. Optional Step 8 cleanup remains. |
 
 ### Gotchas discovered so far
 - `messages` table stores **`message_length` only, never content** — the app has never
