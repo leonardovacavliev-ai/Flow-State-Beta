@@ -89,6 +89,27 @@
             animation: fadeOutUp 0.5s ease forwards;
         }
 
+        /* Answers land block by block instead of all at once. The elements keep
+           their layout space the whole time (only opacity/transform animate),
+           so the cascade never reflows the conversation. */
+        @keyframes cascadeIn {
+            0% { opacity: 0; transform: translateY(8px); }
+            100% { opacity: 1; transform: none; }
+        }
+        .cascade-in {
+            animation: cascadeIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+        }
+        @keyframes messageEnter {
+            0% { opacity: 0; transform: translateY(6px); }
+            100% { opacity: 1; transform: none; }
+        }
+        .message-enter {
+            animation: messageEnter 0.3s ease-out both;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .cascade-in, .message-enter { animation: none !important; }
+        }
+
         .esp-button-group { display: flex; gap: 0; transition: all 0.3s ease; }
         .esp-button-group .esp-item { flex: 1; border-radius: 0.5rem; transition: all 0.3s ease; }
         .esp-button-group.active .esp-item { border-radius: 0.5rem 0 0 0.5rem; }

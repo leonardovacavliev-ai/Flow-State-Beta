@@ -376,18 +376,163 @@ async function reloadSidebar() {
 // Initialize on page load - load ESPs from backend
 reloadSidebar();
 
+// --- Scroll anchoring -------------------------------------------------------
+// The view is repositioned once, when the user sends: their question moves to
+// the top of the chat area and the rest of the viewport is left empty for the
+// answer. Nothing moves after that -- the reply grows into that empty space and
+// the user scrolls down on their own time.
+
+const CHAT_TOP_GAP = 16;         // breathing room above the anchored question
+const CASCADE_STEP_MS = 55;      // delay between consecutive blocks
+const CASCADE_MAX_DELAY_MS = 900; // long answers stop staggering past this
+
+// The scroll position we promised to hold. Null means "don't touch the scroll"
+// -- either nothing is anchored, or the user took over by scrolling themselves.
+let anchoredScrollTop = null;
+// Set while the anchor is waiting on the intro fade-out to finish.
+let pendingAnchor = null;
+
+const prefersReducedMotion = () =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// A zero-height-by-default element kept last in the chat. It supplies the extra
+// scroll range needed to lift the newest question to the top of the viewport.
+function getScrollSpacer() {
+    let spacer = document.getElementById('chatScrollSpacer');
+    if (!spacer) {
+        spacer = document.createElement('div');
+        spacer.id = 'chatScrollSpacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        spacer.style.height = '0px';
+        chatMessages.appendChild(spacer);
+    } else if (spacer !== chatMessages.lastElementChild) {
+        chatMessages.appendChild(spacer);
+    }
+    return spacer;
+}
+
+// Messages always go above the spacer, never after it.
+function appendToChat(element) {
+    const spacer = document.getElementById('chatScrollSpacer');
+    if (spacer) chatMessages.insertBefore(element, spacer);
+    else chatMessages.appendChild(element);
+}
+
+// Anchor after the intro fade-out, so the question isn't scrolled out of view
+// before the fade is even visible.
+function anchorMessageToTopAfterIntro(messageDiv) {
+    pendingAnchor = {
+        messageDiv,
+        timer: setTimeout(() => {
+            pendingAnchor = null;
+            anchorMessageToTop(messageDiv);
+        }, 520)
+    };
+}
+
+// An answer (usually an error) can beat the intro fade-out. Anchoring mid-fade
+// would fight the layout change, so that turn simply keeps the view as is.
+function flushPendingAnchor() {
+    if (!pendingAnchor) return;
+    clearTimeout(pendingAnchor.timer);
+    const { messageDiv } = pendingAnchor;
+    pendingAnchor = null;
+    if (document.getElementById('gradientIntro')) anchoredScrollTop = null;
+    else anchorMessageToTop(messageDiv);
+}
+
+function anchorMessageToTop(messageDiv) {
+    if (!messageDiv || !messageDiv.isConnected) {
+        anchoredScrollTop = null;
+        return;
+    }
+
+    const spacer = getScrollSpacer();
+    spacer.style.height = '0px';
+
+    // Measured after resetting the spacer so scrollTop and the rects agree.
+    const target = Math.max(0, chatMessages.scrollTop
+        + messageDiv.getBoundingClientRect().top
+        - chatMessages.getBoundingClientRect().top
+        - CHAT_TOP_GAP);
+
+    const maxScroll = chatMessages.scrollHeight - chatMessages.clientHeight;
+    if (target > maxScroll) spacer.style.height = `${target - maxScroll}px`;
+
+    anchoredScrollTop = target;
+    chatMessages.scrollTo({ top: target, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+}
+
+// Called once the answer is in: gives back the spacer height the answer no
+// longer needs, keeping only what the anchored position still requires.
+function holdAnchor() {
+    flushPendingAnchor();
+    if (anchoredScrollTop === null) return;
+
+    const spacer = document.getElementById('chatScrollSpacer');
+    if (spacer) {
+        const current = parseFloat(spacer.style.height) || 0;
+        if (current) {
+            const maxWithoutSpacer = chatMessages.scrollHeight - current - chatMessages.clientHeight;
+            spacer.style.height = `${Math.max(0, anchoredScrollTop - maxWithoutSpacer)}px`;
+        }
+    }
+    chatMessages.scrollTop = anchoredScrollTop;
+}
+
+// Any manual scroll hands control back to the user for the rest of the turn.
+['wheel', 'touchmove'].forEach(evt => {
+    chatMessages.addEventListener(evt, () => {
+        if (pendingAnchor) clearTimeout(pendingAnchor.timer);
+        pendingAnchor = null;
+        anchoredScrollTop = null;
+    }, { passive: true });
+});
+
+// Stagger the top-level blocks of a rendered answer. Lists cascade item by
+// item; everything else animates as one block.
+function applyCascade(contentDiv) {
+    if (prefersReducedMotion()) return 0;
+
+    const targets = [];
+    Array.from(contentDiv.children).forEach(child => {
+        if (child.tagName === 'UL' || child.tagName === 'OL') {
+            const items = Array.from(child.children);
+            targets.push(...(items.length ? items : [child]));
+        } else {
+            targets.push(child);
+        }
+    });
+    if (!targets.length) targets.push(contentDiv);
+
+    let lastDelay = 0;
+    targets.forEach((el, i) => {
+        lastDelay = Math.min(i * CASCADE_STEP_MS, CASCADE_MAX_DELAY_MS);
+        el.style.animationDelay = `${lastDelay}ms`;
+        el.classList.add('cascade-in');
+    });
+    return lastDelay;
+}
+
 // Send Message
 async function sendMessage() {
     const message = messageInput.value.trim();
     if (!message) return;
 
+    // The intro is still on screen on the first message of a conversation; its
+    // fade-out changes the layout, so anchor only once it is gone.
+    const introVisible = !!document.getElementById('gradientIntro');
+
     // Add user message to chat
-    addMessage('user', message);
+    const userMessageDiv = addMessage('user', message);
     messageInput.value = '';
     sendBtn.disabled = true;
 
     // Add loading indicator
     const loadingId = addLoading();
+
+    if (introVisible) anchorMessageToTopAfterIntro(userMessageDiv);
+    else anchorMessageToTop(userMessageDiv);
 
     try {
         // Normalize ESP name for API (other/webhook -> other_webhook)
@@ -423,16 +568,17 @@ async function sendMessage() {
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Server error response:', errorText);
-            addMessage('assistant', `Server error (${response.status}): The service is temporarily unavailable. Please try again in a moment.`);
+            addMessage('assistant', `Server error (${response.status}): The service is temporarily unavailable. Please try again in a moment.`, { animate: true });
+            holdAnchor();
             return;
         }
 
         const data = await response.json();
 
         if (data.error) {
-            addMessage('assistant', `Error: ${data.error}`);
+            addMessage('assistant', `Error: ${data.error}`, { animate: true });
         } else if (data.response) {
-            addMessage('assistant', data.response);
+            addMessage('assistant', data.response, { animate: true });
 
             // Guests only. When a conversation is active the exchange is
             // already saved to the account, and duplicating it into
@@ -444,19 +590,23 @@ async function sendMessage() {
             }
         } else {
             console.error('Invalid response format:', data);
-            addMessage('assistant', 'Error: Received invalid response from server. Please try again.');
+            addMessage('assistant', 'Error: Received invalid response from server. Please try again.', { animate: true });
         }
     } catch (error) {
         removeLoading(loadingId);
         console.error('Network or parsing error:', error);
-        addMessage('assistant', `Connection error: ${error.message}. Please check your connection and try again.`);
+        addMessage('assistant', `Connection error: ${error.message}. Please check your connection and try again.`, { animate: true });
     }
+
+    // The answer was appended below the question -- give back the spacer room
+    // it no longer needs while keeping the view exactly where it was.
+    holdAnchor();
 
     sendBtn.disabled = false;
     messageInput.focus();
 }
 
-function addMessage(role, content) {
+function addMessage(role, content, { animate = false } = {}) {
     // Fade out and remove gradient intro on first user message
     if (role === 'user') {
         const gradientIntro = document.getElementById('gradientIntro');
@@ -469,7 +619,7 @@ function addMessage(role, content) {
     }
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = `max-w-4xl mx-auto mb-4 flex gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+    messageDiv.className = `max-w-4xl mx-auto mb-4 flex gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'}${animate ? ' message-enter' : ''}`;
 
     if (role === 'assistant') {
         // Add avatar for assistant - sized to match one-line message bubble height
@@ -509,6 +659,10 @@ function addMessage(role, content) {
 
     bubble.appendChild(contentDiv);
 
+    // Reveal the answer block by block. Purely visual: every block already
+    // occupies its final space, so the surrounding conversation never moves.
+    const lastCascadeDelay = animate && role === 'assistant' ? applyCascade(contentDiv) : 0;
+
     // Create a wrapper for bubble and copy button for assistant messages
     if (role === 'assistant') {
         const bubbleWrapper = document.createElement('div');
@@ -526,6 +680,17 @@ function addMessage(role, content) {
             </svg>
             <span class="copy-text">Copy</span>
         `;
+        if (animate) {
+            // Arrives just after the last block of the answer. Dropped once it
+            // has played so the button's resting opacity applies again -- a
+            // filled animation would otherwise pin it at full strength.
+            copyBtn.style.animationDelay = `${lastCascadeDelay + CASCADE_STEP_MS}ms`;
+            copyBtn.classList.add('cascade-in');
+            copyBtn.addEventListener('animationend', () => {
+                copyBtn.classList.remove('cascade-in');
+                copyBtn.style.animationDelay = '';
+            }, { once: true });
+        }
         copyBtn.addEventListener('click', async () => {
             try {
                 // Clone the content to manipulate it
@@ -586,8 +751,10 @@ function addMessage(role, content) {
         messageDiv.appendChild(bubble);
     }
 
-    chatMessages.appendChild(messageDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // No scrolling here on purpose: positioning is the caller's decision, so an
+    // arriving answer never yanks the view away from what the user is reading.
+    appendToChat(messageDiv);
+    return messageDiv;
 }
 
 function addLoading() {
@@ -607,8 +774,7 @@ function addLoading() {
             </div>
         </div>
     `;
-    chatMessages.appendChild(loadingDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    appendToChat(loadingDiv);
     return loadingId;
 }
 
@@ -1961,7 +2127,8 @@ async function openConversation(conversationId, esp) {
 
     // Render the transcript. No gradient intro: we are mid-conversation, not
     // at the start of one.
-    chatMessages.innerHTML = '';
+    chatMessages.innerHTML = '';   // also drops the scroll spacer
+    anchoredScrollTop = null;
     conv.messages.forEach(m => addMessage(m.role, m.content));
 
     // Resuming means new messages append to this same conversation.
