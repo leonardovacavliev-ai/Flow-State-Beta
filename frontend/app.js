@@ -619,7 +619,7 @@ function addMessage(role, content, { animate = false } = {}) {
     }
 
     const messageDiv = document.createElement('div');
-    messageDiv.className = `max-w-4xl mx-auto mb-4 flex gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'}${animate ? ' message-enter' : ''}`;
+    messageDiv.className = `max-w-4xl mx-auto mb-4 flex gap-3 ${role === 'user' ? 'justify-end' : 'justify-start'}`;
 
     if (role === 'assistant') {
         // Add avatar for assistant - sized to match one-line message bubble height
@@ -659,7 +659,9 @@ function addMessage(role, content, { animate = false } = {}) {
 
     bubble.appendChild(contentDiv);
 
-    // Reveal the answer block by block. Purely visual: every block already
+    // Reveal the answer block by block. Confined to the text: animating the
+    // whole row would fade the avatar back in after the loading indicator's,
+    // which reads as a flicker. Purely visual either way -- every block already
     // occupies its final space, so the surrounding conversation never moves.
     const lastCascadeDelay = animate && role === 'assistant' ? applyCascade(contentDiv) : 0;
 
