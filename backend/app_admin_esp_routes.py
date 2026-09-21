@@ -10,6 +10,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 from flask import jsonify, request
 from esp_manager import get_esp_manager
 from crawler import crawl_single_url_detailed, vectorize_single_document, filename_from_url
+from mechanics_cache import clear_mechanics_cache
 import os
 import json
 
@@ -443,6 +444,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         'error': str(e)
                     })
 
+            # This ESP's chunks changed, so memoized Query B results are stale.
+            clear_mechanics_cache()
+
             return jsonify({
                 'success': True,
                 'results': results,
@@ -537,6 +541,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 import traceback
                 traceback.print_exc()
 
+            clear_mechanics_cache()
+
             # Update database — persist the pasted content too (it can't be
             # re-crawled, so losing it on redeploy would be permanent)
             esp_mgr.update_document_crawl_status(
@@ -575,6 +581,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             # Also remove vectors, files, and metadata so the deleted docs
             # actually stop being served as RAG context
             delete_document_artifacts(esp_name, urls, vectorizer, BASE_PATH)
+            clear_mechanics_cache()
 
             return jsonify({
                 'success': True,
@@ -629,6 +636,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                     'rebuilt': len(rebuilt),
                     'skipped_no_content': skipped
                 }
+
+            clear_mechanics_cache()
 
             return jsonify({'success': True, 'results': summary})
         except Exception as e:

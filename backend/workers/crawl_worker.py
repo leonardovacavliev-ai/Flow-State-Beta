@@ -30,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from crawler import crawl_single_url_detailed
 from adapters.database.db_manager import get_database_adapter
 from adapters.vector.vector_manager import get_vector_adapter
+from mechanics_cache import clear_mechanics_cache
 
 
 class CrawlWorker:
@@ -214,6 +215,12 @@ class CrawlWorker:
 
             # Vectorize the document
             self._vectorize_document(esp_name, url, filename)
+
+            # This ESP's chunks changed, so memoized Query B results are
+            # stale. Only reaches the chat workers when the worker runs in
+            # the Flask process (start_worker_in_background); a standalone
+            # worker is a separate process and they expire on the TTL.
+            clear_mechanics_cache()
 
             # Calculate content hash
             file_path = os.path.join(self.base_path, 'docs', esp_name, filename)

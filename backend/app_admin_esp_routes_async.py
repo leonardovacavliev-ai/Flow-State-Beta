@@ -17,6 +17,7 @@ from app_admin_esp_routes import (
     rebuild_esp_vectors,
     register_esp_rename_route,
 )
+from mechanics_cache import clear_mechanics_cache
 import os
 import uuid
 
@@ -163,6 +164,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             # Also remove vectors, files, and metadata so the deleted docs
             # actually stop being served as RAG context
             delete_document_artifacts(esp_name, urls, vectorizer, BASE_PATH)
+            clear_mechanics_cache()
 
             return jsonify({
                 'success': True,
@@ -576,6 +578,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             except Exception as ve:
                 print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
 
+            clear_mechanics_cache()
+
             # Update database — persist the pasted content too (it can't be
             # re-crawled, so losing it on redeploy would be permanent)
             esp_mgr.update_document_crawl_status(
@@ -626,6 +630,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                     'rebuilt': len(rebuilt),
                     'skipped_no_content': skipped
                 }
+
+            clear_mechanics_cache()
 
             return jsonify({'success': True, 'results': summary})
         except Exception as e:
