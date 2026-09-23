@@ -535,7 +535,7 @@ def refresh_aggregates_if_needed():
 def get_analytics(time_range: str = 'all_time') -> Dict:
     """
     Get analytics for dashboard with percentage changes
-    time_range: 'all_time', 'last_90_days', 'last_7_days', 'last_24_hours'
+    time_range: 'all_time', 'last_90_days', 'last_30_days', 'last_7_days', 'last_24_hours'
     """
     # Refresh aggregates if needed
     refresh_aggregates_if_needed()
@@ -553,6 +553,10 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
     elif time_range == 'last_7_days':
         current_start = now - timedelta(days=7)
         previous_start = now - timedelta(days=14)
+        previous_end = current_start
+    elif time_range == 'last_30_days':
+        current_start = now - timedelta(days=30)
+        previous_start = now - timedelta(days=60)
         previous_end = current_start
     elif time_range == 'last_90_days':
         current_start = now - timedelta(days=90)

@@ -193,7 +193,7 @@ def run_checks():
     kpi_keys = ['sessions', 'unique_users', 'avg_messages',
                 'feedback_count', 'avg_session_time', 'avg_message_length']
 
-    for time_range in ['last_7_days', 'last_90_days', 'all_time']:
+    for time_range in ['last_7_days', 'last_30_days', 'last_90_days', 'all_time']:
         data = analytics.get_analytics(time_range)
         ok_shape = all(
             k in data and 'value' in data[k] and 'change' in data[k]
