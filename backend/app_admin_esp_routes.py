@@ -108,14 +108,28 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
             continue
 
         url = doc['url']
-        filename = doc.get('filename') or ''
-        if not filename.endswith('.txt'):
-            filename = filename_from_url(url)
+        from crawler import save_filename_for
+        try:
+            filename = save_filename_for(base_path, esp_key, url, preferred=doc.get('filename'))
+            os.makedirs(esp_folder, exist_ok=True)
+            filepath = os.path.join(esp_folder, filename)
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(doc['content'])
+        except OSError as e:
+            # One unwritable file must not abort the rest of the rebuild
+            print(f"[REBUILD] Could not write {url}: {e}")
+            skipped.append(url)
+            continue
 
-        os.makedirs(esp_folder, exist_ok=True)
-        filepath = os.path.join(esp_folder, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(doc['content'])
+        if filename != doc.get('filename') and doc.get('id'):
+            # Keep the row in step with the name the file now has (best
+            # effort: the file and vectors are right either way, and the
+            # next crawl finds the file by its header)
+            try:
+                esp_mgr.db.execute_query(
+                    "UPDATE esp_documents SET filename = %s WHERE id = %s", (filename, doc['id']))
+            except Exception as e:
+                print(f"[REBUILD] Could not record new filename for {url}: {e}")
 
         metadata[esp_key] = [d for d in metadata[esp_key] if d.get('url') != url]
         metadata[esp_key].append({
@@ -212,20 +226,29 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             esp_mgr = get_mgr()
             docs = esp_mgr.list_documents(esp_name)
 
+            from workers.crawl_queue import describe_link
+
             # Convert to frontend format
-            # Map database crawl_status to frontend status field.
+            # status: crawled | failed | pending (never crawled), with
+            #   `detail` saying why a crawl failed. Failures used to be
+            #   reported as 'pending', as if the URL had never been tried.
             # needs_backfill: crawled before content persistence existed, so
             # there is no database backup — a re-crawl will capture it.
-            links = [{
-                'url': doc['url'],
-                'filename': doc['filename'],
-                'status': 'crawled' if doc['crawl_status'] == 'completed' else 'pending',  # Frontend expects 'status'
-                'crawl_status': doc['crawl_status'],  # Keep for backward compat
-                'last_crawled_at': doc['last_crawled_at'],
-                'error_message': doc.get('error_message'),
-                'crawled': doc['crawl_status'] == 'completed',
-                'needs_backfill': doc['crawl_status'] == 'completed' and not doc.get('has_content')
-            } for doc in docs]
+            links = []
+            for doc in docs:
+                state, detail = describe_link(doc['crawl_status'], doc.get('has_content'),
+                                              doc.get('error_message'))
+                links.append({
+                    'url': doc['url'],
+                    'filename': doc['filename'],
+                    'status': state,
+                    'detail': detail,
+                    'crawl_status': doc['crawl_status'],  # Keep for backward compat
+                    'last_crawled_at': doc['last_crawled_at'],
+                    'error_message': doc.get('error_message'),
+                    'crawled': doc['crawl_status'] == 'completed',
+                    'needs_backfill': doc['crawl_status'] == 'completed' and not doc.get('has_content')
+                })
 
             return jsonify({'links': links})
         except Exception as e:
@@ -341,10 +364,11 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         # crawl/paste still exists on disk, back up its
                         # content to the database instead of losing the doc
                         # (clears the NO BACKUP flag for pre-persistence docs)
-                        candidate = doc.get('filename') or filename_from_url(url)
-                        if not candidate.endswith('.txt'):
-                            candidate = filename_from_url(url)
-                        if os.path.exists(os.path.join(esp_docs_path, candidate)):
+                        # Only a file that provably belongs to this URL:
+                        # saved filenames collide (see find_saved_copy)
+                        from crawler import find_saved_copy
+                        candidate, _content = find_saved_copy(BASE_PATH, esp_name, url, doc.get('filename'))
+                        if candidate:
                             filename = candidate
                             backfilled = True
                             print(f"[CRAWL] {url} failed ({crawl_error}); backing up from local copy")
@@ -470,7 +494,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             if not check_admin_password():
                 return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
-            if not url or not content:
+            if not url or not content or not content.strip():
                 return jsonify({'error': 'URL and content are required'}), 400
 
             # Get or create ESP
@@ -483,15 +507,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             if not doc:
                 doc = esp_mgr.add_document(esp_name, url)
 
-            # Generate filename from URL
-            from urllib.parse import urlparse
-            parsed = urlparse(url)
-            path_parts = parsed.path.strip('/').split('/')
-            filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-            filename = filename.replace('.html', '').replace('.htm', '')
-            if not filename:
-                filename = 'index'
-            filename = f"{filename}.txt"
+            # A name no other URL's saved copy uses (see save_filename_for)
+            from crawler import save_filename_for
+            filename = save_filename_for(BASE_PATH, esp_name, url)
 
             # Save content to file
             base_docs_path = os.path.join(BASE_PATH, 'docs')

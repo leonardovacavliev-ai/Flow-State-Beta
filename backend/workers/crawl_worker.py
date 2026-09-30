@@ -7,8 +7,12 @@ Can run as:
 
 Features:
 - Atomic job claiming (prevents race conditions)
+- Per-host pacing: at most one request per host every min_interval_ms,
+  enforced in Postgres so it holds across threads and replicas
+- Retries scheduled by outcome: rate limits wait as long as the site asks
+  (without using up attempts), transient errors back off exponentially,
+  permanent errors (404, bad URL) fail at once
 - File locking for crawl_metadata.json
-- Retry logic with exponential backoff
 - Graceful shutdown
 - Stale job detection
 """
@@ -16,21 +20,48 @@ Features:
 import os
 import time
 import signal
+import hashlib
 import threading
 import traceback
 import fcntl
 import json
-from datetime import datetime
 from typing import Optional, Dict
 
 # Import crawler and vectorizer
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from crawler import crawl_single_url_detailed
+from crawler import (crawl_single_url_result, filename_from_url, vectorize_single_document,
+                     find_saved_copy, save_filename_for, saved_text, FetchResult, OK, RATE_LIMITED, TRANSIENT, PERMANENT)
 from adapters.database.db_manager import get_database_adapter
 from adapters.vector.vector_manager import get_vector_adapter
 from mechanics_cache import clear_mechanics_cache
+from workers.crawl_queue import plan_retry, repair_queue, INDEX, BACKFILLED
+
+# How long an idle thread waits before looking for a claimable job again:
+# 1s right after work (the next job is usually just waiting out its host's
+# 2s gate), doubling while the queue stays empty, up to 5s.
+IDLE_POLL_SECONDS = 1
+IDLE_POLL_MAX_SECONDS = 5
+
+# Claim the highest-priority job that is due and whose host gate is open.
+# FOR UPDATE OF j, h SKIP LOCKED: two threads can't take the same job, and
+# can't both take a job on the same host in the same instant. Once the
+# claiming transaction commits the new next_allowed_at, the row's WHERE
+# clause is re-checked for anyone else, so the gate holds.
+CLAIM_QUERY = """
+    SELECT j.id, j.host
+    FROM crawl_jobs j
+    JOIN crawl_hosts h ON h.host = j.host
+    WHERE j.status = 'pending'
+      AND j.attempts < j.max_attempts
+      AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW())
+      AND h.next_allowed_at <= NOW()
+      AND (h.backoff_until IS NULL OR h.backoff_until <= NOW())
+    ORDER BY j.priority DESC, j.created_at ASC
+    LIMIT 1
+    FOR UPDATE OF j, h SKIP LOCKED
+"""
 
 
 class CrawlWorker:
@@ -73,6 +104,14 @@ class CrawlWorker:
             return
 
         self.running = True
+        try:
+            # Jobs queued before pacing existed (or by an old instance during
+            # a deploy) need a host and a gate before anything can claim them
+            fixed, failed = repair_queue(self.db)
+            if fixed or failed:
+                print(f"[WORKER {self.worker_id}] Queue repair: {fixed} jobs given a host, {failed} out-of-retries jobs failed")
+        except Exception as e:
+            print(f"[WORKER {self.worker_id}] Queue repair failed: {e}")
         print(f"[WORKER {self.worker_id}] Starting {self.max_workers} worker threads...")
 
         for i in range(self.max_workers):
@@ -110,6 +149,7 @@ class CrawlWorker:
     def _worker_loop(self):
         """Main worker loop - continuously process jobs."""
         thread_name = threading.current_thread().name
+        idle = IDLE_POLL_SECONDS
 
         while self.running:
             try:
@@ -117,9 +157,11 @@ class CrawlWorker:
 
                 if job:
                     self._process_job(job)
+                    idle = IDLE_POLL_SECONDS
                 else:
-                    # No jobs available, sleep before checking again
-                    time.sleep(2)
+                    # Nothing due, or every due job's host is still gated
+                    time.sleep(idle)
+                    idle = min(idle * 2, IDLE_POLL_MAX_SECONDS)
 
             except Exception as e:
                 print(f"[WORKER {thread_name}] ERROR in worker loop: {e}")
@@ -128,48 +170,57 @@ class CrawlWorker:
 
     def _claim_next_job(self) -> Optional[Dict]:
         """
-        Atomically claim the next pending job.
-
-        Uses SELECT FOR UPDATE SKIP LOCKED for atomic claiming without deadlocks.
+        Atomically claim the next due job whose host is free, and close that
+        host's gate for its min_interval_ms.
 
         Returns:
             Job dict if claimed, None if no jobs available
         """
         try:
-            query = """
-                UPDATE crawl_jobs
-                SET status = 'processing',
-                    started_at = NOW(),
-                    worker_id = %s,
-                    attempts = attempts + 1
-                WHERE id = (
-                    SELECT id FROM crawl_jobs
-                    WHERE status = 'pending'
-                    AND attempts < max_attempts
-                    ORDER BY priority DESC, created_at ASC
-                    LIMIT 1
-                    FOR UPDATE SKIP LOCKED
-                )
-                RETURNING id, esp_id, document_id, attempts, max_attempts
-            """
+            with self.db.connection() as conn:
+                cursor = conn.cursor()
+                try:
+                    cursor.execute(CLAIM_QUERY)
+                    row = cursor.fetchone()
+                    if not row:
+                        conn.rollback()
+                        return None
+                    job_id, host = row
 
-            result = self.db.execute_query(
-                query,
-                (self.worker_id,),
-                fetch=True
-            )
+                    # clock_timestamp(), not NOW(): NOW() is when this
+                    # transaction began, which on a slow database link can be
+                    # a second before the request actually goes out, and the
+                    # gap between two requests would shrink by that much
+                    cursor.execute("""
+                        UPDATE crawl_hosts
+                        SET next_allowed_at = clock_timestamp()::timestamp
+                                              + make_interval(secs => min_interval_ms / 1000.0)
+                        WHERE host = %s
+                    """, (host,))
+                    cursor.execute("""
+                        UPDATE crawl_jobs
+                        SET status = 'processing',
+                            started_at = NOW(),
+                            worker_id = %s,
+                            attempts = attempts + 1
+                        WHERE id = %s
+                        RETURNING id, esp_id, document_id, attempts, max_attempts,
+                                  host, rate_limited_count
+                    """, (self.worker_id, job_id))
+                    claimed = cursor.fetchone()
+                    conn.commit()
+                finally:
+                    cursor.close()
 
-            if result and len(result) > 0:
-                row = result[0]
-                return {
-                    'id': row[0],
-                    'esp_id': row[1],
-                    'document_id': row[2],
-                    'attempts': row[3],
-                    'max_attempts': row[4]
-                }
-
-            return None
+            return {
+                'id': claimed[0],
+                'esp_id': claimed[1],
+                'document_id': claimed[2],
+                'attempts': claimed[3],
+                'max_attempts': claimed[4],
+                'host': claimed[5],
+                'rate_limited_count': claimed[6],
+            }
 
         except Exception as e:
             print(f"[WORKER ERROR] Failed to claim job: {e}")
@@ -177,121 +228,292 @@ class CrawlWorker:
 
     def _process_job(self, job: Dict):
         """
-        Process a single crawl job.
+        Process a single crawl job and record its outcome.
 
         Args:
-            job: Job dictionary with id, esp_id, document_id
+            job: Job dictionary from _claim_next_job
         """
         job_id = job['id']
         document_id = job['document_id']
 
         try:
-            # Get document details
-            query = """
-                SELECT d.url, d.filename, e.name as esp_name
+            result = self.db.execute_query("""
+                SELECT d.url, d.filename, e.name, d.content IS NOT NULL
                 FROM esp_documents d
                 JOIN esps e ON d.esp_id = e.id
                 WHERE d.id = %s
-            """
-            result = self.db.execute_query(query, (document_id,), fetch=True)
-
+            """, (document_id,), fetch=True)
             if not result:
-                raise Exception(f"Document {document_id} not found")
+                self._finish_failed(job, None, FetchResult(PERMANENT, error="The document was deleted"), None)
+                return
+            url, old_filename, esp_name, has_content = result[0]
+        except Exception as e:
+            # Database hiccup before we even know the URL: retry the job
+            self._handle_failure(job, None, None, FetchResult(TRANSIENT, error=f"Internal error: {e}"))
+            return
 
-            url = result[0][0]
-            old_filename = result[0][1]
-            esp_name = result[0][2]
+        doc = {'id': document_id, 'url': url, 'filename': old_filename,
+               'esp_name': esp_name, 'has_content': bool(has_content)}
 
+        try:
             print(f"[WORKER] Processing job {job_id}: {url}")
+            filename, fetch = crawl_single_url_result(url, esp_name, self.base_path)
+        except Exception as e:
+            traceback.print_exc()
+            filename, fetch = None, FetchResult(TRANSIENT, error=f"Internal error while crawling: {e}")
 
-            # Crawl the URL
-            filename, crawl_error = crawl_single_url_detailed(url, esp_name, self.base_path)
+        if fetch.kind != OK:
+            self._handle_failure(job, doc, filename, fetch)
+            return
 
-            if not filename:
-                raise Exception(f"Crawl failed: {crawl_error}")
-
-            # Update crawl_metadata.json with file lock
+        # The text as crawled, not re-read from disk: another URL whose
+        # filename collides with this one may have overwritten the file
+        content = saved_text(url, fetch.content)
+        filepath = os.path.join(self.base_path, 'docs', esp_name, filename)
+        try:
             self._update_metadata_atomic(esp_name, url, filename)
+        except Exception as e:
+            # Local bookkeeping, before any vectors are touched: retry it
+            traceback.print_exc()
+            self._handle_failure(job, doc, filename, FetchResult(
+                TRANSIENT, error=f"Crawled, but saving it locally failed: {e}"))
+            return
+        try:
+            vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename, content=content)
+        except Exception as e:
+            traceback.print_exc()
+            self._handle_failure(job, doc, filename, FetchResult(
+                INDEX, error=f"Crawled, but adding it to the search index failed: {e}"))
+            return
 
-            # Vectorize the document
-            self._vectorize_document(esp_name, url, filename)
+        self._finish_completed(job, doc, filename, content)
+        self._notify_indexed(esp_name)
+        print(f"[WORKER] ✓ Job {job_id} completed: {filename}")
 
-            # This ESP's chunks changed, so memoized Query B results are
-            # stale. Only reaches the chat workers when the worker runs in
-            # the Flask process (start_worker_in_background); a standalone
-            # worker is a separate process and they expire on the TTL.
+    def _notify_indexed(self, esp_name):
+        """
+        This ESP's chunks changed, so memoized Query B results are stale.
+        Only reaches the chat workers when the worker runs in the Flask
+        process (start_worker_in_background); a standalone worker is a
+        separate process and they expire on the TTL.
+        """
+        try:
             clear_mechanics_cache()
+        except Exception as e:
+            print(f"[WORKER] Could not clear the mechanics cache: {e}")
 
-            # Calculate content hash
-            file_path = os.path.join(self.base_path, 'docs', esp_name, filename)
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+    # ==================== Outcomes ====================
 
-            import hashlib
-            content_hash = hashlib.sha256(content.encode()).hexdigest()
+    def _handle_failure(self, job: Dict, doc: Optional[Dict], filename, fetch: FetchResult):
+        """Schedule a retry, fall back to the saved copy, or fail the job."""
+        try:
+            consecutive_429 = 1
+            if fetch.kind == RATE_LIMITED and job.get('host'):
+                rows = self.db.execute_query("""
+                    UPDATE crawl_hosts
+                    SET consecutive_429 = consecutive_429 + 1, last_429_at = NOW()
+                    WHERE host = %s
+                    RETURNING consecutive_429
+                """, (job['host'],), fetch=True)
+                if rows:
+                    consecutive_429 = rows[0][0]
 
-            # Update document status — store the content itself so the
-            # knowledge base can be rebuilt after the ephemeral container
-            # filesystem is wiped on redeploy
-            update_query = """
-                UPDATE esp_documents
-                SET crawl_status = 'completed',
-                    filename = %s,
-                    content_hash = %s,
-                    content = %s,
-                    last_crawled_at = NOW(),
-                    is_crawling = FALSE
-                WHERE id = %s
-            """
-            self.db.execute_query(update_query, (filename, content_hash, content, document_id))
+            decision = plan_retry(fetch.kind, job['attempts'], job['max_attempts'],
+                                  job['rate_limited_count'], fetch.retry_after, consecutive_429)
 
-            # Mark job as completed
-            complete_query = """
-                UPDATE crawl_jobs
-                SET status = 'completed',
-                    completed_at = NOW()
-                WHERE id = %s
-            """
-            self.db.execute_query(complete_query, (job_id,))
+            if decision.retry:
+                self._schedule_retry(job, fetch, decision)
+                return
 
-            print(f"[WORKER] ✓ Job {job_id} completed: {filename}")
+            # Not after an index failure of a fresh crawl: the "saved copy"
+            # would be the file this crawl just wrote, and the result would be
+            # reported as "couldn't crawl, served an old copy" when the page
+            # crawled fine and only indexing failed
+            if doc and fetch.kind != INDEX:
+                outcome = self._try_saved_copy(job, doc, fetch)
+                if outcome is True:
+                    return
+                if isinstance(outcome, FetchResult):
+                    # There is a saved copy, but indexing it failed: that's a
+                    # (usually transient) index failure, not the crawl error,
+                    # so retry it as one and report it as one
+                    fetch = outcome
+                    decision = plan_retry(outcome.kind, job['attempts'], job['max_attempts'],
+                                          job['rate_limited_count'])
+                    if decision.retry:
+                        self._schedule_retry(job, fetch, decision)
+                        return
+
+            error = fetch.error or 'Crawl failed'
+            if decision.give_up_note:
+                error = f"{error} — {decision.give_up_note}"
+            self._finish_failed(job, doc, fetch, error)
 
         except Exception as e:
-            error_msg = str(e)
-            error_trace = traceback.format_exc()
+            # Never leave a job stuck in 'processing' because recording its
+            # outcome failed; the stale-job sweeper will pick it up otherwise
+            print(f"[WORKER] ✗ Could not record outcome of job {job['id']}: {e}")
+            traceback.print_exc()
 
-            print(f"[WORKER] ✗ Job {job_id} failed: {error_msg}")
+    def _schedule_retry(self, job: Dict, fetch: FetchResult, decision):
+        rows = self.db.execute_query("""
+            UPDATE crawl_jobs
+            SET status = 'pending',
+                worker_id = NULL,
+                error_kind = %s,
+                error_message = %s,
+                next_attempt_at = NOW() + make_interval(secs => %s),
+                attempts = attempts - %s,
+                rate_limited_count = rate_limited_count + %s
+            WHERE id = %s AND status = 'processing'
+            RETURNING id
+        """, (fetch.kind, fetch.error, float(decision.delay),
+              1 if decision.refund_attempt else 0,
+              1 if fetch.kind == RATE_LIMITED else 0,
+              job['id']), fetch=True)
 
-            # Determine if should retry
-            should_retry = job['attempts'] < job['max_attempts']
-            new_status = 'pending' if should_retry else 'failed'
+        if decision.host_backoff and job.get('host'):
+            # Pause the whole host: every other job queued for it waits too
+            self.db.execute_query("""
+                UPDATE crawl_hosts
+                SET backoff_until = GREATEST(COALESCE(backoff_until, NOW()),
+                                             NOW() + make_interval(secs => %s))
+                WHERE host = %s
+            """, (float(decision.host_backoff), job['host']))
 
-            # Update job status
-            fail_query = """
-                UPDATE crawl_jobs
-                SET status = %s,
-                    error_message = %s,
-                    error_traceback = %s,
-                    completed_at = CASE WHEN %s = 'failed' THEN NOW() ELSE NULL END
-                WHERE id = %s
-            """
+        if rows:
+            print(f"[WORKER] ↻ Job {job['id']} ({fetch.kind}): {fetch.error} — retry in {decision.delay:.0f}s")
+        else:
+            print(f"[WORKER] Job {job['id']} was cancelled while running; not retrying")
+
+    def _finish_completed(self, job: Dict, doc: Dict, filename, content, note=None):
+        """Record a successful crawl (or a re-index from the saved copy)."""
+        # The document is updated even if the job was cancelled mid-flight:
+        # its vectors were already replaced, so the stored content must match
+        self.db.execute_query("""
+            UPDATE esp_documents
+            SET crawl_status = 'completed',
+                filename = %s,
+                content_hash = %s,
+                content = %s,
+                error_message = NULL,
+                last_crawled_at = NOW(),
+                is_crawling = CASE WHEN crawl_job_id = %s THEN FALSE ELSE is_crawling END
+            WHERE id = %s
+        """, (filename, hashlib.sha256(content.encode()).hexdigest(), content,
+              job['id'], doc['id']))
+
+        if job.get('host') and not note:
             self.db.execute_query(
-                fail_query,
-                (new_status, error_msg, error_trace, new_status, job_id)
-            )
+                "UPDATE crawl_hosts SET consecutive_429 = 0 WHERE host = %s", (job['host'],))
 
-            # Mark document as failed if no more retries
-            if not should_retry:
-                doc_fail_query = """
-                    UPDATE esp_documents
-                    SET crawl_status = 'failed',
-                        error_message = %s,
-                        is_crawling = FALSE
-                    WHERE id = %s
-                """
-                self.db.execute_query(doc_fail_query, (error_msg, document_id))
+        self.db.execute_query("""
+            UPDATE crawl_jobs
+            SET status = 'completed',
+                completed_at = NOW(),
+                error_kind = %s,
+                error_message = %s
+            WHERE id = %s AND status = 'processing'
+        """, (BACKFILLED if note else None, note, job['id']))
+
+    def _finish_failed(self, job: Dict, doc: Optional[Dict], fetch: FetchResult, error):
+        error = error or fetch.error or 'Crawl failed'
+        rows = self.db.execute_query("""
+            UPDATE crawl_jobs
+            SET status = 'failed',
+                completed_at = NOW(),
+                error_kind = %s,
+                error_message = %s
+            WHERE id = %s AND status = 'processing'
+            RETURNING id
+        """, (fetch.kind, error, job['id']), fetch=True)
+
+        if not rows:
+            print(f"[WORKER] Job {job['id']} was cancelled while running")
+            return
+
+        if doc:
+            # Only if this is still the document's latest job; a newer crawl
+            # of the same URL owns its status otherwise
+            self.db.execute_query("""
+                UPDATE esp_documents
+                SET crawl_status = 'failed',
+                    error_message = %s,
+                    is_crawling = FALSE
+                WHERE id = %s AND (crawl_job_id = %s OR crawl_job_id IS NULL)
+            """, (error, doc['id'], job['id']))
+
+        print(f"[WORKER] ✗ Job {job['id']} failed: {error}")
+
+    def _try_saved_copy(self, job: Dict, doc: Dict, fetch: FetchResult) -> bool:
+        """
+        When a URL can't be crawled, re-index it from the copy we already have.
+
+        Applies to pasted (local://) docs, which can never be crawled, and to
+        docs with no database backup yet (crawled before content was stored
+        in the database) whose saved file is still on disk. A doc that is
+        already backed up is left alone and the failure is reported:
+        silently serving an old copy of a page that now 404s would hide it.
+
+        Only a copy that provably belongs to this URL is used: the database
+        row's own content, or a file whose "Source URL:" header names it.
+        Saved filenames collide (every local:// URL maps to index.txt), so a
+        file found by name alone could be another document's text.
+
+        Returns True if the job was completed from the saved copy, False if
+        there is no usable copy, or a FetchResult (INDEX, or TRANSIENT for a
+        local file error) if there is one but re-indexing it failed.
+        """
+        url = doc['url']
+        is_pasted = url.startswith('local://')
+        if not is_pasted and doc['has_content']:
+            return False
+
+        esp_name = doc['esp_name']
+        filename, content = None, None
+        if is_pasted and doc['has_content']:
+            rows = self.db.execute_query(
+                "SELECT filename, content FROM esp_documents WHERE id = %s",
+                (doc['id'],), fetch=True)
+            if rows and rows[0][1]:
+                filename = rows[0][0] or filename_from_url(url)
+                content = rows[0][1]
+        if content is None:
+            filename, content = find_saved_copy(self.base_path, esp_name, url, doc['filename'])
+        if content is None:
+            return False
+
+        try:
+            esp_folder = os.path.join(self.base_path, 'docs', esp_name)
+            os.makedirs(esp_folder, exist_ok=True)
+            own, _ = find_saved_copy(self.base_path, esp_name, url, filename)
+            if own:
+                filename = own  # already on disk under this URL's name
             else:
-                print(f"[WORKER] Will retry job {job_id} (attempt {job['attempts']}/{job['max_attempts']})")
+                # Restore it (usual on Railway's ephemeral disk) under a name
+                # that no other URL's saved copy uses
+                filename = save_filename_for(self.base_path, esp_name, url, preferred=filename)
+                with open(os.path.join(esp_folder, filename), 'w', encoding='utf-8') as f:
+                    f.write(content)
+            filepath = os.path.join(esp_folder, filename)
+            self._update_metadata_atomic(esp_name, url, filename)
+        except Exception as e:
+            print(f"[WORKER] Could not restore the saved copy of {url}: {e}")
+            return FetchResult(TRANSIENT, error=f"Couldn't restore the saved copy locally: {e}")
+        try:
+            vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename, content=content)
+        except Exception as e:
+            print(f"[WORKER] Could not re-index {url} from its saved copy: {e}")
+            return FetchResult(INDEX, error=f"Couldn't add the saved copy to the search index: {e}")
+
+        if is_pasted:
+            note = "Pasted content — re-indexed from the saved copy"
+        else:
+            note = f"Couldn't crawl ({fetch.error}); re-indexed from the saved copy instead"
+        self._finish_completed(job, doc, filename, content, note=note)
+        self._notify_indexed(esp_name)
+        print(f"[WORKER] ✓ Job {job['id']}: {note}")
+        return True
 
     def _update_metadata_atomic(self, esp_name: str, url: str, filename: str):
         """
@@ -346,53 +568,50 @@ class CrawlWorker:
                 # Release lock
                 fcntl.flock(f.fileno(), fcntl.LOCK_UN)
 
-    def _vectorize_document(self, esp_name: str, url: str, filename: str):
-        """
-        Vectorize a single crawled document.
-
-        Uses a targeted per-URL update instead of refresh_esp(), which would
-        delete the ESP's entire vector namespace and re-add only the files
-        present on the (ephemeral) local filesystem.
-        """
-        try:
-            from crawler import vectorize_single_document
-            filepath = os.path.join(self.base_path, 'docs', esp_name, filename)
-            vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename)
-            print(f"[WORKER] Vectorized {esp_name}/{filename}")
-        except Exception as e:
-            print(f"[WORKER] Vectorization error for {esp_name}: {e}")
-            # Don't fail the job if vectorization fails - can be re-vectorized later
-            # Just log and continue
-
     @staticmethod
     def cleanup_stale_jobs(db_adapter, timeout_minutes: int = 10):
         """
-        Reset jobs stuck in 'processing' for too long.
-
-        Args:
-            db_adapter: Database adapter instance
-            timeout_minutes: How long before a job is considered stale
+        Recover jobs stuck in 'processing' (the worker died mid-job, e.g. a
+        redeploy): re-queue them, or fail them if they're out of attempts —
+        re-queueing an exhausted job would leave it pending forever, since
+        the claim query skips jobs with attempts >= max_attempts.
         """
+        minutes = int(timeout_minutes)
         try:
-            query = """
+            repair_queue(db_adapter)
+            db_adapter.execute_query(f"""
                 UPDATE crawl_jobs
                 SET status = 'pending',
                     worker_id = NULL,
-                    started_at = NULL
+                    started_at = NULL,
+                    next_attempt_at = NOW()
                 WHERE status = 'processing'
-                AND started_at < NOW() - INTERVAL '%s minutes'
-            """
-            # Note: Using string formatting for interval because psycopg2 doesn't support
-            # parameterized intervals with %s
-            query = query.replace('%s', str(timeout_minutes))
+                AND started_at < NOW() - INTERVAL '{minutes} minutes'
+                AND attempts < max_attempts
+            """)
 
-            result = db_adapter.execute_query(query, fetch=False)
+            error = ("The crawl worker stopped while processing this URL "
+                     "(for example during a redeploy), and it is out of retries")
+            failed = db_adapter.execute_query(f"""
+                UPDATE crawl_jobs
+                SET status = 'failed',
+                    completed_at = NOW(),
+                    error_kind = 'transient',
+                    error_message = %s
+                WHERE status = 'processing'
+                AND started_at < NOW() - INTERVAL '{minutes} minutes'
+                AND attempts >= max_attempts
+                RETURNING id, document_id
+            """, (error,), fetch=True) or []
 
-            # Get rowcount if available
-            if hasattr(db_adapter, 'last_rowcount'):
-                reset_count = db_adapter.last_rowcount
-                if reset_count > 0:
-                    print(f"[CLEANUP] Reset {reset_count} stale jobs")
+            for job_id, document_id in failed:
+                db_adapter.execute_query("""
+                    UPDATE esp_documents
+                    SET crawl_status = 'failed', error_message = %s, is_crawling = FALSE
+                    WHERE id = %s AND (crawl_job_id = %s OR crawl_job_id IS NULL)
+                """, (error, document_id, job_id))
+            if failed:
+                print(f"[CLEANUP] Failed {len(failed)} stale jobs that were out of retries")
 
         except Exception as e:
             print(f"[CLEANUP ERROR] Failed to cleanup stale jobs: {e}")

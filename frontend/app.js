@@ -1319,6 +1319,41 @@ function renderSparkline(canvasId, data, dates, label) {
     canvas.addEventListener('mouseleave', hideTooltip);
 }
 
+// Badge colour and row styling for a link's crawl state (see
+// describe_link in backend/workers/crawl_queue.py for the states)
+const CRAWL_STATE_STYLES = {
+    crawled:  { badge: 'bg-green-100 text-green-800' },
+    pending:  { badge: 'bg-yellow-100 text-yellow-800', row: 'bg-accent/10 border-primary' },
+    failed:   { badge: 'bg-red-100 text-red-800', row: 'border-red-300', detail: 'text-red-700' },
+    // Couldn't be crawled; indexed from the copy we already had
+    saved_copy: { badge: 'bg-amber-100 text-amber-800', row: 'border-amber-300', detail: 'text-amber-700' },
+    queued:   { badge: 'bg-slate-100 text-slate-700' },
+    crawling: { badge: 'bg-blue-100 text-blue-800' },
+    retrying: { badge: 'bg-amber-100 text-amber-800', detail: 'text-amber-700' },
+    waiting:  { badge: 'bg-amber-100 text-amber-800', detail: 'text-amber-700' },
+    checking: { badge: 'bg-blue-100 text-blue-800' }
+};
+
+function crawlStateStyle(status) {
+    return CRAWL_STATE_STYLES[status] || { badge: 'bg-slate-100 text-slate-700' };
+}
+
+// Pre-checked for the next "Crawl Selected": never crawled, or the last
+// crawl didn't succeed (failed, or only re-indexed from a saved copy)
+function isCrawlCandidate(link) {
+    return ['pending', 'failed', 'saved_copy'].includes(link.status);
+}
+
+function statusLabel(status) {
+    return status === 'saved_copy' ? 'saved copy' : status;
+}
+
+function linkDetailHTML(link) {
+    if (!link.detail) return '';
+    const cls = crawlStateStyle(link.status).detail || 'text-muted-foreground';
+    return `<span class="block text-xs ${cls} truncate" title="${escapeAttr(link.detail)}">${escapeHtml(link.detail)}</span>`;
+}
+
 async function loadESPManagement() {
     try {
         const response = await fetch(`${API_URL}/admin/esps`);
@@ -1347,23 +1382,18 @@ async function loadESPManagement() {
             let linksHTML = '';
             if (linksData && linksData.length > 0) {
                 linksHTML = linksData.map(link => {
-                    // Determine badge color based on status
-                    let badgeClass = '';
-                    if (link.status === 'crawled') {
-                        badgeClass = 'bg-green-100 text-green-800';
-                    } else if (link.status === 'pending') {
-                        badgeClass = 'bg-yellow-100 text-yellow-800';
-                    } else if (link.status === 'checking') {
-                        badgeClass = 'bg-blue-100 text-blue-800';
-                    }
+                    const style = crawlStateStyle(link.status);
 
                     return `
-                    <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+                    <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
+                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${(isCrawlCandidate(link) || link.needs_backfill) ? 'checked' : ''}>
+                        <span class="text-xs font-medium px-2 py-0.5 rounded ${style.badge} uppercase tracking-wide">${escapeHtml(statusLabel(link.status))}</span>
                         ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)">no backup</span>' : ''}
-                        <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
-                        ${link.status === 'pending' ? `
+                        <div class="flex-1 min-w-0">
+                            <a href="${escapeAttr(link.url)}" target="_blank" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
+                            ${linkDetailHTML(link)}
+                        </div>
+                        ${isCrawlCandidate(link) ? `
                             <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                                 📋 Paste Content
                             </button>
@@ -1478,11 +1508,16 @@ async function checkAsyncCrawlSupport() {
             headers: adminHeaders()
         });
         // 200 means the async endpoints exist; 404 means they don't.
-        // 401/403 means we simply aren't admin, which says nothing about
-        // whether async crawl is available -- don't infer it's enabled.
-        USE_ASYNC_CRAWL = response.ok;
+        // Anything else (401/403 before sign-in, a 5xx or network blip
+        // during a deploy) says nothing either way: keep what we knew, so a
+        // hiccup can't flip an async server's crawl onto the sync UI.
+        if (response.ok) {
+            USE_ASYNC_CRAWL = true;
+        } else if (response.status === 404) {
+            USE_ASYNC_CRAWL = false;
+        }
     } catch (error) {
-        USE_ASYNC_CRAWL = false;
+        // Network error: same reasoning, keep the previous answer
     }
 }
 
@@ -1498,12 +1533,43 @@ async function crawlAllSelected() {
         return;
     }
 
-    // Route to async or sync version based on backend support
+    // Route to async or sync version based on backend support. Probe again
+    // now: the probe at page load gets a 403 (and so reports "no async")
+    // when the admin signs in after the page has loaded.
+    await checkAsyncCrawlSupport();
     if (USE_ASYNC_CRAWL) {
         return await crawlAllSelectedAsync();
     } else {
         return await crawlAllSelectedSync();
     }
+}
+
+// Show the progress panel for a set of crawl jobs. It sits *beside*
+// #espManagement, not inside it: loadESPManagement() clears that element,
+// which used to wipe the progress panel — errors and all — 1.5s after a
+// crawl finished. A tracker still polling from an earlier crawl is stopped
+// first so it can't keep writing into the panel.
+function startCrawlTracker(jobIds) {
+    let progressContainer = document.getElementById('crawl-progress-container');
+    if (!progressContainer) {
+        const espManagement = document.getElementById('espManagement');
+        if (espManagement && espManagement.parentNode) {
+            progressContainer = document.createElement('div');
+            progressContainer.id = 'crawl-progress-container';
+            espManagement.parentNode.insertBefore(progressContainer, espManagement);
+        }
+    }
+
+    if (!progressContainer || typeof CrawlProgressTracker === 'undefined') {
+        alert(`Queued ${jobIds.length} URLs for crawling. Refresh the page to see results.`);
+        return;
+    }
+    if (window.activeCrawlTracker) {
+        window.activeCrawlTracker.stop();
+    }
+    const tracker = new CrawlProgressTracker(jobIds, progressContainer, API_URL);
+    window.activeCrawlTracker = tracker;
+    tracker.start();
 }
 
 async function crawlAllSelectedAsync() {
@@ -1541,6 +1607,7 @@ async function crawlAllSelectedAsync() {
         });
 
         let allJobIds = [];
+        const queueErrors = [];
 
         // Queue crawl jobs for each ESP
         for (const [espName, urls] of Object.entries(espGroups)) {
@@ -1556,15 +1623,16 @@ async function crawlAllSelectedAsync() {
                 if (data.success && data.job_ids) {
                     allJobIds = allJobIds.concat(data.job_ids);
                 } else {
-                    console.error(`Failed to queue ${espName}:`, data.error);
+                    queueErrors.push(`${espName}: ${data.error || `HTTP ${response.status}`}`);
                 }
             } catch (error) {
-                console.error(`Error queueing ${espName}:`, error);
+                queueErrors.push(`${espName}: ${error.message}`);
             }
         }
 
-        // Crawl global knowledge URLs. There is no async global endpoint —
-        // this one runs synchronously and returns per-URL results.
+        // Crawl global knowledge URLs. With the background queue on, this
+        // returns job ids like the ESP endpoint; a server without it runs
+        // the crawl synchronously and returns per-URL results instead.
         let globalCrawledCount = 0;
         const globalIssues = [];
         if (globalUrls.length > 0) {
@@ -1590,13 +1658,15 @@ async function crawlAllSelectedAsync() {
                         });
                     });
                 } else {
-                    globalIssues.push(data.error || 'Unknown error');
-                    console.error('Failed to crawl global knowledge:', data.error);
+                    queueErrors.push(`Global knowledge: ${data.error || `HTTP ${response.status}`}`);
                 }
             } catch (error) {
-                globalIssues.push(error.message);
-                console.error('Error queueing global knowledge:', error);
+                queueErrors.push(`Global knowledge: ${error.message}`);
             }
+        }
+
+        if (queueErrors.length > 0) {
+            alert(`Some links could not be queued for crawling:\n\n${queueErrors.join('\n')}`);
         }
 
         // Surface global-knowledge failures even when ESP jobs were queued —
@@ -1606,7 +1676,8 @@ async function crawlAllSelectedAsync() {
         }
 
         if (allJobIds.length === 0 && globalUrls.length > 0) {
-            if (globalIssues.length === 0) {
+            // Only reached when the server crawled global links synchronously
+            if (globalIssues.length === 0 && queueErrors.length === 0) {
                 alert(`Processed ${globalCrawledCount} global knowledge link(s).`);
             }
             crawlButtons.forEach(btn => {
@@ -1618,7 +1689,7 @@ async function crawlAllSelectedAsync() {
         }
 
         if (allJobIds.length === 0) {
-            alert('Failed to queue any crawl jobs. Check console for errors.');
+            if (queueErrors.length === 0) alert('No crawl jobs were queued.');
             // Re-enable buttons
             crawlButtons.forEach(btn => {
                 btn.disabled = false;
@@ -1627,25 +1698,13 @@ async function crawlAllSelectedAsync() {
             return;
         }
 
-        // Find or create progress container
-        let progressContainer = document.getElementById('crawl-progress-container');
-        if (!progressContainer) {
-            // Insert progress container after the crawl buttons
-            const espManagement = document.getElementById('espManagement');
-            if (espManagement) {
-                progressContainer = document.createElement('div');
-                progressContainer.id = 'crawl-progress-container';
-                espManagement.insertBefore(progressContainer, espManagement.firstChild);
-            }
-        }
+        startCrawlTracker(allJobIds);
 
-        // Start progress tracker
-        if (progressContainer && typeof CrawlProgressTracker !== 'undefined') {
-            const tracker = new CrawlProgressTracker(allJobIds, progressContainer, API_URL);
-            tracker.start();
-        } else {
-            console.error('CrawlProgressTracker not available');
-            alert(`Queued ${allJobIds.length} URLs for crawling. Refresh the page to see results.`);
+        // Show the queued links as QUEUED straight away rather than
+        // with whatever state they had before this crawl
+        loadESPManagement();
+        if (globalUrls.length > 0 && typeof loadGlobalKnowledge === 'function') {
+            loadGlobalKnowledge();
         }
 
         // Re-enable buttons
@@ -1706,6 +1765,10 @@ async function crawlAllSelectedSync() {
 
     let totalCrawled = 0;
     let errors = [];
+    // If the server turns out to queue crawls after all (the async probe
+    // failed on a network blip), follow those jobs instead of reporting
+    // "0 crawled" while they run unseen
+    let queuedJobIds = [];
 
     try {
         // Crawl each ESP's links
@@ -1719,7 +1782,9 @@ async function crawlAllSelectedSync() {
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success && data.job_ids) {
+                    queuedJobIds = queuedJobIds.concat(data.job_ids);
+                } else if (data.success) {
                     // API returns results.success array, not count
                     const successCount = data.results?.success?.length || 0;
                     const failedCount = data.results?.failed?.length || 0;
@@ -1748,7 +1813,9 @@ async function crawlAllSelectedSync() {
 
                 const data = await response.json();
 
-                if (data.success) {
+                if (data.success && data.job_ids) {
+                    queuedJobIds = queuedJobIds.concat(data.job_ids);
+                } else if (data.success) {
                     totalCrawled += (data.count || 0);
                     // Per-URL failures (site blocked, pasted local:// doc
                     // with no saved copy, ...) — surface them instead of
@@ -1769,8 +1836,14 @@ async function crawlAllSelectedSync() {
             }
         }
 
-        // Show results
-        if (errors.length === 0) {
+        if (queuedJobIds.length > 0) {
+            USE_ASYNC_CRAWL = true;
+            startCrawlTracker(queuedJobIds);
+            if (errors.length > 0) {
+                alert(`Some links could not be queued for crawling:\n\n${errors.join('\n')}`);
+            }
+        } else if (errors.length === 0) {
+            // Show results
             alert(`Successfully crawled ${totalCrawled} links!`);
         } else {
             alert(`Crawled ${totalCrawled} links with ${errors.length} errors:\n${errors.join('\n')}`);
@@ -1960,6 +2033,12 @@ document.getElementById('createESPBtn').addEventListener('click', async () => {
 document.getElementById('refreshAllBtn').addEventListener('click', async () => {
     if (!confirm('This will re-crawl all documentation links. Continue?')) return;
 
+    // Queueing every doc takes a few seconds; show it and block re-clicks
+    const refreshBtn = document.getElementById('refreshAllBtn');
+    const refreshLabel = refreshBtn.innerHTML;
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = USE_ASYNC_CRAWL ? 'Queueing…' : 'Refreshing…';
+
     try {
         const response = await fetch(`${API_URL}/admin/refresh`, {
             method: 'POST',
@@ -1969,11 +2048,25 @@ document.getElementById('refreshAllBtn').addEventListener('click', async () => {
 
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success && data.job_ids) {
+            // Queued, paced per site: follow it in the progress panel
+            if (data.job_ids.length === 0) {
+                alert('There are no documentation links to refresh.');
+                return;
+            }
+            startCrawlTracker(data.job_ids);
+            loadESPManagement();
+            loadGlobalKnowledge();
+        } else if (data.success) {
             alert('All documentation refreshed successfully!');
+        } else {
+            alert('Could not refresh: ' + (data.error || `HTTP ${response.status}`));
         }
     } catch (error) {
         alert('Error refreshing: ' + error.message);
+    } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.innerHTML = refreshLabel;
     }
 });
 
@@ -2515,15 +2608,7 @@ async function loadGlobalKnowledge() {
         }
 
         container.innerHTML = data.links.map(link => {
-            // Determine badge color based on status
-            let badgeClass = '';
-            if (link.status === 'crawled') {
-                badgeClass = 'bg-green-100 text-green-800';
-            } else if (link.status === 'pending') {
-                badgeClass = 'bg-yellow-100 text-yellow-800';
-            } else if (link.status === 'checking') {
-                badgeClass = 'bg-blue-100 text-blue-800';
-            }
+            const style = crawlStateStyle(link.status);
 
             const isPasted = link.can_crawl === false;
             const backfillTitle = isPasted
@@ -2531,13 +2616,16 @@ async function loadGlobalKnowledge() {
                 : 'No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)';
 
             return `
-            <div class="flex items-center gap-2 p-2 bg-background rounded-lg border border-border hover:border-primary transition-colors ${link.status === 'pending' ? 'bg-accent/10 border-primary' : ''}">
-                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${(link.status === 'pending' || link.needs_backfill) ? 'checked' : ''}>
-                <span class="text-xs font-medium px-2 py-0.5 rounded ${badgeClass} uppercase tracking-wide">${escapeHtml(link.status)}</span>
+            <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
+                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${(isCrawlCandidate(link) || link.needs_backfill) ? 'checked' : ''}>
+                <span class="text-xs font-medium px-2 py-0.5 rounded ${style.badge} uppercase tracking-wide">${escapeHtml(statusLabel(link.status))}</span>
                 ${link.needs_backfill ? `<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="${escapeAttr(backfillTitle)}">no backup</span>` : ''}
                 ${isPasted ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wide" title="Manually pasted content — cannot be re-crawled from a website">pasted</span>' : ''}
-                <a href="${escapeAttr(link.url)}" target="_blank" class="flex-1 text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
-                ${(link.status === 'pending' || (link.needs_backfill && isPasted)) ? `
+                <div class="flex-1 min-w-0">
+                    <a href="${escapeAttr(link.url)}" target="_blank" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
+                    ${linkDetailHTML(link)}
+                </div>
+                ${(isCrawlCandidate(link) || (link.needs_backfill && isPasted)) ? `
                     <button onclick="openPasteModal('global', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                         📋 Paste Content
                     </button>

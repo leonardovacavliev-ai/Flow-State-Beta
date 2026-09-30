@@ -763,6 +763,46 @@ def refresh_all():
     if not is_admin_request():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
+    if USE_ASYNC_CRAWL and not app.config.get('CRAWL_WORKER_RUNNING'):
+        return jsonify({'error': 'The background crawl worker is not running, so nothing '
+                                 'would process this refresh. Check the server logs.'}), 503
+
+    if USE_ASYNC_CRAWL:
+        # Through the paced queue like every other crawl. The synchronous
+        # version below fires the whole CSV at 1 req/s with no rate-limit
+        # handling (the burst that caused the develop.yotpo.com 429s), then
+        # rebuilds vectors from local files, which on Railway's ephemeral
+        # disk are only whatever was crawled since the last deploy.
+        try:
+            from esp_manager import get_esp_manager
+            from adapters.database.db_manager import get_database_adapter
+            from workers.crawl_queue import enqueue_crawl_job, queued_response
+            from workers.crawl_queue import enqueue_urls
+            db = get_database_adapter()
+            esp_mgr = get_esp_manager()
+            global_esp = _ensure_global_esp(esp_mgr)
+            job_ids, skipped = [], []
+            for esp in esp_mgr.list_esps():
+                for doc in esp_mgr.list_documents(esp['name']):
+                    job_id, created = enqueue_crawl_job(db, esp['id'], doc['id'], doc['url'])
+                    job_ids.append(job_id)
+                    if not created:
+                        skipped.append(doc['url'])
+            # ESP links live in the database; global-knowledge links are
+            # still listed from the CSV, and may not have a row yet
+            known = {doc['url'] for doc in esp_mgr.list_documents('global')}
+            csv_only = [url for url in _global_csv_links() if url not in known]
+            if csv_only:
+                more_ids, more_skipped = enqueue_urls(db, esp_mgr, global_esp, 'global', csv_only)
+                job_ids += more_ids
+                skipped += more_skipped
+            # Chat caches are cleared by the worker as each doc is re-indexed
+            return jsonify(queued_response(job_ids, skipped))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Could not queue the refresh: {e}'}), 500
+
     try:
         # Re-crawl
         csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
@@ -995,15 +1035,9 @@ def restore_from_backup():
 
 # ========== GLOBAL KNOWLEDGE ENDPOINTS ==========
 
-@app.route('/api/admin/global-knowledge/links', methods=['GET'])
-def get_global_knowledge_links():
-    """Get links for global knowledge base (admin only)"""
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
-
+def _global_csv_links():
+    """Global-knowledge URLs listed in esp_support_links.csv, in order."""
     csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
-    metadata_path = os.path.join(BASE_PATH, 'docs/crawl_metadata.json')
-
     csv_links = []
     try:
         with open(csv_path, 'r') as f:
@@ -1021,6 +1055,16 @@ def get_global_knowledge_links():
                 csv_links.append(line)
     except Exception as e:
         print(f"Error reading CSV: {e}")
+    return csv_links
+
+
+@app.route('/api/admin/global-knowledge/links', methods=['GET'])
+def get_global_knowledge_links():
+    """Get links for global knowledge base (admin only)"""
+    if not is_admin_request():
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+
+    csv_links = _global_csv_links()
 
     # URLs whose content is backed up in the database (used for the
     # needs_backfill flag below). If the DB has no 'global' docs yet,
@@ -1034,6 +1078,24 @@ def get_global_knowledge_links():
         }
     except Exception as e:
         print(f"[GLOBAL PERSIST] Could not check backed-up docs: {e}")
+
+    # Crawl state from the queue (failed / queued / retrying / ...). The
+    # vector check below only knows "indexed or not", so a failed crawl
+    # used to show up as 'pending', as if it had never been tried.
+    queue_states = {}
+    if USE_ASYNC_CRAWL:
+        try:
+            from esp_manager import get_esp_manager
+            from adapters.database.db_manager import get_database_adapter
+            from workers.crawl_queue import list_document_states
+            global_esp = get_esp_manager().get_esp_by_name('global')
+            if global_esp:
+                queue_states = {
+                    doc['url']: doc
+                    for doc in list_document_states(get_database_adapter(), global_esp['id'])
+                }
+        except Exception as e:
+            print(f"[GLOBAL] Could not read crawl states: {e}")
 
     # Check actual vectorization status from vector DB
     links_with_status = []
@@ -1050,9 +1112,17 @@ def get_global_knowledge_links():
                 print(f"Error checking URL {url}: {e}")
                 status = 'checking'  # Unknown state
 
+            detail = None
+            queued = queue_states.get(url)
+            if queued and queued['state'] not in ('pending', 'crawled'):
+                status, detail = queued['state'], queued['detail']
+            elif queued and queued['state'] == 'crawled' and status == 'crawled':
+                detail = queued['detail']  # e.g. "re-indexed from the saved copy"
+
             links_with_status.append({
                 'url': url,
                 'status': status,
+                'detail': detail,
                 'needs_backfill': status == 'crawled' and url not in backed_up_urls,
                 # local:// entries are pasted content — they can't be fetched,
                 # only backed up from the saved copy or re-pasted
@@ -1060,6 +1130,26 @@ def get_global_knowledge_links():
             })
 
     return jsonify({'links': links_with_status})
+
+def _ensure_global_esp(esp_mgr):
+    """
+    The hidden 'global' ESP row that holds global-knowledge docs, created or
+    reactivated as needed.
+    """
+    # Look up including archived rows: esps.name is UNIQUE, so an
+    # archived 'global' row (hidden from the UI the old way, by
+    # archiving) made this lookup miss and the create below fail with a
+    # duplicate-key error on every crawl — the docs were never backed up.
+    esp = esp_mgr.get_esp_by_name('global', include_archived=True)
+    if not esp:
+        esp = esp_mgr.create_esp('global', 'Global Knowledge',
+                                 'Internal: global knowledge base (not a selectable ESP)')
+    elif esp.get('status') != 'active':
+        # Reactivate: it's filtered out of the selectable ESP list by
+        # name, and add_document/list_documents only see active ESPs
+        esp_mgr.restore_esp(esp['id'])
+    return esp
+
 
 def _persist_global_doc(url, filename, filepath, file_content):
     """
@@ -1074,18 +1164,7 @@ def _persist_global_doc(url, filename, filepath, file_content):
     try:
         from esp_manager import get_esp_manager
         esp_mgr = get_esp_manager()
-        # Look up including archived rows: esps.name is UNIQUE, so an
-        # archived 'global' row (hidden from the UI the old way, by
-        # archiving) made this lookup miss and the create below fail with a
-        # duplicate-key error on every crawl — the docs were never backed up.
-        esp = esp_mgr.get_esp_by_name('global', include_archived=True)
-        if not esp:
-            esp = esp_mgr.create_esp('global', 'Global Knowledge',
-                                     'Internal: global knowledge base (not a selectable ESP)')
-        elif esp.get('status') != 'active':
-            # Reactivate: it's filtered out of the selectable ESP list by
-            # name, and add_document/list_documents only see active ESPs
-            esp_mgr.restore_esp(esp['id'])
+        esp = _ensure_global_esp(esp_mgr)
         doc = esp_mgr.get_document_by_url(esp['id'], url)
         if not doc:
             doc = esp_mgr.add_document('global', url)
@@ -1159,7 +1238,7 @@ def add_global_knowledge_link():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-def _find_local_global_copy(url, global_folder, metadata):
+def _find_local_global_copy(url, global_folder):
     """
     Locate the saved .txt file for a global-knowledge URL, if one exists.
 
@@ -1167,19 +1246,13 @@ def _find_local_global_copy(url, global_folder, metadata):
     docs, or sites that started blocking the crawler — so its content can
     still be backed up to the database from the copy on disk.
     """
-    from crawler import filename_from_url
-
-    for doc in metadata.get('global', []):
-        if doc.get('url') == url:
-            filepath = doc.get('filepath')
-            if filepath and os.path.exists(filepath):
-                return doc.get('filename'), filepath
-
-    guess = filename_from_url(url)
-    guess_path = os.path.join(global_folder, guess)
-    if os.path.exists(guess_path):
-        return guess, guess_path
-    return None, None
+    # Only a file that provably belongs to this URL (see find_saved_copy):
+    # filenames collide, e.g. every local:// URL maps to index.txt
+    from crawler import find_saved_copy
+    filename, _content = find_saved_copy(BASE_PATH, 'global', url)
+    if not filename:
+        return None, None
+    return filename, os.path.join(global_folder, filename)
 
 
 @app.route('/api/admin/global-knowledge/crawl-selected', methods=['POST'])
@@ -1202,6 +1275,29 @@ def crawl_global_knowledge_links():
 
     if not urls:
         return jsonify({'error': 'No URLs provided'}), 400
+
+    if USE_ASYNC_CRAWL and not app.config.get('CRAWL_WORKER_RUNNING'):
+        return jsonify({'error': 'The background crawl worker is not running, so nothing '
+                                 'would process this crawl. Check the server logs.'}), 503
+
+    if USE_ASYNC_CRAWL:
+        # Same paced background queue as ESP docs: a burst of global URLs on
+        # one site must not trip its rate limit either. The worker crawls
+        # into docs/global/, indexes under 'global', and backs the content
+        # up to the database (falling back to the saved copy for pasted
+        # local:// docs), which is everything the synchronous path did.
+        try:
+            from esp_manager import get_esp_manager
+            from adapters.database.db_manager import get_database_adapter
+            from workers.crawl_queue import enqueue_urls, queued_response
+            esp_mgr = get_esp_manager()
+            esp = _ensure_global_esp(esp_mgr)
+            job_ids, skipped = enqueue_urls(get_database_adapter(), esp_mgr, esp, 'global', urls)
+            return jsonify(queued_response(job_ids, skipped))
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return jsonify({'error': f'Could not queue global knowledge crawl: {e}'}), 500
 
     try:
         from crawler import extract_main_content_detailed
@@ -1231,8 +1327,8 @@ def crawl_global_knowledge_links():
             backfilled = False
 
             if content is not None:
-                from crawler import filename_from_url
-                filename = filename_from_url(url)
+                from crawler import save_filename_for
+                filename = save_filename_for(BASE_PATH, 'global', url)
                 filepath = os.path.join(global_folder, filename)
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(f"Source URL: {url}\n\n")
@@ -1242,7 +1338,7 @@ def crawl_global_knowledge_links():
             else:
                 # Crawl failed — fall back to the saved copy on disk so the
                 # content can still be backed up to the database.
-                filename, filepath = _find_local_global_copy(url, global_folder, metadata)
+                filename, filepath = _find_local_global_copy(url, global_folder)
                 if not filepath:
                     failed.append({'url': url, 'error': crawl_error})
                     continue
@@ -1318,7 +1414,7 @@ def paste_global_content():
     if not is_admin_request():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
-    if not url or not content:
+    if not url or not content or not content.strip():
         return jsonify({'error': 'URL and content are required'}), 400
 
     try:
@@ -1329,14 +1425,9 @@ def paste_global_content():
         global_folder = os.path.join(docs_path, 'global')
         os.makedirs(global_folder, exist_ok=True)
 
-        # Generate filename from URL
-        parsed = urlparse(url)
-        path_parts = parsed.path.strip('/').split('/')
-        filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-        filename = filename.replace('.html', '').replace('.htm', '')
-        if not filename:
-            filename = 'index'
-        filename = f"{filename}.txt"
+        # A name no other URL's saved copy uses (see save_filename_for)
+        from crawler import save_filename_for
+        filename = save_filename_for(BASE_PATH, 'global', url)
 
         # Save content to file
         filepath = os.path.join(global_folder, filename)
@@ -1493,6 +1584,9 @@ if USE_ASYNC_CRAWL:
             max_workers=max_workers,
             base_path=BASE_PATH
         )
+        # Read by the queueing endpoints: with no worker, a queued job would
+        # sit in QUEUED forever, so they refuse instead
+        app.config['CRAWL_WORKER_RUNNING'] = True
         print(f"[ASYNC CRAWL] Worker started with {max_workers} threads")
 
         # Start stale job cleanup scheduler

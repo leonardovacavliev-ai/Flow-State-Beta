@@ -17,6 +17,10 @@ import requests
 from .base import DatabaseAdapter
 
 
+class _IndexPresent(Exception):
+    """Control flow in initialize(): the index already exists."""
+
+
 class PostgresAdapter(DatabaseAdapter):
     """PostgreSQL implementation of DatabaseAdapter."""
 
@@ -283,9 +287,79 @@ class PostgresAdapter(DatabaseAdapter):
             # - is_crawling / crawl_job_id from migration 001
             # - content: the crawled text itself, so the knowledge base can be
             #   rebuilt/re-vectorized after the ephemeral filesystem is wiped
-            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS crawl_job_id UUID")
-            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS is_crawling BOOLEAN DEFAULT FALSE")
-            cursor.execute("ALTER TABLE esp_documents ADD COLUMN IF NOT EXISTS content TEXT")
+            self._add_missing_columns(cursor, 'esp_documents', [
+                ('crawl_job_id', 'UUID'),
+                ('is_crawling', 'BOOLEAN DEFAULT FALSE'),
+                ('content', 'TEXT'),
+            ])
+
+            # Crawl pacing. Jobs are gated per host so a batch of URLs on one
+            # site goes out at min_interval_ms apart instead of all at once,
+            # and a 429 pauses that host (backoff_until) for every worker
+            # thread and replica, not just the job that got it.
+            # Columns are added only when missing: ALTER TABLE takes an
+            # exclusive lock on crawl_jobs even when IF NOT EXISTS makes it a
+            # no-op, and this runs on every boot while the old instance may
+            # still be crawling. Timestamps are TIMESTAMP like every other
+            # column here, compared against NOW() in the same (UTC) session.
+            self._add_missing_columns(cursor, 'crawl_jobs', [
+                ('host', 'TEXT'),
+                ('next_attempt_at', 'TIMESTAMP'),
+                ('error_kind', 'VARCHAR(20)'),
+                ('rate_limited_count', 'INTEGER NOT NULL DEFAULT 0'),
+            ])
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS crawl_hosts (
+                    host            TEXT PRIMARY KEY,
+                    min_interval_ms INTEGER   NOT NULL DEFAULT 2000,
+                    next_allowed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    backoff_until   TIMESTAMP,
+                    last_429_at     TIMESTAMP,
+                    consecutive_429 INTEGER   NOT NULL DEFAULT 0
+                )
+            """)
+            # For a crawl_hosts created by hand from the scope doc's SQL
+            self._add_missing_columns(cursor, 'crawl_hosts', [
+                ('consecutive_429', 'INTEGER NOT NULL DEFAULT 0'),
+            ])
+            # CREATE INDEX IF NOT EXISTS still locks the table before it
+            # checks, so look first (see _add_missing_columns)
+            if not self._index_exists(cursor, 'idx_crawl_jobs_ready'):
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_crawl_jobs_ready ON crawl_jobs(status, next_attempt_at)")
+            # At most one active job per document, so a double-submitted
+            # crawl can't send the same URL twice. Behind a savepoint: if
+            # existing rows violate it, boot continues without the index
+            # (enqueue still de-duplicates, just not race-free).
+            cursor.execute("SAVEPOINT one_active_job")
+            try:
+                if self._index_exists(cursor, 'idx_crawl_jobs_one_active'):
+                    # Nothing to do; with the index in place duplicates can't exist
+                    raise _IndexPresent()
+                # Existing duplicates (from before this index) would block it
+                # forever: keep each document's newest active job
+                cursor.execute("""
+                    UPDATE crawl_jobs SET status = 'cancelled', completed_at = NOW(),
+                           error_message = 'Superseded by a newer crawl of the same URL'
+                    WHERE status IN ('pending', 'processing') AND id IN (
+                        SELECT id FROM (
+                            SELECT id, ROW_NUMBER() OVER (
+                                PARTITION BY document_id ORDER BY created_at DESC, id DESC) AS rn
+                            FROM crawl_jobs WHERE status IN ('pending', 'processing')
+                        ) ranked WHERE rn > 1)
+                """)
+                cursor.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_crawl_jobs_one_active
+                    ON crawl_jobs(document_id) WHERE status IN ('pending', 'processing')
+                """)
+                cursor.execute("RELEASE SAVEPOINT one_active_job")
+            except _IndexPresent:
+                cursor.execute("RELEASE SAVEPOINT one_active_job")
+            except psycopg2.Error as e:
+                cursor.execute("ROLLBACK TO SAVEPOINT one_active_job")
+                print(f"[WARNING] Could not create idx_crawl_jobs_one_active: {e}")
+            # Jobs from before pacing get their host in workers.crawl_queue.
+            # repair_queue (run when the crawl worker starts and every sweep),
+            # using the same url_host() as new jobs.
 
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")
@@ -310,6 +384,23 @@ class PostgresAdapter(DatabaseAdapter):
         finally:
             cursor.close()
             self._put_connection(conn)
+
+    @staticmethod
+    def _index_exists(cursor, name):
+        cursor.execute(
+            "SELECT 1 FROM pg_indexes WHERE schemaname = current_schema() AND indexname = %s", (name,))
+        return cursor.fetchone() is not None
+
+    @staticmethod
+    def _add_missing_columns(cursor, table, columns):
+        """ALTER TABLE ... ADD COLUMN only for columns that don't exist yet."""
+        cursor.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_schema = current_schema() AND table_name = %s", (table,))
+        existing = {row[0] for row in cursor.fetchall()}
+        for name, definition in columns:
+            if name not in existing:
+                cursor.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {name} {definition}")
 
     def close(self):
         """Close database connection pool."""

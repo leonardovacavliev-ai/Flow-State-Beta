@@ -11,6 +11,7 @@ Usage:
 from flask import jsonify, request
 from esp_manager import get_esp_manager
 from crawler import vectorize_single_document
+from workers.crawl_queue import enqueue_urls, queued_response, list_document_states, format_wait
 from app_admin_esp_routes import (
     check_admin_password,
     delete_document_artifacts,
@@ -20,6 +21,19 @@ from app_admin_esp_routes import (
 from mechanics_cache import clear_mechanics_cache
 import os
 import uuid
+
+
+def _job_detail(status, error_kind, error_message, host, wait_seconds):
+    """Short explanation of one job's state for the progress panel, or None."""
+    if status == 'pending':
+        if error_kind:
+            return f"{error_message} — retrying {format_wait(wait_seconds)}"
+        if wait_seconds and wait_seconds >= 5:
+            return f"Waiting for {host} — starts {format_wait(wait_seconds)}"
+        return None
+    if status in ('failed', 'completed'):
+        return error_message  # completed only carries one when re-indexed from a saved copy
+    return None
 
 
 def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
@@ -62,22 +76,27 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         if not check_admin_password():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
-            esp_mgr = get_mgr()
-            docs = esp_mgr.list_documents(esp_name)
+            esp = get_mgr().get_esp_by_name(esp_name)
+            docs = list_document_states(get_db(), esp['id']) if esp else []
 
             # Convert to frontend format.
+            # status: crawled | pending (never crawled) | failed | queued |
+            #   crawling | retrying | waiting — with `detail` saying why.
+            #   A failed crawl used to be reported as 'pending', which made
+            #   it look like the URL had never been tried.
             # needs_backfill: crawled before content persistence existed, so
             # there is no database backup — a re-crawl will capture it.
             links = [{
                 'url': doc['url'],
                 'filename': doc['filename'],
-                'status': 'crawled' if doc['crawl_status'] == 'completed' else 'pending',
+                'status': doc['state'],
+                'detail': doc['detail'],
                 'crawl_status': doc['crawl_status'],
                 'last_crawled_at': doc['last_crawled_at'],
-                'error_message': doc.get('error_message'),
+                'error_message': doc['error_message'],
                 'crawled': doc['crawl_status'] == 'completed',
-                'is_crawling': doc.get('is_crawling', False),  # Show if currently being crawled
-                'needs_backfill': doc['crawl_status'] == 'completed' and not doc.get('has_content')
+                'is_crawling': doc['is_crawling'],
+                'needs_backfill': doc['crawl_status'] == 'completed' and not doc['has_content']
             } for doc in docs]
 
             return jsonify({'links': links})
@@ -215,6 +234,11 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         """
         if not check_admin_password():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+        if not app.config.get('CRAWL_WORKER_RUNNING'):
+            # These routes are registered before the worker starts; if it
+            # then failed to start, a queued job would sit in QUEUED forever
+            return jsonify({'error': 'The background crawl worker is not running, so nothing '
+                                     'would process this crawl. Check the server logs.'}), 503
         try:
             esp_mgr = get_mgr()
             db = get_db()
@@ -233,66 +257,15 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             esp_docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
             os.makedirs(esp_docs_path, exist_ok=True)
 
-            job_ids = []
-            skipped = []
-
-            for url in urls:
-                # Get or create document
-                doc = esp_mgr.get_document_by_url(esp['id'], url)
-                if not doc:
-                    doc = esp_mgr.add_document(esp_name, url)
-
-                document_id = doc['id']
-
-                # Check if job already exists for this document
-                check_query = """
-                    SELECT id FROM crawl_jobs
-                    WHERE document_id = %s AND status IN ('pending', 'processing')
-                """
-                existing = db.execute_query(check_query, (document_id,), fetch=True)
-
-                if existing:
-                    # Job already queued or processing
-                    job_ids.append(existing[0][0])
-                    skipped.append(url)
-                else:
-                    # Create new job
-                    job_id = str(uuid.uuid4())
-                    create_query = """
-                        INSERT INTO crawl_jobs (id, esp_id, document_id, priority)
-                        VALUES (%s, %s, %s, 10)
-                    """
-                    db.execute_query(create_query, (job_id, esp['id'], document_id))
-
-                    # Mark document as crawling
-                    mark_query = """
-                        UPDATE esp_documents
-                        SET is_crawling = TRUE,
-                            crawl_job_id = %s
-                        WHERE id = %s
-                    """
-                    db.execute_query(mark_query, (job_id, document_id))
-
-                    job_ids.append(job_id)
-
-            message = f'Queued {len(job_ids)} URLs for crawling'
-            if skipped:
-                message += f' ({len(skipped)} already queued/processing)'
-
-            return jsonify({
-                'success': True,
-                'job_ids': job_ids,
-                'total': len(job_ids),
-                'message': message,
-                'skipped_count': len(skipped)
-            })
+            job_ids, skipped = enqueue_urls(db, esp_mgr, esp, esp_name, urls)
+            return jsonify(queued_response(job_ids, skipped))
 
         except Exception as e:
             import traceback
             traceback.print_exc()
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/admin/crawl-status', methods=['GET'])
+    @app.route('/api/admin/crawl-status', methods=['GET', 'POST'])
     def get_crawl_status():
         """
         Get status of crawl jobs (polling endpoint).
@@ -327,8 +300,19 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             db = get_db()
-            job_ids_str = request.args.get('job_ids', '')
-            job_ids = [j.strip() for j in job_ids_str.split(',') if j.strip()]
+            # POST {"job_ids": [...]} for long lists: a Refresh All of every
+            # doc overflows gunicorn's 4094-byte request line as a query string
+            if request.method == 'POST':
+                body = request.get_json(silent=True)
+                raw = body.get('job_ids') if isinstance(body, dict) else None
+                if not isinstance(raw, list):
+                    return jsonify({'error': 'Expected a JSON body {"job_ids": [...]}'}), 400
+                if len(raw) > 5000:
+                    return jsonify({'error': 'Too many job_ids (max 5000)'}), 400
+                job_ids = [j.strip() for j in raw if isinstance(j, str) and j.strip()]
+            else:
+                job_ids_str = request.args.get('job_ids', '')
+                job_ids = [j.strip() for j in job_ids_str.split(',') if j.strip()]
 
             if not job_ids:
                 return jsonify({'error': 'No job_ids provided'}), 400
@@ -374,9 +358,16 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                     j.completed_at,
                     d.url,
                     d.filename,
-                    d.crawl_status as doc_status
+                    d.crawl_status as doc_status,
+                    j.error_kind,
+                    j.host,
+                    EXTRACT(EPOCH FROM (
+                        GREATEST(COALESCE(j.next_attempt_at, NOW()),
+                                 COALESCE(h.backoff_until, NOW())) - NOW()
+                    )) AS wait_seconds
                 FROM crawl_jobs j
                 JOIN esp_documents d ON j.document_id = d.id
+                LEFT JOIN crawl_hosts h ON h.host = j.host
                 WHERE j.id IN ({placeholders})
                 ORDER BY j.created_at ASC
             """
@@ -386,6 +377,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             # Convert to list of dicts
             jobs = []
             for row in result:
+                wait = float(row[12]) if row[12] is not None else None
                 jobs.append({
                     'id': row[0],
                     'status': row[1],
@@ -396,7 +388,10 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                     'completed_at': row[6].isoformat() if row[6] else None,
                     'url': row[7],
                     'filename': row[8],
-                    'doc_status': row[9]
+                    'doc_status': row[9],
+                    'error_kind': row[10],
+                    'host': row[11],
+                    'detail': _job_detail(row[1], row[10], row[3], row[11], wait)
                 })
 
             # Calculate summary
@@ -512,7 +507,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not check_admin_password():
                 return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
-            if not url or not content:
+            if not url or not content or not content.strip():
                 return jsonify({'error': 'URL and content are required'}), 400
 
             # Get or create ESP
@@ -525,15 +520,9 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not doc:
                 doc = esp_mgr.add_document(esp_name, url)
 
-            # Generate filename from URL
-            from urllib.parse import urlparse
-            parsed = urlparse(url)
-            path_parts = parsed.path.strip('/').split('/')
-            filename = '_'.join(path_parts[-2:]) if len(path_parts) > 1 else path_parts[-1]
-            filename = filename.replace('.html', '').replace('.htm', '')
-            if not filename:
-                filename = 'index'
-            filename = f"{filename}.txt"
+            # A name no other URL's saved copy uses (see save_filename_for)
+            from crawler import save_filename_for
+            filename = save_filename_for(BASE_PATH, esp_name, url)
 
             # Save content to file
             base_docs_path = os.path.join(BASE_PATH, 'docs')
