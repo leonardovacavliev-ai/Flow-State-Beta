@@ -1365,20 +1365,26 @@ const PRODUCT_LABEL_HELP =
     'Which Yotpo product this document covers. Shared = correct for both: ' +
     "the ESP's own docs, or Yotpo platform docs that belong to neither product.";
 
+// Fixed width so every picker lines up, whatever it shows.
+const PRODUCT_PICKER_CLASSES = 'product-picker w-28 shrink-0 text-xs px-2 py-1 rounded';
+
 function productPickerHTML(espName, link) {
     if (!link.labelable) {
-        return `<select disabled class="product-picker text-xs px-2 py-1 border border-border rounded bg-muted text-muted-foreground" title="Crawl this link first — only saved documents can be labelled"><option>Crawl first</option></select>`;
+        return `<select disabled class="${PRODUCT_PICKER_CLASSES} border border-border bg-muted text-muted-foreground" title="Crawl this link first — only saved documents can be labelled"><option>Crawl first</option></select>`;
     }
     const unlabelled = !link.product;
-    const hint = link.suggested_product && unlabelled
-        ? ` — header says ${PRODUCT_LABELS[link.suggested_product]}` : '';
-    const options = [`<option value="" ${unlabelled ? 'selected' : ''}>Unlabelled${escapeHtml(hint)}</option>`]
+    // The Yotpo header's suggestion goes in the tooltip, not the option text,
+    // so it can't change the picker's size.
+    const title = link.suggested_product && unlabelled
+        ? `${PRODUCT_LABEL_HELP} The page's Yotpo header says ${PRODUCT_LABELS[link.suggested_product]}.`
+        : PRODUCT_LABEL_HELP;
+    const options = [`<option value="" ${unlabelled ? 'selected' : ''}>Unlabelled</option>`]
         .concat(Object.entries(PRODUCT_LABELS).map(([value, label]) =>
             `<option value="${value}" ${link.product === value ? 'selected' : ''}>${label}</option>`))
         .join('');
-    return `<select class="product-picker text-xs px-2 py-1 rounded bg-background cursor-pointer border ${unlabelled ? 'border-amber-400 text-amber-800' : 'border-input text-foreground'}"
+    return `<select class="${PRODUCT_PICKER_CLASSES} bg-background cursor-pointer border ${unlabelled ? 'border-amber-400 text-amber-800' : 'border-input text-foreground'}"
                 data-esp="${escapeAttr(espName)}" data-url="${escapeAttr(link.url)}" data-saved="${escapeAttr(link.product || '')}"
-                title="${escapeAttr(PRODUCT_LABEL_HELP)}" aria-label="Yotpo product for ${escapeAttr(link.url)}">${options}</select>`;
+                title="${escapeAttr(title)}" aria-label="Yotpo product for ${escapeAttr(link.url)}">${options}</select>`;
 }
 
 function updateUnlabelledCount(scope) {
