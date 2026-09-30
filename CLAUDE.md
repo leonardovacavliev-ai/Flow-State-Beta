@@ -294,6 +294,24 @@ This phase implements **PostgreSQL-based ESP persistence**:
 2. Run migration script
 3. Test: Add ESP → Redeploy → Verify persistence
 
+### 🟡 IN PROGRESS: Product-Line Labels (Loyalty vs Reviews)
+
+**See [PRODUCT_LINE_SPLIT_SCOPE.md](PRODUCT_LINE_SPLIT_SCOPE.md) for the scope, measurements and status.**
+
+Yotpo Reviews integration docs already sit in the ESP namespaces next to the Loyalty docs
+(Klaviyo's Reviews guide is a third of that namespace). Every document now carries a product label
+so the two can be told apart, and Reviews docs can be added without contaminating Loyalty answers.
+
+- [x] `esp_documents.product`: `loyalty` | `reviews` | `shared` (correct for both), NULL until labelled
+- [x] Label picker in admin ESP management and global knowledge (`backend/product_labels.py`)
+- [x] All documents labelled (2026-09-30)
+- [ ] Product-neutral system prompt (the live one is written for Loyalty)
+- [ ] Experiment: labels in the context vs a retrieval filter (`eval/product_eval.py`, on branch
+      `feat/product-labels-eval`)
+- [ ] Labels on vectors, required label when adding links, "no Reviews docs for this ESP" guard
+
+Chat does not read labels yet. Once it does, an unlabelled document counts as neither product.
+
 ### Phase 5: Containerize Application
 - [ ] Create Dockerfile
   - Multi-stage build (dependencies + app)
