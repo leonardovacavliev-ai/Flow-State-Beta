@@ -776,7 +776,6 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
                 unique_users,
                 avg_messages_per_conversation,
                 total_feedback,
-                avg_session_duration,
                 avg_message_length
             FROM daily_aggregates
             WHERE date >= ? AND date <= ?
@@ -808,7 +807,15 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             unique_users_wk.append(sum(_int(row['unique_users']) for row in week_rows))
             feedback_wk.append(sum(_int(row['total_feedback']) for row in week_rows))
             avg_messages_wk.append(round(_mean([_num(row['avg_messages_per_conversation']) for row in week_rows]), 1))
-            session_time_wk.append(round(_mean([_num(row['avg_session_duration']) for row in week_rows]), 1))
+            # Median over the week's sessions, straight from the raw tables --
+            # the same calculation as the KPI. Averaging the stored daily
+            # medians would be a different statistic.
+            week_from = datetime.combine(week_start, datetime.min.time())
+            week_to = week_from + timedelta(days=7)
+            session_time_wk.append(round(_median_session_seconds(
+                cursor, "s.start_time >= ? AND s.start_time < ?",
+                (week_from.isoformat(), week_to.isoformat())
+            ), 1))
             msg_length_wk.append(round(_mean([_num(row['avg_message_length']) for row in week_rows]), 1))
 
         sparkline_data = {
