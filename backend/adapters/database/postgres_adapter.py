@@ -287,10 +287,13 @@ class PostgresAdapter(DatabaseAdapter):
             # - is_crawling / crawl_job_id from migration 001
             # - content: the crawled text itself, so the knowledge base can be
             #   rebuilt/re-vectorized after the ephemeral filesystem is wiped
+            # - product: Yotpo product line, 'loyalty' | 'reviews' | 'shared',
+            #   set by admins (product_labels.py). NULL until labelled.
             self._add_missing_columns(cursor, 'esp_documents', [
                 ('crawl_job_id', 'UUID'),
                 ('is_crawling', 'BOOLEAN DEFAULT FALSE'),
                 ('content', 'TEXT'),
+                ('product', 'VARCHAR(20)'),
             ])
 
             # Crawl pacing. Jobs are gated per host so a batch of URLs on one

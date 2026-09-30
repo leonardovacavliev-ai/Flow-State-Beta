@@ -315,6 +315,64 @@ class ESPManager:
             })
         return docs
 
+    # ==================== Product labels ====================
+
+    def get_product_labels(self, esp_name: str) -> Dict[str, Dict]:
+        """{url: {'product', 'suggested_product'}} for every document of an ESP.
+
+        suggested_product comes from the Yotpo header in the stored content,
+        read from its first few hundred characters only.
+        """
+        from product_labels import header_label, HEADER_SCAN_CHARS
+
+        esp = self.get_esp_by_name(esp_name)
+        if not esp:
+            return {}
+        # substr() works in both SQLite and Postgres
+        query = f"""
+            SELECT url, product, substr(content, 1, {HEADER_SCAN_CHARS})
+            FROM esp_documents
+            WHERE esp_id = %s
+        """
+        rows = self.db.execute_query(query, (esp['id'],), fetch=True) or []
+        return {row[0]: {'product': row[1], 'suggested_product': header_label(row[2])}
+                for row in rows}
+
+    def set_document_product(self, esp_name: str, urls: List[str], product: Optional[str]):
+        """Set (or clear, with None) the product label on an ESP's documents.
+
+        Returns (updated_urls, missing_urls). Missing means no row for that
+        URL under this ESP; nothing is created.
+        """
+        esp = self.get_esp_by_name(esp_name)
+        if not esp:
+            raise ValueError(f"ESP '{esp_name}' not found")
+
+        placeholders = ','.join(['%s'] * len(urls))
+        existing = self.db.execute_query(
+            f"SELECT url FROM esp_documents WHERE esp_id = %s AND url IN ({placeholders})",
+            (esp['id'],) + tuple(urls), fetch=True) or []
+        found = [row[0] for row in existing]
+        if found:
+            found_placeholders = ','.join(['%s'] * len(found))
+            self.db.execute_query(
+                f"UPDATE esp_documents SET product = %s "
+                f"WHERE esp_id = %s AND url IN ({found_placeholders})",
+                (product, esp['id']) + tuple(found))
+        found_set = set(found)
+        return found, [u for u in urls if u not in found_set]
+
+    def list_all_product_labels(self) -> List[Dict]:
+        """Every document with its ESP, URL, label and whether it has content."""
+        rows = self.db.execute_query("""
+            SELECT e.name, d.url, d.filename, d.product, d.content IS NOT NULL
+            FROM esp_documents d
+            JOIN esps e ON e.id = d.esp_id
+            ORDER BY e.name, d.url
+        """, fetch=True) or []
+        return [{'esp': r[0], 'url': r[1], 'filename': r[2], 'product': r[3],
+                 'has_content': bool(r[4])} for r in rows]
+
     def update_document_crawl_status(self, doc_id: str, status: str,
                                       content_hash: str = None,
                                       error_message: str = None,

@@ -99,6 +99,9 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 'needs_backfill': doc['crawl_status'] == 'completed' and not doc['has_content']
             } for doc in docs]
 
+            from product_labels import merge_labels
+            merge_labels(links, get_mgr().get_product_labels(esp_name))
+
             return jsonify({'links': links})
         except Exception as e:
             return jsonify({'error': str(e)}), 500

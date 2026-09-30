@@ -1354,6 +1354,77 @@ function linkDetailHTML(link) {
     return `<span class="block text-xs ${cls} truncate" title="${escapeAttr(link.detail)}">${escapeHtml(link.detail)}</span>`;
 }
 
+// ---------- Product-line labels (see backend/product_labels.py) ----------
+// Which Yotpo product a document covers. Saved as soon as it is picked.
+const PRODUCT_LABELS = {
+    loyalty: 'Loyalty',
+    reviews: 'Reviews',
+    shared: 'Shared'
+};
+const PRODUCT_LABEL_HELP =
+    'Which Yotpo product this document covers. Shared = correct for both: ' +
+    "the ESP's own docs, or Yotpo platform docs that belong to neither product.";
+
+function productPickerHTML(espName, link) {
+    if (!link.labelable) {
+        return `<select disabled class="product-picker text-xs px-2 py-1 border border-border rounded bg-muted text-muted-foreground" title="Crawl this link first — only saved documents can be labelled"><option>Crawl first</option></select>`;
+    }
+    const unlabelled = !link.product;
+    const hint = link.suggested_product && unlabelled
+        ? ` — header says ${PRODUCT_LABELS[link.suggested_product]}` : '';
+    const options = [`<option value="" ${unlabelled ? 'selected' : ''}>Unlabelled${escapeHtml(hint)}</option>`]
+        .concat(Object.entries(PRODUCT_LABELS).map(([value, label]) =>
+            `<option value="${value}" ${link.product === value ? 'selected' : ''}>${label}</option>`))
+        .join('');
+    return `<select class="product-picker text-xs px-2 py-1 rounded bg-background cursor-pointer border ${unlabelled ? 'border-amber-400 text-amber-800' : 'border-input text-foreground'}"
+                data-esp="${escapeAttr(espName)}" data-url="${escapeAttr(link.url)}" data-saved="${escapeAttr(link.product || '')}"
+                title="${escapeAttr(PRODUCT_LABEL_HELP)}" aria-label="Yotpo product for ${escapeAttr(link.url)}">${options}</select>`;
+}
+
+function updateUnlabelledCount(scope) {
+    const counter = scope.querySelector('.unlabelled-count');
+    if (!counter) return;
+    const n = [...scope.querySelectorAll('select.product-picker:not([disabled])')]
+        .filter(s => !s.value).length;
+    counter.textContent = n ? `${n} unlabelled` : 'all labelled';
+    counter.className = `unlabelled-count text-xs font-medium px-2 py-0.5 rounded ${n ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`;
+}
+
+async function saveProductLabel(select, scope) {
+    const previous = select.dataset.saved;
+    const product = select.value || null;
+    select.disabled = true;
+    try {
+        const response = await fetch(`${API_URL}/admin/esp/${encodeURIComponent(select.dataset.esp)}/set-product`, {
+            method: 'POST',
+            headers: adminHeaders(),
+            body: JSON.stringify({ urls: [select.dataset.url], product })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success || (data.missing && data.missing.length)) {
+            throw new Error(data.error || 'This link has no saved document to label.');
+        }
+        select.dataset.saved = select.value;
+        select.classList.toggle('border-amber-400', !product);
+        select.classList.toggle('text-amber-800', !product);
+        select.classList.toggle('border-input', !!product);
+        select.classList.toggle('text-foreground', !!product);
+    } catch (error) {
+        select.value = previous;
+        alert('Could not save the label: ' + error.message);
+    } finally {
+        select.disabled = false;
+        updateUnlabelledCount(scope);
+    }
+}
+
+function wireProductPickers(scope) {
+    scope.querySelectorAll('select.product-picker:not([disabled])').forEach(select => {
+        select.addEventListener('change', () => saveProductLabel(select, scope));
+    });
+    updateUnlabelledCount(scope);
+}
+
 async function loadESPManagement() {
     try {
         const response = await fetch(`${API_URL}/admin/esps`);
@@ -1393,6 +1464,7 @@ async function loadESPManagement() {
                             <a href="${escapeAttr(link.url)}" target="_blank" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                             ${linkDetailHTML(link)}
                         </div>
+                        ${productPickerHTML(esp.name, link)}
                         ${isCrawlCandidate(link) ? `
                             <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                                 📋 Paste Content
@@ -1408,6 +1480,7 @@ async function loadESPManagement() {
             espDiv.innerHTML = `
                 <h4 class="text-base font-semibold text-card-foreground mb-3 flex items-center gap-2">
                     <span>${escapeHtml(displayName)} (${esp.doc_count} documents)</span>
+                    <span class="unlabelled-count"></span>
                     <button type="button" class="esp-rename-btn text-muted-foreground hover:text-primary transition-colors" data-esp="${escapeAttr(esp.name)}" data-display-name="${escapeAttr(displayName)}" title="Rename ${escapeAttr(displayName)}" aria-label="Rename ${escapeAttr(displayName)}">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M12 20h9"></path>
@@ -1432,6 +1505,8 @@ async function loadESPManagement() {
                     renameESP(renameBtn.dataset.esp, renameBtn.dataset.displayName);
                 });
             }
+
+            wireProductPickers(espDiv);
 
             // Add checkbox change listeners for global bulk actions
             const checkboxes = espDiv.querySelectorAll('.link-checkbox');
@@ -2607,7 +2682,7 @@ async function loadGlobalKnowledge() {
             return;
         }
 
-        container.innerHTML = data.links.map(link => {
+        container.innerHTML = '<div class="flex justify-end"><span class="unlabelled-count"></span></div>' + data.links.map(link => {
             const style = crawlStateStyle(link.status);
 
             const isPasted = link.can_crawl === false;
@@ -2625,6 +2700,7 @@ async function loadGlobalKnowledge() {
                     <a href="${escapeAttr(link.url)}" target="_blank" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
                     ${linkDetailHTML(link)}
                 </div>
+                ${productPickerHTML('global', link)}
                 ${(isCrawlCandidate(link) || (link.needs_backfill && isPasted)) ? `
                     <button onclick="openPasteModal('global', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', true)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
                         📋 Paste Content
@@ -2633,6 +2709,8 @@ async function loadGlobalKnowledge() {
             </div>
         `;
         }).join('');
+
+        wireProductPickers(container);
 
         // Add checkbox change listeners
         const checkboxes = container.querySelectorAll('.global-link-checkbox');

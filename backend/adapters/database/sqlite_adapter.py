@@ -179,6 +179,13 @@ class SQLiteAdapter(DatabaseAdapter):
             except Exception:
                 pass  # Column already exists
 
+            # Yotpo product line (product_labels.py). Checked against the
+            # table's columns rather than try/except, which would also swallow
+            # a locked or unwritable database.
+            cursor.execute("PRAGMA table_info(esp_documents)")
+            if 'product' not in {row[1] for row in cursor.fetchall()}:
+                cursor.execute("ALTER TABLE esp_documents ADD COLUMN product TEXT")
+
             # App settings (config + audit log storage)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS app_settings (

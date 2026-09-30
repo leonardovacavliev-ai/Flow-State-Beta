@@ -123,6 +123,10 @@ if USE_DATABASE_ESP_ROUTES:
         register_esp_admin_routes(app, BASE_PATH, vectorizer)
         print("[DEBUG] ESP database routes (SYNC) registered successfully")
 
+    # Product-line labels on documents; same for both route modules
+    from product_labels import register_product_label_routes
+    register_product_label_routes(app)
+
 # Health check endpoint for Railway
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -1128,6 +1132,14 @@ def get_global_knowledge_links():
                 # only backed up from the saved copy or re-pasted
                 'can_crawl': not url.startswith('local://')
             })
+
+    # Product labels. Only URLs with a database row can be labelled.
+    try:
+        from esp_manager import get_esp_manager
+        from product_labels import merge_labels
+        merge_labels(links_with_status, get_esp_manager().get_product_labels('global'))
+    except Exception as e:
+        print(f"[GLOBAL] Could not read product labels: {e}")
 
     return jsonify({'links': links_with_status})
 
