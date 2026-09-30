@@ -61,10 +61,36 @@ def _sql(query: str) -> str:
 
 
 def _duration_seconds() -> str:
-    """SQL expression: session duration in seconds."""
+    """SQL expression: seconds from session start to the session's last message.
+
+    Deliberately not end_time - start_time. end_time only exists if the tab
+    fired beforeunload, so it is missing for crashes and backgrounded mobile
+    tabs, and it keeps counting while a tab sits open and idle. The last
+    message is the last moment we know the visitor was actually here.
+    Written against the alias `s`.
+    """
+    last_message = "(SELECT MAX(m.timestamp) FROM messages m WHERE m.session_id = s.session_id)"
     if _is_postgres():
-        return "EXTRACT(EPOCH FROM (end_time - start_time))"
-    return "(julianday(end_time) - julianday(start_time)) * 86400"
+        return f"EXTRACT(EPOCH FROM ({last_message} - s.start_time))"
+    return f"(julianday({last_message}) - julianday(s.start_time)) * 86400"
+
+
+def _median_session_seconds(cursor, where: str, params: tuple) -> float:
+    """Median session duration over engaged sessions matching `where`.
+
+    Median, not mean: a handful of long-lived sessions would otherwise
+    dominate. Done in Python because SQLite has no percentile function.
+    """
+    cursor.execute(_sql(f"""
+        SELECT {_duration_seconds()} AS duration
+        FROM sessions s
+        WHERE {where} AND {_ENGAGED_SESSION}
+    """), params)
+    durations = sorted(_num(row['duration']) for row in cursor.fetchall() if row['duration'] is not None and row['duration'] >= 0)
+    if not durations:
+        return 0.0
+    mid = len(durations) // 2
+    return durations[mid] if len(durations) % 2 else (durations[mid - 1] + durations[mid]) / 2
 
 
 def _day(col: str) -> str:
@@ -99,7 +125,7 @@ _GUEST_USER = "s.user_id IS NULL AND s.ip_address IS NOT NULL AND s.ip_address !
 # Bumped whenever a metric's definition changes. Daily rows already stored
 # under the old definition feed the sparklines, so they are recomputed on the
 # next dashboard load rather than left to mix old and new math in one chart.
-_AGGREGATE_DEFINITION_VERSION = '2'
+_AGGREGATE_DEFINITION_VERSION = '3'
 
 
 def _num(value, default=0.0) -> float:
@@ -366,19 +392,10 @@ def calculate_daily_aggregates(target_date: datetime):
         """), (date_str,))
         country_breakdown = {row['country']: _int(row['count']) for row in cursor.fetchall()}
 
-        # Average session duration (in seconds)
-        cursor.execute(_sql(f"""
-            SELECT AVG(
-                CASE
-                    WHEN end_time IS NOT NULL
-                    THEN {_duration_seconds()}
-                    ELSE NULL
-                END
-            ) as avg_duration
-            FROM sessions s
-            WHERE {_day('s.start_time')} = ? AND {_ENGAGED_SESSION}
-        """), (date_str,))
-        avg_session_duration = _num(cursor.fetchone()['avg_duration'])
+        # Median session duration (in seconds), start to last message
+        avg_session_duration = _median_session_seconds(
+            cursor, f"{_day('s.start_time')} = ?", (date_str,)
+        )
 
         # Average messages per conversation (count unique session+ESP combinations)
         cursor.execute(_sql(f"""
@@ -622,20 +639,8 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
             """), params)
             total_feedback = _int(cursor.fetchone()['count'])
 
-            # Avg session duration (engaged sessions, so it measures time spent
-            # using the tool rather than being averaged down by bounces)
-            cursor.execute(_sql(f"""
-                SELECT AVG(
-                    CASE
-                        WHEN end_time IS NOT NULL
-                        THEN {_duration_seconds()}
-                        ELSE NULL
-                    END
-                ) as avg_duration
-                FROM sessions s
-                WHERE {session_filter} AND {_ENGAGED_SESSION}
-            """), params)
-            avg_duration = _num(cursor.fetchone()['avg_duration'])
+            # Median session duration (engaged sessions, start to last message)
+            avg_duration = _median_session_seconds(cursor, session_filter, params)
 
             # Avg conversation length (AI responses per conversation)
             cursor.execute(_sql(f"""
@@ -703,11 +708,6 @@ def get_analytics(time_range: str = 'all_time') -> Dict:
         previous = None
         if time_range != 'all_time':
             previous = get_metrics(previous_start, previous_end)
-
-        # Calculate average messages per session
-        current['avg_messages'] = current['total_messages'] / current['total_sessions'] if current['total_sessions'] > 0 else 0
-        if previous:
-            previous['avg_messages'] = previous['total_messages'] / previous['total_sessions'] if previous['total_sessions'] > 0 else 0
 
         # Get ESP breakdown (current period) - count unique conversations (session+ESP with messages)
         if current_start:

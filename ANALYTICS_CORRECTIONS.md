@@ -250,7 +250,7 @@ The dashboard now shows:
 2. **Unique Users** - Distinct IP addresses
 3. **Avg Messages per Conversation** ✨ (renamed from "per session")
 4. **Feedback Tickets** - Total feedback submissions
-5. **Avg Session Time** - Mean duration in seconds
+5. **Median Session Time** - Median seconds from session start to last message
 6. **Avg Message Length** - Mean character count
 
 ### 2 Breakdown Tables

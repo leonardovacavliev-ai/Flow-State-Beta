@@ -105,12 +105,19 @@ def run_checks():
     analytics.batch_queue.add("INSERT INTO nonexistent_table (x) VALUES (?)", ('boom',))
     analytics.track_esp_selection(sess_b, 'attentive')
 
-    # Give session A a known 120s duration
+    # Give session A a known 120s duration (start -> last message), with an
+    # end_time hours later to stand in for a tab left open: duration must
+    # ignore it.
     start = (now - timedelta(seconds=300)).isoformat()
-    end = (now - timedelta(seconds=180)).isoformat()
+    last_message = (now - timedelta(seconds=180)).isoformat()
+    idle_end = (now + timedelta(hours=5)).isoformat()
     analytics.batch_queue.add(
         "UPDATE sessions SET start_time = ?, end_time = ? WHERE session_id = ?",
-        (start, end, sess_a)
+        (start, idle_end, sess_a)
+    )
+    analytics.batch_queue.add(
+        "UPDATE messages SET timestamp = ? WHERE session_id = ?",
+        (last_message, sess_a)
     )
 
     analytics.batch_queue.force_flush()
@@ -126,6 +133,9 @@ def run_checks():
         cur.execute(analytics._sql(
             "SELECT end_time FROM sessions WHERE session_id = ?"), (sess_a,))
         check("end_session recorded", cur.fetchone()['end_time'] is not None)
+        a_duration = analytics._median_session_seconds(cur, "s.session_id = ?", (sess_a,))
+        check("session duration is start -> last message, ignoring end_time",
+              abs(a_duration - 120) < 1)
 
     # --- session counting: page loads vs engaged sessions ---
     # A bare page load creates a session row and must not be counted, nor may
@@ -210,7 +220,6 @@ def run_checks():
     check("7d sessions >= 2", data['sessions']['value'] >= 2)
     check("7d unique users >= 2", data['unique_users']['value'] >= 2)
     check("7d feedback >= 1", data['feedback_count']['value'] >= 1)
-    check("7d avg session time > 0 (duration SQL works)", data['avg_session_time']['value'] > 0)
     esps = {e['esp'] for e in data['esp_breakdown']}
     check("esp breakdown has klaviyo + attentive", {'klaviyo', 'attentive'} <= esps)
     spark = data['sparkline']

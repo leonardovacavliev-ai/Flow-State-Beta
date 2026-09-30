@@ -9,9 +9,9 @@ The app now includes a comprehensive analytics system that tracks user behavior 
 ### Key Performance Indicators (KPIs)
 1. **Number of Sessions** - Total unique user sessions
 2. **Unique Users** - Count of distinct IP addresses (actual unique visitors)
-3. **Average Messages per Session** - Mean number of messages exchanged per session
+3. **Avg Messages per Conversation** - All messages divided by distinct session + ESP conversations
 4. **Feedback Tickets Submitted** - Total number of feedback submissions
-5. **Average Session Time** - Mean duration of user sessions (in seconds)
+5. **Median Session Time** - Median seconds from session start to the last message (`end_time` is not used: idle open tabs would inflate it)
 6. **Average Message Length** - Mean character count of messages
 
 ### Breakdown Tables
