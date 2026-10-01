@@ -151,13 +151,37 @@
             transition: grid-template-rows 0.32s cubic-bezier(0.22, 0.61, 0.36, 1),
                         visibility 0s;
         }
-        .sources-clip { min-height: 0; overflow: hidden; }
+        /* The clip's bottom edge is where the growing row cuts the card off.
+           A mask fades the last --feather px to transparent, so that edge is
+           never visible: the card dissolves downward as it opens and upward
+           as it closes, instead of being sliced. Once open, the feather
+           shrinks to 0 so the finished card is whole. The padding gives the
+           card's shadow room inside the clip; the margins cancel it. */
+        @property --feather {
+            syntax: '<length>';
+            inherits: false;
+            initial-value: 0px;
+        }
+        .sources-clip {
+            min-height: 0;
+            overflow: hidden;
+            padding: 0 6px 6px;
+            margin: 0 -6px -6px;
+            --feather: 56px;
+            -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--feather)), transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 calc(100% - var(--feather)), transparent 100%);
+            transition: --feather 0.15s ease;
+        }
+        .sources-panel.open .sources-clip {
+            --feather: 0px;
+            transition: --feather 0.25s ease 0.22s;
+        }
         .sources-card {
             margin-top: 0.5rem;
             opacity: 0;
             transform: translateY(-6px) scale(0.98);
             transform-origin: top left;
-            transition: opacity 0.2s ease, transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+            transition: opacity 0.3s ease, transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
         .sources-panel.open .sources-card { opacity: 1; transform: none; }
         /* Entries arrive one after another on open; they leave together. */
@@ -176,7 +200,8 @@
         .sources-btn.open .sources-chevron { transform: rotate(180deg); }
         @media (prefers-reduced-motion: reduce) {
             .sources-panel, .sources-panel.open, .sources-card, .sources-item,
-            .sources-panel.open .sources-item, .sources-chevron { transition: none !important; }
+            .sources-panel.open .sources-item, .sources-chevron,
+            .sources-clip, .sources-panel.open .sources-clip { transition: none !important; }
         }
 
         .esp-button-group { display: flex; gap: 0; transition: all 0.3s ease; }
