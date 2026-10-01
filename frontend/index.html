@@ -88,6 +88,17 @@
         .gradient-intro.fade-out {
             animation: fadeOutUp 0.5s ease forwards;
         }
+        /* The intro's wrapper shrinks to nothing while the intro fades, so the
+           first question glides up into place instead of snapping when the
+           intro is removed. Duration matches the fade-out and the removal timer. */
+        .gradient-intro-collapse {
+            overflow: hidden;
+            transition: height 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .gradient-intro.fade-out { animation: none; opacity: 0; }
+            .gradient-intro-collapse { transition: none; }
+        }
 
         /* Answers land block by block instead of all at once. Applied only to
            the text blocks -- the avatar and the bubble stay put, so they don't
@@ -103,6 +114,52 @@
         }
         @media (prefers-reduced-motion: reduce) {
             .cascade-in { animation: none !important; }
+        }
+
+        /* Sources dropdown under an answer. The row grows from 0fr to 1fr so
+           the height animates to whatever the list needs; visibility flips
+           after the close finishes, keeping closed links out of the tab order.
+           The negative margin cancels the wrapper's gap while closed. */
+        .sources-panel {
+            display: grid;
+            grid-template-rows: 0fr;
+            margin-top: -0.5rem;
+            visibility: hidden;
+            transition: grid-template-rows 0.32s cubic-bezier(0.22, 0.61, 0.36, 1),
+                        visibility 0s linear 0.32s;
+        }
+        .sources-panel.open {
+            grid-template-rows: 1fr;
+            visibility: visible;
+            transition: grid-template-rows 0.32s cubic-bezier(0.22, 0.61, 0.36, 1),
+                        visibility 0s;
+        }
+        .sources-clip { min-height: 0; overflow: hidden; }
+        .sources-card {
+            margin-top: 0.5rem;
+            opacity: 0;
+            transform: translateY(-6px) scale(0.98);
+            transform-origin: top left;
+            transition: opacity 0.2s ease, transform 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+        }
+        .sources-panel.open .sources-card { opacity: 1; transform: none; }
+        /* Entries arrive one after another on open; they leave together. */
+        .sources-item {
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        .sources-panel.open .sources-item {
+            opacity: 1;
+            transform: none;
+            transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+            transition-delay: calc(80ms + var(--i, 0) * 45ms);
+        }
+        .sources-chevron { transition: transform 0.25s ease; }
+        .sources-btn.open .sources-chevron { transform: rotate(180deg); }
+        @media (prefers-reduced-motion: reduce) {
+            .sources-panel, .sources-panel.open, .sources-card, .sources-item,
+            .sources-panel.open .sources-item, .sources-chevron { transition: none !important; }
         }
 
         .esp-button-group { display: flex; gap: 0; transition: all 0.3s ease; }

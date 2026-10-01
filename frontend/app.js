@@ -816,14 +816,21 @@ function buildSources(sources) {
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
         </svg>
         <span></span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sources-chevron opacity-70 transition-transform">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sources-chevron opacity-70">
             <polyline points="6 9 12 15 18 9"></polyline>
         </svg>
     `;
     toggle.querySelector('span').textContent = `Sources (${unique.length})`;
 
     const panel = document.createElement('div');
-    panel.className = 'sources-panel hidden ml-4 max-w-4xl rounded-xl border border-border bg-card px-4 py-3 shadow-sm';
+    // Three layers so the panel can animate its height: the grid row grows
+    // from 0fr to 1fr, the clip hides the card while it does, and the card
+    // carries the border and padding (which would show at zero height).
+    panel.className = 'sources-panel ml-4 max-w-4xl';
+    const clip = document.createElement('div');
+    clip.className = 'sources-clip';
+    const card = document.createElement('div');
+    card.className = 'sources-card rounded-xl border border-border bg-card px-4 py-3 shadow-sm';
     panel.id = `sources-${Math.random().toString(36).slice(2)}`;
     toggle.setAttribute('aria-controls', panel.id);
 
@@ -831,7 +838,8 @@ function buildSources(sources) {
     list.className = 'flex flex-col gap-2 text-sm';
     unique.forEach((source, i) => {
         const item = document.createElement('li');
-        item.className = 'flex gap-2 min-w-0';
+        item.className = 'sources-item flex gap-2 min-w-0';
+        item.style.setProperty('--i', i);
 
         const number = document.createElement('span');
         number.className = 'text-xs text-muted-foreground tabular-nums pt-0.5 w-4 flex-shrink-0';
@@ -855,12 +863,14 @@ function buildSources(sources) {
         item.append(number, link);
         list.appendChild(item);
     });
-    panel.appendChild(list);
+    card.appendChild(list);
+    clip.appendChild(card);
+    panel.appendChild(clip);
 
     toggle.addEventListener('click', () => {
-        const open = panel.classList.toggle('hidden') === false;
+        const open = panel.classList.toggle('open');
+        toggle.classList.toggle('open', open);
         toggle.setAttribute('aria-expanded', String(open));
-        toggle.querySelector('.sources-chevron').style.transform = open ? 'rotate(180deg)' : '';
     });
 
     return { toggle, panel };
@@ -872,6 +882,15 @@ function addMessage(role, content, { animate = false, sources = [] } = {}) {
         const gradientIntro = document.getElementById('gradientIntro');
         if (gradientIntro) {
             gradientIntro.classList.add('fade-out');
+            // Collapse the wrapper while the intro fades, so what follows moves
+            // up smoothly rather than jumping when the intro is removed.
+            const wrapper = gradientIntro.parentElement;
+            if (wrapper && wrapper !== chatMessages) {
+                wrapper.style.height = `${wrapper.offsetHeight}px`;
+                wrapper.classList.add('gradient-intro-collapse');
+                void wrapper.offsetHeight; // commit the start height before animating
+                wrapper.style.height = '0px';
+            }
             setTimeout(() => {
                 gradientIntro.remove();
             }, 500); // Match animation duration
