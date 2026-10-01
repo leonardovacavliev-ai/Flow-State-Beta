@@ -8,7 +8,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 """
 
 from flask import jsonify, request
-from esp_manager import get_esp_manager
+from esp_manager import get_esp_manager, DuplicateURLError
 from crawler import crawl_single_url_detailed, vectorize_single_document, filename_from_url
 from mechanics_cache import clear_mechanics_cache
 import os
@@ -152,6 +152,33 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
     return rebuilt, skipped
 
 
+def register_link_check_route(app):
+    """Register the duplicate-link lookup the admin URL fields call as you type.
+
+    Shared by the sync and async registrars (only one runs per app). Exact
+    1:1 match against every ESP and global knowledge -- the same test
+    add_document applies when the link is actually added.
+    """
+
+    @app.route('/api/admin/check-link', methods=['POST'])
+    def check_link():
+        if not check_admin_password():
+            return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+        try:
+            data = request.get_json(silent=True) or {}
+            url = (data.get('url') or '').strip()
+            if not url:
+                return jsonify({'exists': False, 'matches': []})
+
+            matches = get_esp_manager().find_documents_by_url(url)
+            body = {'exists': bool(matches), 'matches': matches}
+            if matches:
+                body['message'] = DuplicateURLError(url, matches).notice
+            return jsonify(body)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+
 def register_esp_rename_route(app):
     """Register the ESP rename endpoint.
 
@@ -202,6 +229,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         return get_esp_manager()
 
     register_esp_rename_route(app)
+    register_link_check_route(app)
 
     @app.route('/api/admin/esps', methods=['GET'])
     def get_esps():
@@ -278,6 +306,8 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 'message': f'Link added successfully',
                 'doc_id': doc['id']
             })
+        except DuplicateURLError as e:
+            return jsonify({'error': str(e), 'duplicate': True, 'matches': e.owners}), 409
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
         except Exception as e:

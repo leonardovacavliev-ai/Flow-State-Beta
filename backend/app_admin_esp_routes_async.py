@@ -9,7 +9,7 @@ Usage:
 """
 
 from flask import jsonify, request
-from esp_manager import get_esp_manager
+from esp_manager import get_esp_manager, DuplicateURLError
 from crawler import vectorize_single_document
 from workers.crawl_queue import enqueue_urls, queued_response, list_document_states, format_wait
 from app_admin_esp_routes import (
@@ -17,6 +17,7 @@ from app_admin_esp_routes import (
     delete_document_artifacts,
     rebuild_esp_vectors,
     register_esp_rename_route,
+    register_link_check_route,
 )
 from mechanics_cache import clear_mechanics_cache
 import os
@@ -52,6 +53,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         return get_database_adapter()
 
     register_esp_rename_route(app)
+    register_link_check_route(app)
 
     # ==================== EXISTING ROUTES (unchanged) ====================
     # These routes work exactly the same way
@@ -127,6 +129,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                 'message': f'Link added successfully',
                 'doc_id': doc['id']
             })
+        except DuplicateURLError as e:
+            return jsonify({'error': str(e), 'duplicate': True, 'matches': e.owners}), 409
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
         except Exception as e:
@@ -259,6 +263,15 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             # Ensure ESP folder exists
             esp_docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
             os.makedirs(esp_docs_path, exist_ok=True)
+
+            # Refuse before queueing anything: a URL new to this ESP that
+            # already lives elsewhere would be crawled and indexed twice
+            for url in urls:
+                if not esp_mgr.get_document_by_url(esp['id'], url):
+                    owners = esp_mgr.find_documents_by_url(url)
+                    if owners:
+                        return jsonify({'error': str(DuplicateURLError(url, owners, esp_name)),
+                                        'duplicate': True, 'url': url, 'matches': owners}), 409
 
             job_ids, skipped = enqueue_urls(db, esp_mgr, esp, esp_name, urls)
             return jsonify(queued_response(job_ids, skipped))

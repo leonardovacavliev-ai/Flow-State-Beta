@@ -1657,6 +1657,7 @@ async function loadESPManagement() {
                     <input type="text" placeholder="Add new link URL" id="newLink-${esp.name}" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                     <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addLink('${esp.name}')">Add Link</button>
                 </div>
+                <p id="newLinkFlag-${esp.name}" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>
             `;
 
             container.appendChild(espDiv);
@@ -1669,6 +1670,7 @@ async function loadESPManagement() {
             }
 
             wireProductPickers(espDiv);
+            wireDuplicateLinkCheck(espDiv.querySelector(`#newLink-${CSS.escape(esp.name)}`), esp.name);
 
             // Add checkbox change listeners for global bulk actions
             const checkboxes = espDiv.querySelectorAll('.link-checkbox');
@@ -2212,6 +2214,48 @@ async function deleteAllSelected() {
     }
 }
 
+// Show or clear the duplicate-link flag under an ESP's URL field
+function setLinkFlag(espName, message) {
+    const flag = document.getElementById(`newLinkFlag-${espName}`);
+    const input = document.getElementById(`newLink-${espName}`);
+    if (!flag) return;
+    flag.textContent = message || '';
+    flag.classList.toggle('hidden', !message);
+    if (input) input.classList.toggle('border-red-500', !!message);
+}
+
+// Flag, as the URL is typed or pasted, a link that exactly matches one already
+// in the knowledge base (any ESP or global). The server re-checks on add, so
+// this is a hint, not the guard.
+function wireDuplicateLinkCheck(input, espName) {
+    if (!input) return;
+    let timer = null;
+    let latest = 0;
+
+    const check = async () => {
+        const url = input.value.trim();
+        const ticket = ++latest;
+        if (!url) { setLinkFlag(espName, null); return; }
+        try {
+            const response = await fetch(`${API_URL}/admin/check-link`, {
+                method: 'POST',
+                headers: adminHeaders(),
+                body: JSON.stringify({ url })
+            });
+            const data = await response.json();
+            if (ticket !== latest) return; // a newer keystroke superseded this answer
+            setLinkFlag(espName, data.exists ? data.message : null);
+        } catch (error) {
+            if (ticket === latest) setLinkFlag(espName, null); // can't tell; the server still refuses on add
+        }
+    };
+
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(check, 300);
+    });
+}
+
 async function addLink(espName) {
     const input = document.getElementById(`newLink-${espName}`);
     const url = input.value.trim();
@@ -2232,6 +2276,8 @@ async function addLink(espName) {
             input.value = '';
             // Reload the ESP management to show the new link
             await loadESPManagement();
+        } else if (data.duplicate) {
+            setLinkFlag(espName, data.error);
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }

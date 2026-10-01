@@ -21,6 +21,28 @@ def _iso(value):
     return str(value)
 
 
+def describe_owners(owners: List[Dict]) -> str:
+    """'Klaviyo' / 'Klaviyo and Global Knowledge' / 'A, B and C' for a duplicate-URL message."""
+    names = [o['display_name'] for o in owners]
+    if len(names) <= 1:
+        return ''.join(names)
+    return ', '.join(names[:-1]) + ' and ' + names[-1]
+
+
+class DuplicateURLError(ValueError):
+    """The URL is already in the knowledge base. A ValueError so existing
+    handlers still turn it into a 400; `owners` says where it lives."""
+
+    def __init__(self, url: str, owners: List[Dict], esp_name: str = None):
+        self.url = url
+        self.owners = owners
+        self.notice = f"This link already exists in {describe_owners(owners)}."
+        super().__init__(
+            f"{self.notice} It was not added: a link is only crawled once, "
+            f"so the same page is never indexed twice."
+        )
+
+
 class ESPManager:
     """Manages ESPs and their documentation in the database."""
 
@@ -224,10 +246,11 @@ class ESPManager:
         if not esp:
             raise ValueError(f"ESP '{esp_name}' not found")
 
-        # Check if URL already exists
-        existing = self.get_document_by_url(esp['id'], url)
-        if existing:
-            raise ValueError(f"URL already exists for ESP '{esp_name}'")
+        # Refuse a URL that already exists anywhere (any ESP, or global
+        # knowledge): a second copy would be crawled and indexed twice
+        owners = self.find_documents_by_url(url)
+        if owners:
+            raise DuplicateURLError(url, owners, esp_name)
 
         # Generate filename if not provided
         if not filename:
@@ -254,6 +277,29 @@ class ESPManager:
                 'created_at': _iso(row[4])
             }
         return None
+
+    def find_documents_by_url(self, url: str) -> List[Dict]:
+        """
+        Every document whose URL matches `url` exactly (1:1, no
+        normalisation), across all ESPs including global knowledge.
+
+        Returns a list of {'esp_name', 'display_name', 'filename',
+        'crawl_status'}; empty if the URL is new.
+        """
+        query = """
+            SELECT e.name, e.display_name, d.filename, d.crawl_status
+            FROM esp_documents d
+            JOIN esps e ON e.id = d.esp_id
+            WHERE d.url = %s AND e.status = 'active'
+            ORDER BY e.name
+        """
+        rows = self.db.execute_query(query, (url,), fetch=True) or []
+        return [{
+            'esp_name': r[0],
+            'display_name': r[1] or r[0],
+            'filename': r[2],
+            'crawl_status': r[3],
+        } for r in rows]
 
     def get_document_by_url(self, esp_id: str, url: str) -> Optional[Dict]:
         """Get document by ESP ID and URL."""
