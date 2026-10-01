@@ -731,7 +731,7 @@ async function sendMessage() {
         if (data.error) {
             addMessage('assistant', `Error: ${data.error}`, { animate: true });
         } else if (data.response) {
-            addMessage('assistant', data.response, { animate: true });
+            addMessage('assistant', data.response, { animate: true, sources: data.sources });
 
             // Guests only. When a conversation is active the exchange is
             // already saved to the account, and duplicating it into
@@ -760,7 +760,113 @@ async function sendMessage() {
     messageInput.focus();
 }
 
-function addMessage(role, content, { animate = false } = {}) {
+// The articles an answer's context was built from, one entry per URL. The
+// server sends one source per retrieved chunk, so the same article usually
+// appears several times. This is everything retrieved, not only what the
+// answer relied on -- narrowing it to cited sources is a later iteration.
+function uniqueSources(sources) {
+    const seen = new Set();
+    const unique = [];
+    for (const source of sources || []) {
+        const url = source && source.url;
+        // Skips 'internal' and 'N/A', and anything that isn't a web link
+        if (typeof url !== 'string' || !/^https?:\/\//i.test(url) || seen.has(url)) continue;
+        seen.add(url);
+        unique.push(source);
+    }
+    return unique;
+}
+
+// A readable name for an article, from its URL: crawled documents don't
+// store their page title. "docs/loyalty-emails-setup-guide-for-klaviyo"
+// becomes "Loyalty emails setup guide for klaviyo"; a purely numeric slug
+// (Klaviyo's help center) becomes "Help center article".
+function sourceTitle(url) {
+    try {
+        const slug = new URL(url).pathname.split('/').filter(Boolean).pop() || '';
+        const words = decodeURIComponent(slug).replace(/^\d+-?/, '').replace(/[-_]+/g, ' ').trim();
+        if (!words) return 'Help center article';
+        return words.charAt(0).toUpperCase() + words.slice(1);
+    } catch {
+        return url;
+    }
+}
+
+function sourceHost(url) {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '');
+    } catch {
+        return '';
+    }
+}
+
+// "Sources" toggle plus the list it opens below the message. Built with DOM
+// APIs, never innerHTML: titles and URLs come from crawled pages.
+function buildSources(sources) {
+    const unique = uniqueSources(sources);
+    if (unique.length === 0) return null;
+
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'sources-btn flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-60 hover:opacity-100';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span></span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sources-chevron opacity-70 transition-transform">
+            <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+    `;
+    toggle.querySelector('span').textContent = `Sources (${unique.length})`;
+
+    const panel = document.createElement('div');
+    panel.className = 'sources-panel hidden ml-4 max-w-4xl rounded-xl border border-border bg-card px-4 py-3 shadow-sm';
+    panel.id = `sources-${Math.random().toString(36).slice(2)}`;
+    toggle.setAttribute('aria-controls', panel.id);
+
+    const list = document.createElement('ol');
+    list.className = 'flex flex-col gap-2 text-sm';
+    unique.forEach((source, i) => {
+        const item = document.createElement('li');
+        item.className = 'flex gap-2 min-w-0';
+
+        const number = document.createElement('span');
+        number.className = 'text-xs text-muted-foreground tabular-nums pt-0.5 w-4 flex-shrink-0';
+        number.textContent = `${i + 1}.`;
+
+        const link = document.createElement('a');
+        link.href = source.url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.className = 'min-w-0 hover:underline';
+
+        const title = document.createElement('span');
+        title.className = 'block text-foreground truncate';
+        title.textContent = sourceTitle(source.url);
+
+        const host = document.createElement('span');
+        host.className = 'block text-xs text-muted-foreground truncate';
+        host.textContent = sourceHost(source.url);
+
+        link.append(title, host);
+        item.append(number, link);
+        list.appendChild(item);
+    });
+    panel.appendChild(list);
+
+    toggle.addEventListener('click', () => {
+        const open = panel.classList.toggle('hidden') === false;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.querySelector('.sources-chevron').style.transform = open ? 'rotate(180deg)' : '';
+    });
+
+    return { toggle, panel };
+}
+
+function addMessage(role, content, { animate = false, sources = [] } = {}) {
     // Fade out and remove gradient intro on first user message
     if (role === 'user') {
         const gradientIntro = document.getElementById('gradientIntro');
@@ -826,9 +932,12 @@ function addMessage(role, content, { animate = false } = {}) {
 
         bubbleWrapper.appendChild(bubble);
 
-        // Add copy button underneath the bubble
+        // Copy and Sources sit in one row underneath the bubble
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-4 pl-4';
+
         const copyBtn = document.createElement('button');
-        copyBtn.className = 'copy-btn flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-60 hover:opacity-100 pl-4';
+        copyBtn.className = 'copy-btn flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors opacity-60 hover:opacity-100';
         copyBtn.innerHTML = `
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="opacity-70">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -840,11 +949,11 @@ function addMessage(role, content, { animate = false } = {}) {
             // Arrives just after the last block of the answer. Dropped once it
             // has played so the button's resting opacity applies again -- a
             // filled animation would otherwise pin it at full strength.
-            copyBtn.style.animationDelay = `${lastCascadeDelay + CASCADE_STEP_MS}ms`;
-            copyBtn.classList.add('cascade-in');
-            copyBtn.addEventListener('animationend', () => {
-                copyBtn.classList.remove('cascade-in');
-                copyBtn.style.animationDelay = '';
+            actions.style.animationDelay = `${lastCascadeDelay + CASCADE_STEP_MS}ms`;
+            actions.classList.add('cascade-in');
+            actions.addEventListener('animationend', () => {
+                actions.classList.remove('cascade-in');
+                actions.style.animationDelay = '';
             }, { once: true });
         }
         copyBtn.addEventListener('click', async () => {
@@ -901,7 +1010,15 @@ function addMessage(role, content, { animate = false } = {}) {
             }
         });
 
-        bubbleWrapper.appendChild(copyBtn);
+        actions.appendChild(copyBtn);
+        bubbleWrapper.appendChild(actions);
+
+        const sourceList = buildSources(sources);
+        if (sourceList) {
+            actions.appendChild(sourceList.toggle);
+            bubbleWrapper.appendChild(sourceList.panel);
+        }
+
         messageDiv.appendChild(bubbleWrapper);
     } else {
         messageDiv.appendChild(bubble);
