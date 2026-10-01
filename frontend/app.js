@@ -297,15 +297,62 @@ function renderIntro(espName) {
         : '';
     const heading = `Yotpo ${isReviews ? 'Reviews ' : ''}${isOtherWebhook ? 'API & Webhooks' : 'x ' + name}`;
 
+    const body = `
+        <h2 class="yotpo-heading text-3xl font-bold mb-3 text-white">${heading}</h2>
+        <p class="text-white/95 leading-relaxed">${welcomeText}</p>
+        ${coverageNote}
+    `;
+
+    // Card already on screen (switching ESP or product): keep it and morph to
+    // the new size instead of replacing it, which would snap.
+    const card = document.getElementById('gradientIntro');
+    // (The static card in index.html has no body wrapper; it is replaced once.)
+    const bodyEl = card && card.querySelector('.gradient-intro-body');
+    if (card && bodyEl && !card.classList.contains('fade-out')) {
+        if (bodyEl.innerHTML === body) return;   // nothing changed, nothing to animate
+        morphIntro(card, bodyEl, body);
+        return;
+    }
+
     chatMessages.innerHTML = `
         <div class="max-w-4xl mx-auto">
             <div class="yotpo-gradient rounded-2xl p-8 shadow-sm gradient-intro" id="gradientIntro">
-                <h2 class="yotpo-heading text-3xl font-bold mb-3 text-white">${heading}</h2>
-                <p class="text-white/95 leading-relaxed">${welcomeText}</p>
-                ${coverageNote}
+                <div class="gradient-intro-body">${body}</div>
             </div>
         </div>
     `;
+}
+
+// Swaps the intro's text and glides the card from its current height to the
+// new one. A switch made mid-morph starts from the height on screen.
+function morphIntro(card, bodyEl, html) {
+    const from = card.offsetHeight;   // mid-transition this is the live height
+    card.style.height = 'auto';
+    bodyEl.innerHTML = html;
+    const to = card.offsetHeight;
+
+    // Re-trigger the text fade even if the previous one is still running
+    bodyEl.classList.remove('gradient-intro-body-in');
+    void bodyEl.offsetWidth;
+    if (prefersReducedMotion() || from === to) {
+        card.style.height = '';
+        card.classList.remove('gradient-intro-morph');
+        card.ontransitionend = null;
+        return;
+    }
+    bodyEl.classList.add('gradient-intro-body-in');
+
+    card.style.height = `${from}px`;
+    void card.offsetHeight;           // commit the start height before animating
+    card.classList.add('gradient-intro-morph');
+    card.style.height = `${to}px`;
+    card.ontransitionend = (e) => {
+        if (e.target !== card || e.propertyName !== 'height') return;
+        // Back to auto so the card follows the window width afterwards
+        card.style.height = '';
+        card.classList.remove('gradient-intro-morph');
+        card.ontransitionend = null;
+    };
 }
 
 function selectedESPName() {
