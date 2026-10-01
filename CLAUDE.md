@@ -311,7 +311,7 @@ so the two can be told apart, and Reviews docs can be added without contaminatin
 - [x] Label required on every write: `add_document(…, *, product)`, a product picker on both
       "Add link" forms; every vector carries `product` (adapters refuse writes without it); a label
       edit updates the row and that URL's vectors. `eval/audit_product_labels.py` checks they agree
-- [ ] Backfill the existing vectors (`eval/audit_product_labels.py backfill --write`)
+- [x] Existing vectors backfilled (2026-10-01); `eval/audit_product_labels.py` reads OK
 - [ ] Experiment: labels in the context vs a retrieval filter (`eval/product_eval.py`)
 
 The synchronous `/api/admin/refresh` is disabled (it wrote unlabelled vectors from the CSV);
