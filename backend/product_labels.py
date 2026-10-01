@@ -8,13 +8,21 @@ Each esp_documents row can carry `product`: which Yotpo product it documents.
     shared   correct for both: the ESP's own documentation, or Yotpo platform
              documentation that belongs to neither product
 
-Admins set labels from the ESP management screen. Chat reads them in one
-place: whether an ESP has any Reviews documentation, so a Reviews question on
-an ESP without it is told so instead of being answered from Loyalty docs.
-Retrieval does not filter on labels (PRODUCT_LINE_SPLIT_SCOPE.md, step 7).
+Every document gets its label when it is added (ESPManager.add_document
+refuses one without), and admins change it from the ESP management screen.
 
-Labels live on the database row only. Vector metadata does not carry them
-yet -- when it does, a label edit here must also update that URL's vectors.
+The label lives in two places, kept in step:
+- the database row (esp_documents.product), the source of truth;
+- every vector of that document (metadata `product`). Written by
+  crawler.vectorize_single_document, which reads the row; the vector
+  adapters refuse a write without it. A label edit here updates the row
+  and then that URL's vectors (set_vector_product).
+eval/audit_product_labels.py checks the two agree.
+
+Chat reads labels in one place: whether an ESP has any Reviews
+documentation, so a Reviews question on an ESP without it is told so instead
+of being answered from Loyalty docs. Retrieval does not filter on labels
+(PRODUCT_LINE_SPLIT_SCOPE.md, step 7).
 """
 import re
 import threading
@@ -23,7 +31,12 @@ from typing import Optional
 
 from flask import jsonify, request
 
+# Same tuple as adapters.vector.base.PRODUCT_LABELS (a test keeps them equal);
+# not imported from there, because the adapters package loads ChromaDB and Pinecone.
 PRODUCTS = ('loyalty', 'reviews', 'shared')
+
+PRODUCT_REQUIRED = ("Choose which Yotpo product this document covers: Loyalty, Reviews, "
+                    "or Shared (correct for both).")
 
 # The two product lines a chat user can pick. 'shared' is a document label,
 # not something a user asks about.
@@ -157,6 +170,61 @@ def has_reviews_coverage(esp: str) -> bool:
         return True
 
 
+def require_product(value) -> str:
+    """A valid document label, normalised; ValueError otherwise."""
+    if isinstance(value, str) and value.strip().lower() in PRODUCTS:
+        return value.strip().lower()
+    raise ValueError(PRODUCT_REQUIRED)
+
+
+def split_by_label(esp_mgr, esp_name: str, urls, product):
+    """(urls that will end up labelled, [{'url', 'error'}] for the rest).
+
+    An existing row must already carry a label; a URL with no row needs
+    `product` (the label it will be created with). Callers crawl the first
+    list and report the second, so one unlabelled link doesn't block a batch.
+    """
+    esp = esp_mgr.get_esp_by_name(esp_name)
+    if not esp:
+        return list(urls), []   # the caller reports the missing ESP its own way
+    ok, refused = [], []
+    for url in urls:
+        doc = esp_mgr.get_document_by_url(esp['id'], url)
+        if doc is None and product not in PRODUCTS:
+            refused.append({'url': url, 'error': "No product label yet: pick Loyalty, Reviews or "
+                                                 "Shared beside it, then try again."})
+        elif doc is not None and doc.get('product') not in PRODUCTS:
+            refused.append({'url': url, 'error': "No product label: pick Loyalty, Reviews or "
+                                                 "Shared beside it, then crawl it again."})
+        else:
+            ok.append(url)
+    return ok, refused
+
+
+def label_problem(esp_mgr, esp_name: str, urls, product) -> Optional[str]:
+    """The first reason a crawl or paste of `urls` would leave a document
+    unlabelled, as "<url>: <reason>", or None."""
+    _, refused = split_by_label(esp_mgr, esp_name, urls, product)
+    return f"{refused[0]['url']}: {refused[0]['error']}" if refused else None
+
+
+OUTDATED_PAGE = "This page is out of date. Reload it to choose a Yotpo product for the link."
+
+
+def set_vector_product(vectorizer, esp: str, url: str, product: str) -> int:
+    """Write `product` onto every vector of one document; how many it found.
+
+    Errors propagate: the caller reports a label that reached the database
+    but not the index, rather than claiming both are in step.
+    """
+    if vectorizer is None:
+        return 0
+    ids = vectorizer.ids_for_url(url, esp.lower())
+    if ids:
+        vectorizer.update_metadata(ids, {'product': product})
+    return len(ids)
+
+
 def chat_product(value) -> str:
     """The product a chat request is about. Anything unrecognised -- including
     a missing value from an older browser tab -- is Loyalty, today's behaviour."""
@@ -228,8 +296,14 @@ def register_product_label_routes(app, vectorizer=None):
     def set_document_product(esp_name):
         """Label documents with a Yotpo product line.
 
-        Body: {"urls": [...], "product": "loyalty" | "reviews" | "shared" | null}
-        null clears the label. Works for 'global' too: it is an ESP row.
+        Body: {"urls": [...], "product": "loyalty" | "reviews" | "shared"}
+        Works for 'global' too: it is an ESP row. A label cannot be cleared:
+        every document needs one, and its vectors carry it.
+
+        Updates the rows, then those documents' vectors. If the index update
+        fails the label is still saved, and the response says so (the admin
+        screen offers a retry). A crawl that read the old label just before
+        this edit can still write it afterwards; the audit catches that.
         """
         if not admin_request_ok():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
@@ -239,8 +313,12 @@ def register_product_label_routes(app, vectorizer=None):
         product = data.get('product')
         if not isinstance(urls, list) or not urls or not all(isinstance(u, str) for u in urls):
             return jsonify({'error': 'urls must be a non-empty list of URLs'}), 400
-        if product is not None and product not in PRODUCTS:
-            return jsonify({'error': f"product must be one of {', '.join(PRODUCTS)}, or null"}), 400
+        if product is None:
+            # Only an admin page from before labels were required offers "Unlabelled"
+            return jsonify({'error': "A label can't be removed: every document needs one. "
+                                     "If this page offers \"Unlabelled\", reload it."}), 400
+        if product not in PRODUCTS:
+            return jsonify({'error': f"product must be one of {', '.join(PRODUCTS)}"}), 400
 
         try:
             updated, missing = get_esp_manager().set_document_product(esp_name, urls, product)
@@ -250,5 +328,34 @@ def register_product_label_routes(app, vectorizer=None):
         except Exception as e:
             return jsonify({'error': f'Could not save the label: {e}'}), 500
 
-        return jsonify({'success': True, 'product': product,
-                        'updated': updated, 'missing': missing})
+        vectors, not_indexed, none_found = 0, [], []
+        esp_mgr = get_esp_manager()
+        esp = esp_mgr.get_esp_by_name(esp_name)
+        for url in updated:
+            try:
+                n = set_vector_product(_vectorizer, esp_name, url, product)
+            except Exception as e:
+                print(f"[PRODUCT] Label saved but the index update failed for {url}: {e}")
+                not_indexed.append(url)
+                continue
+            vectors += n
+            if n == 0 and _vectorizer is not None and esp:
+                doc = esp_mgr.get_document_by_url(esp['id'], url)
+                if doc and doc.get('crawl_status') == 'completed':
+                    # Crawled, yet nothing to update: just re-indexed (the
+                    # index is eventually consistent) or never indexed
+                    none_found.append(url)
+
+        body = {'success': True, 'product': product, 'updated': updated,
+                'missing': missing, 'vectors_updated': vectors}
+        if not_indexed:
+            body['index_failed'] = not_indexed
+            body['warning'] = ("The label is saved, but the search index could not be updated for "
+                               f"{len(not_indexed)} document(s), so its entries keep the old label.")
+        elif none_found:
+            body['no_vectors'] = none_found
+            body['warning'] = ("The label is saved, but no search-index entries were found for "
+                               f"{len(none_found)} crawled document(s). If it was re-crawled in the "
+                               "last minute, choose another label and back once it settles; "
+                               "eval/audit_product_labels.py shows any mismatch.")
+        return jsonify(body)

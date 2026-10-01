@@ -1,6 +1,36 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Any
 
+# Yotpo product line of a document (see product_labels.py). Every vector
+# carries one in its `product` metadata.
+PRODUCT_LABELS = ('loyalty', 'reviews', 'shared')
+
+
+def require_product_metadata(metadata: Dict[str, Any]) -> None:
+    """Refuse a vector write without a valid product label.
+
+    The single choke point for vector writes: it also stops the old scripts
+    and bulk paths (refresh_esp, vectorize_all_docs) that build metadata
+    without a label from writing unlabelled vectors to the index.
+    """
+    if metadata.get('product') not in PRODUCT_LABELS:
+        raise ValueError(
+            f"Refusing to index {metadata.get('source_url') or metadata.get('filename')}: "
+            f"its metadata has no product label (one of {', '.join(PRODUCT_LABELS)}). "
+            "Index documents through crawler.vectorize_single_document, which reads it "
+            "from esp_documents.")
+
+
+def refuse_bulk_reindex(method: str) -> None:
+    """refresh_esp and vectorize_all_docs rebuild from docs/crawl_metadata.json,
+    which has no product labels, and refresh_esp deletes first: refused at
+    entry, before anything is deleted, so they can't empty the index."""
+    raise RuntimeError(
+        f"{method} is disabled: it re-indexes from local files that carry no product label, "
+        "after deleting the existing vectors. Re-index from the database with "
+        "POST /api/admin/rebuild-vectors, which includes the labels.")
+
+
 class VectorAdapter(ABC):
     """Base interface for vector database adapters"""
 
@@ -11,8 +41,21 @@ class VectorAdapter(ABC):
 
         Args:
             text: Document content to embed
-            metadata: Metadata dict with keys: esp, filename, source_url, filepath
+            metadata: Metadata dict with keys: esp, filename, source_url,
+                filepath, product. Raises ValueError without a valid product.
         """
+        pass
+
+    @abstractmethod
+    def ids_for_url(self, url: str, esp_name: str) -> List[str]:
+        """Ids of every chunk of one document. Raises on errors (unlike
+        url_exists and delete_by_url, which swallow them)."""
+        pass
+
+    @abstractmethod
+    def update_metadata(self, ids: List[str], patch: Dict[str, Any]) -> None:
+        """Set the keys in `patch` on each vector, leaving its other metadata
+        and its embedding untouched. Raises on errors."""
         pass
 
     @abstractmethod

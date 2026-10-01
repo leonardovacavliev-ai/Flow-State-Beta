@@ -102,7 +102,6 @@ def test_decide_picks_cheapest_arm_that_halves():
     counts = {'A': {'wrong_product': 8, 'correct': 12},
               'C1': {'wrong_product': 6, 'correct': 14},
               'C2': {'wrong_product': 4, 'correct': 16},
-              'D': {'wrong_product': 1, 'correct': 19},
               'B': {'wrong_product': 0, 'correct': 20}}
     assert decide(counts, 20)['ship'] == 'C2'
 
@@ -110,8 +109,9 @@ def test_decide_picks_cheapest_arm_that_halves():
 def test_decide_rejects_an_arm_that_buys_accuracy_with_refusals():
     counts = {'A': {'wrong_product': 8, 'correct': 12},
               'C1': {'wrong_product': 2, 'no_answer': 6, 'correct': 12},
-              'D': {'wrong_product': 3, 'correct': 17}}
-    assert decide(counts, 20)['ship'] == 'D'
+              'B': {'wrong_product': 3, 'correct': 17}}
+    decision = decide(counts, 20)
+    assert decision['ship'] == 'B' and 'filter' in decision['reason']
 
 
 def test_decide_inconclusive_defaults_to_labels():

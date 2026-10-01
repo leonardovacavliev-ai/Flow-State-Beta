@@ -14,6 +14,11 @@ from adapters.vector.vector_manager import get_vector_adapter
 load_dotenv()
 
 def main():
+    # Disabled: it deletes the whole index, then re-indexes from local files
+    # with vectorize_all_docs, which now refuses (no product labels) -- so it
+    # would leave production empty.
+    sys.exit("fix_pinecone_data.py is disabled: it would empty the index. Re-index from "
+             "the database with POST /api/admin/rebuild-vectors (product labels included).")
     print("="*80)
     print("FIXING PINECONE DATA")
     print("="*80)

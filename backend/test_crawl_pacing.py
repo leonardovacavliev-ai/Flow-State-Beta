@@ -397,7 +397,8 @@ def run_postgres_checks(schema_url):
     global_id = q("INSERT INTO esps (name, display_name) VALUES ('global', 'Global') RETURNING id")[0][0]
 
     def add_doc(url, esp=None, content=None):
-        return q("INSERT INTO esp_documents (esp_id, url, content) VALUES (%s, %s, %s) RETURNING id",
+        return q("INSERT INTO esp_documents (esp_id, url, content, product) "
+                 "VALUES (%s, %s, %s, 'shared') RETURNING id",
                  (esp or esp_id, url, content))[0][0]
 
     def reset_queue():
@@ -714,10 +715,10 @@ def run_postgres_checks(schema_url):
     r = client.post('/api/admin/esp/testesp/crawl-selected', json={'urls': ['https://route.test/a']})
     check("crawl-selected refuses (503) when no worker is running", r.status_code == 503 and 'worker' in r.get_json()['error'])
     flask_app.config['CRAWL_WORKER_RUNNING'] = True
-    r = client.post('/api/admin/esp/testesp/crawl-selected', json={'urls': ['https://route.test/a', 'https://route.test/b']})
+    r = client.post('/api/admin/esp/testesp/crawl-selected', json={'urls': ['https://route.test/a', 'https://route.test/b'], 'product': 'shared'})
     body = r.get_json()
     check("crawl-selected queues jobs", r.status_code == 200 and len(body['job_ids']) == 2)
-    r2 = client.post('/api/admin/esp/testesp/crawl-selected', json={'urls': ['https://route.test/a']})
+    r2 = client.post('/api/admin/esp/testesp/crawl-selected', json={'urls': ['https://route.test/a'], 'product': 'shared'})
     check("re-submitting returns the same job (no duplicate)",
           r2.get_json()['job_ids'] == body['job_ids'][:1] and r2.get_json()['skipped_count'] == 1)
     links = {l['url']: l for l in client.get('/api/admin/esp/testesp/links').get_json()['links']}
@@ -736,7 +737,7 @@ def run_postgres_checks(schema_url):
     with open(os.path.join(folder, 'index.txt'), 'w') as f:
         f.write("Source URL: https://owner.test/\n\nthe owner's text")
     r = client.post('/api/admin/esp/testesp/paste-content',
-                    json={'url': 'local://pasted-into-testesp', 'content': 'pasted text'})
+                    json={'url': 'local://pasted-into-testesp', 'content': 'pasted text', 'product': 'shared'})
     with open(os.path.join(folder, 'index.txt')) as f:
         check("Paste Content never overwrites another URL's saved file",
               r.status_code == 200 and "the owner's text" in f.read())

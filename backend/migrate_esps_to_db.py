@@ -7,6 +7,13 @@ to the PostgreSQL database.
 Run once after deploying Phase 4 schema.
 """
 
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("migrate_esps_to_db.py is disabled: this one-time migration predates product labels, so every document would be refused. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
+
 import os
 import sys
 import csv
@@ -206,7 +213,9 @@ def migrate_links():
 
             try:
                 # Add document
-                doc = esp_mgr.add_document(esp_name, url, filename)
+                # This one-time migration predates product labels and has
+                # none to give, so add_document refuses each document
+                doc = esp_mgr.add_document(esp_name, url, filename=filename, product=None)
 
                 # Update status if completed
                 if crawl_status == 'completed':

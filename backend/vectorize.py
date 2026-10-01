@@ -42,6 +42,8 @@ class DocumentVectorizer:
 
     def add_document(self, text, metadata):
         """Add a document to the vector store"""
+        from adapters.vector.base import require_product_metadata
+        require_product_metadata(metadata)
         chunks = self.chunk_text(text)
 
         for i, chunk in enumerate(chunks):
@@ -58,7 +60,9 @@ class DocumentVectorizer:
             )
 
     def vectorize_all_docs(self, docs_path):
-        """Vectorize all documents in the docs folder"""
+        """Vectorize all documents in the docs folder (disabled, see refuse_bulk_reindex)"""
+        from adapters.vector.base import refuse_bulk_reindex
+        refuse_bulk_reindex('vectorize_all_docs')
         print("Starting vectorization...")
 
         # Load metadata
@@ -125,7 +129,9 @@ class DocumentVectorizer:
         return results
 
     def refresh_esp(self, esp_name, docs_path):
-        """Refresh documents for a specific ESP"""
+        """Refresh documents for a specific ESP (disabled, see refuse_bulk_reindex)"""
+        from adapters.vector.base import refuse_bulk_reindex
+        refuse_bulk_reindex('refresh_esp')
         print(f"Refreshing {esp_name} documentation...")
 
         # Delete existing documents for this ESP

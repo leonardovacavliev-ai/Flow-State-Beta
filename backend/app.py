@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from adapters.vector.vector_manager import get_vector_adapter
 from adapters.session.session_manager import get_session_adapter
-from crawler import crawl_and_save, vectorize_single_document
+from crawler import vectorize_single_document
 from analytics import (
     create_session, track_message, track_esp_selection,
     track_feedback, get_analytics, end_session, attach_user_to_session
@@ -478,46 +478,44 @@ def refresh_all():
             from esp_manager import get_esp_manager
             from adapters.database.db_manager import get_database_adapter
             from workers.crawl_queue import enqueue_crawl_job, queued_response
-            from workers.crawl_queue import enqueue_urls
             db = get_database_adapter()
             esp_mgr = get_esp_manager()
-            global_esp = _ensure_global_esp(esp_mgr)
-            job_ids, skipped = [], []
+            _ensure_global_esp(esp_mgr)
+            job_ids, skipped, not_queued = [], [], []
+            no_label = {'error': 'No product label: pick Loyalty, Reviews or Shared beside it, '
+                                 'then crawl it'}
             for esp in esp_mgr.list_esps():
+                labels = esp_mgr.get_product_labels(esp['name'])
                 for doc in esp_mgr.list_documents(esp['name']):
+                    if (labels.get(doc['url']) or {}).get('product') is None:
+                        not_queued.append({'url': doc['url'], **no_label})   # would only fail in the worker
+                        continue
                     job_id, created = enqueue_crawl_job(db, esp['id'], doc['id'], doc['url'])
                     job_ids.append(job_id)
                     if not created:
                         skipped.append(doc['url'])
             # ESP links live in the database; global-knowledge links are
-            # still listed from the CSV, and may not have a row yet
+            # still listed from the CSV, and may not have a row yet. A
+            # CSV-only link has no row, so no product label: left out too.
             known = {doc['url'] for doc in esp_mgr.list_documents('global')}
-            csv_only = [url for url in _global_csv_links() if url not in known]
-            if csv_only:
-                more_ids, more_skipped = enqueue_urls(db, esp_mgr, global_esp, 'global', csv_only)
-                job_ids += more_ids
-                skipped += more_skipped
+            not_queued += [{'url': url, **no_label} for url in _global_csv_links() if url not in known]
+            body = queued_response(job_ids, skipped, not_queued)
             # Chat caches are cleared by the worker as each doc is re-indexed
-            return jsonify(queued_response(job_ids, skipped))
+            return jsonify(body)
         except Exception as e:
             import traceback
             traceback.print_exc()
             return jsonify({'error': f'Could not queue the refresh: {e}'}), 500
 
-    try:
-        # Re-crawl
-        csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
-        docs_path = os.path.join(BASE_PATH, 'docs')
-        crawl_and_save(csv_path, docs_path)
-
-        # Re-vectorize
-        vectorizer.vectorize_all_docs(docs_path)
-        clear_mechanics_cache()
-
-        return jsonify({'success': True, 'message': 'All documentation refreshed'})
-
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    # The synchronous version is disabled. It re-crawled from the CSV and
+    # the baked-in docs/ tree and re-indexed with vectorize_all_docs, which
+    # cannot see documents added since (Emarsys, most of other_webhook),
+    # writes vectors without product labels (the adapters now refuse them),
+    # and duplicates files stored under old names. Rebuild Vectors restores
+    # the index from the database, labels included (POST
+    # /api/admin/rebuild-vectors; there is no button for it).
+    return jsonify({'error': 'Refresh All is off on this server: it needs the background crawl '
+                             'queue. To re-crawl links, select them and use Crawl Selected.'}), 409
 
 @app.route('/api/admin/analytics', methods=['GET'])
 def get_analytics_data():
@@ -688,10 +686,12 @@ def update_system_prompt():
             updated_prompt
         )
 
-        return jsonify({
-            'success': True,
-            'system_prompt': updated_prompt
-        })
+        from prompt_template import product_warning
+        body = {'success': True, 'system_prompt': updated_prompt}
+        warning = product_warning(updated_prompt)
+        if warning:
+            body['warning'] = warning
+        return jsonify(body)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -734,11 +734,13 @@ def restore_from_backup():
             system_prompt
         )
 
-        return jsonify({
-            'success': True,
-            'restored_config': restored_config,
-            'status': ai_client.check_status()
-        })
+        from prompt_template import product_warning
+        body = {'success': True, 'restored_config': restored_config,
+                'status': ai_client.check_status()}
+        warning = product_warning(system_prompt)
+        if warning:
+            body['warning'] = warning
+        return jsonify(body)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
@@ -776,6 +778,17 @@ def get_global_knowledge_links():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     csv_links = _global_csv_links()
+    # Plus links that have a database row but are missing from the CSV: the
+    # CSV sits on the container's disk, so a link added since the last
+    # deploy is gone from it while its row (and label) survives. Without
+    # this it would be invisible here, yet refused as a duplicate on re-add.
+    try:
+        from esp_manager import get_esp_manager
+        listed = set(csv_links)
+        csv_links += [doc['url'] for doc in reversed(get_esp_manager().list_documents('global'))
+                      if doc['url'] not in listed]
+    except Exception as e:
+        print(f"[GLOBAL] Could not read global documents from the database: {e}")
 
     # URLs whose content is backed up in the database (used for the
     # needs_backfill flag below). If the DB has no 'global' docs yet,
@@ -886,7 +899,9 @@ def _persist_global_doc(url, filename, filepath, file_content):
         esp = _ensure_global_esp(esp_mgr)
         doc = esp_mgr.get_document_by_url(esp['id'], url)
         if not doc:
-            doc = esp_mgr.add_document('global', url)
+            # Rows are created, with their product label, when the link is
+            # added or before it is crawled (_ensure_global_rows)
+            return "the link has no database row; add it again with a product"
         esp_mgr.update_document_crawl_status(
             doc['id'],
             status='completed',
@@ -898,6 +913,32 @@ def _persist_global_doc(url, filename, filepath, file_content):
     except Exception as e:
         print(f"[GLOBAL PERSIST] Could not persist {url} to database: {e}")
         return str(e)
+
+
+def _ensure_global_rows(urls, product):
+    """Sort a global crawl or paste by label, creating rows for new URLs.
+
+    Returns (ok_urls, refused, error):
+      ok_urls  will be labelled (rows now exist), so vectorize_single_document
+               finds each label;
+      refused  [{'url', 'error'}], unlabelled: reported, not crawled;
+      error    (message, HTTP status) when a new URL already belongs to an
+               ESP -- then nothing is created.
+    Everything is checked before the first row is created.
+    """
+    from esp_manager import get_esp_manager, DuplicateURLError
+    from product_labels import split_by_label
+    esp_mgr = get_esp_manager()
+    esp = _ensure_global_esp(esp_mgr)
+    ok, refused = split_by_label(esp_mgr, 'global', urls, product)
+    new = [url for url in ok if not esp_mgr.get_document_by_url(esp['id'], url)]
+    for url in new:
+        owners = esp_mgr.find_documents_by_url(url)   # owned by another ESP
+        if owners:
+            return [], refused, (str(DuplicateURLError(url, owners)), 409)
+    for url in new:
+        esp_mgr.add_document('global', url, product=product)
+    return ok, refused, None
 
 
 def _delete_global_docs(urls):
@@ -913,13 +954,30 @@ def _delete_global_docs(urls):
 def add_global_knowledge_link():
     """Add a new link to global knowledge"""
     data = request.json
-    url = data.get('url', '')
+    url = (data.get('url') or '').strip()
 
     if not is_admin_request():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
 
     if not url:
         return jsonify({'error': 'No URL provided'}), 400
+    if 'product' not in data:
+        from product_labels import OUTDATED_PAGE
+        return jsonify({'error': OUTDATED_PAGE}), 400
+
+    # The database row comes first, with its product label: it is what the
+    # crawl reads the label from, and it refuses a URL that already exists.
+    try:
+        from esp_manager import get_esp_manager, DuplicateURLError
+        esp_mgr = get_esp_manager()
+        _ensure_global_esp(esp_mgr)
+        esp_mgr.add_document('global', url, product=data.get('product'))
+    except DuplicateURLError as e:
+        return jsonify({'error': str(e), 'duplicate': True, 'matches': e.owners}), 409
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': f'Could not add the link: {e}'}), 500
 
     try:
         csv_path = os.path.join(BASE_PATH, 'esp_support_links.csv')
@@ -947,15 +1005,17 @@ def add_global_knowledge_link():
             lines.append('\n\nGlobal Knowledge URLs\n')
             insert_index = len(lines)
 
-        lines.insert(insert_index, url)
-
-        with open(csv_path, 'w') as f:
-            f.write('\n'.join(lines))
-
-        return jsonify({'success': True})
+        # Already listed: a CSV-only link being labelled from its picker
+        if url not in _global_csv_links():
+            lines.insert(insert_index, url)
+            with open(csv_path, 'w') as f:
+                f.write('\n'.join(lines))
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # The row is saved, and the list shows database rows too
+        print(f"[GLOBAL] Added {url} to the database but not the CSV: {e}")
+
+    return jsonify({'success': True})
 
 def _find_local_global_copy(url, global_folder):
     """
@@ -999,6 +1059,17 @@ def crawl_global_knowledge_links():
         return jsonify({'error': 'The background crawl worker is not running, so nothing '
                                  'would process this crawl. Check the server logs.'}), 503
 
+    # Every URL needs a labelled row before it is crawled; unlabelled ones
+    # are reported and the rest go ahead
+    try:
+        urls, refused, problem = _ensure_global_rows(urls, data.get('product'))
+    except Exception as e:
+        return jsonify({'error': f'Could not prepare the crawl: {e}'}), 500
+    if problem:
+        return jsonify({'error': problem[0]}), problem[1]
+    if not urls:
+        return jsonify({'error': f"{refused[0]['url']}: {refused[0]['error']}"}), 400
+
     if USE_ASYNC_CRAWL:
         # Same paced background queue as ESP docs: a burst of global URLs on
         # one site must not trip its rate limit either. The worker crawls
@@ -1012,7 +1083,7 @@ def crawl_global_knowledge_links():
             esp_mgr = get_esp_manager()
             esp = _ensure_global_esp(esp_mgr)
             job_ids, skipped = enqueue_urls(get_database_adapter(), esp_mgr, esp, 'global', urls)
-            return jsonify(queued_response(job_ids, skipped))
+            return jsonify(queued_response(job_ids, skipped, refused))
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -1038,7 +1109,7 @@ def crawl_global_knowledge_links():
         metadata.setdefault('global', [])
 
         succeeded = []
-        failed = []
+        failed = list(refused)
 
         for url in urls:
             print(f"Crawling {url}...")
@@ -1135,6 +1206,15 @@ def paste_global_content():
 
     if not url or not content or not content.strip():
         return jsonify({'error': 'URL and content are required'}), 400
+
+    try:
+        _ok, refused, problem = _ensure_global_rows([url], data.get('product'))
+    except Exception as e:
+        return jsonify({'error': f'Could not save the content: {e}'}), 500
+    if problem:
+        return jsonify({'error': problem[0]}), problem[1]
+    if refused:
+        return jsonify({'error': refused[0]['error']}), 400
 
     try:
         from urllib.parse import urlparse

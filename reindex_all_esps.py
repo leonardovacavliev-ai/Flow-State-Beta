@@ -9,6 +9,13 @@ This script will:
 
 IMPORTANT: This replaces chunks in Pinecone (upsert = update or insert)
 """
+
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("reindex_all_esps.py is disabled: it re-indexes from local files without product labels and marks every document failed. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
 import os
 import sys
 from dotenv import load_dotenv

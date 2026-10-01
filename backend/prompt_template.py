@@ -75,6 +75,21 @@ def validate(template: str) -> List[str]:
     return errors
 
 
+def product_warning(template: str) -> Optional[str]:
+    """A warning when the prompt can't tell the products apart, or None.
+
+    Valid, but every Reviews chat then gets the Loyalty wording -- easy to do
+    by accident by restoring a backup or pasting a prompt from before the
+    placeholders existed.
+    """
+    tokens = {token for _, token in _tokens(template)}
+    if 'product' in tokens or 'if reviews' in tokens:
+        return None
+    return ("This prompt has no [[product]] or [[if reviews]] placeholder, so Reviews chats get "
+            "exactly the same prompt as Loyalty ones. If it is written for Loyalty, Reviews "
+            "answers will be too.")
+
+
 _warned = set()
 
 

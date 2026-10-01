@@ -3,7 +3,7 @@ from chromadb.utils import embedding_functions
 import os
 import json
 from typing import Dict, List, Optional, Any
-from .base import VectorAdapter
+from .base import VectorAdapter, require_product_metadata, refuse_bulk_reindex
 
 class ChromaDBAdapter(VectorAdapter):
     """ChromaDB implementation of VectorAdapter"""
@@ -26,6 +26,7 @@ class ChromaDBAdapter(VectorAdapter):
 
     def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
         """Add a document to the vector store"""
+        require_product_metadata(metadata)
         chunks = self.chunk_text(text)
 
         for i, chunk in enumerate(chunks):
@@ -56,7 +57,8 @@ class ChromaDBAdapter(VectorAdapter):
         return results
 
     def refresh_esp(self, esp_name: str, docs_path: str) -> None:
-        """Refresh documents for a specific ESP"""
+        """Refresh documents for a specific ESP (disabled, see refuse_bulk_reindex)"""
+        refuse_bulk_reindex('refresh_esp')
         print(f"Refreshing {esp_name} documentation...")
 
         # Delete existing documents for this ESP
@@ -90,7 +92,8 @@ class ChromaDBAdapter(VectorAdapter):
         print(f"✓ {esp_name} refresh complete")
 
     def vectorize_all_docs(self, docs_path: str) -> None:
-        """Vectorize all documents in the docs folder"""
+        """Vectorize all documents in the docs folder (disabled, see refuse_bulk_reindex)"""
+        refuse_bulk_reindex('vectorize_all_docs')
         print("Starting vectorization...")
 
         # Load metadata
@@ -146,6 +149,26 @@ class ChromaDBAdapter(VectorAdapter):
         except Exception as e:
             print(f"Error deleting vectors for {url}: {e}")
             return 0
+
+    def ids_for_url(self, url: str, esp_name: str) -> List[str]:
+        """Ids of every chunk of one document (raises on errors)."""
+        # ChromaDB rejects a two-key where; it needs $and
+        results = self.collection.get(
+            where={"$and": [{"esp": esp_name.lower()}, {"source_url": url}]})
+        return list(results.get('ids') or [])
+
+    def update_metadata(self, ids: List[str], patch: Dict[str, Any]) -> None:
+        """Merge `patch` into each vector's metadata (raises on errors).
+
+        Merged here, not by ChromaDB, so the other keys survive whatever its
+        update does with a partial dict.
+        """
+        if not ids:
+            return
+        current = self.collection.get(ids=list(ids), include=['metadatas'])
+        self.collection.update(
+            ids=current['ids'],
+            metadatas=[{**(m or {}), **patch} for m in current['metadatas']])
 
     def get_collection_count(self) -> int:
         """Get total number of chunks in the database"""

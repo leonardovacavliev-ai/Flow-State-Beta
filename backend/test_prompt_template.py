@@ -4,7 +4,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from prompt_template import render, validate  # noqa: E402
+from prompt_template import product_warning, render, validate  # noqa: E402
 
 TEMPLATE = (
     "You are an email marketing specialist and a [[product]] specialist at once.\n"
@@ -97,6 +97,13 @@ def test_multiline_token():
 
 def test_liquid_examples_are_not_placeholders():
     assert validate("Use {{ person.first_name }} and {% if x %}.") == []
+
+
+def test_prompt_without_product_placeholders_is_warned_about():
+    assert product_warning("You are a loyalty retention specialist.")
+    assert product_warning("[[if loyalty]]REFERRALS[[end]] only")
+    assert product_warning(TEMPLATE) is None
+    assert product_warning("[[if reviews]]x[[end]]") is None
 
 
 if __name__ == '__main__':

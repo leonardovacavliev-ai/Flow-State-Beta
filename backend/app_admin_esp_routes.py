@@ -81,7 +81,10 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
     re-materializes the files, repairs the metadata, and re-vectorizes each
     document per-URL.
 
-    Returns (rebuilt_urls, skipped_urls) — skipped means no stored content.
+    Returns (rebuilt_urls, skipped_urls, unlabelled_urls). Skipped means no
+    stored content (or the file couldn't be written / indexed); unlabelled
+    documents have no product label, so they can't be indexed, and keep
+    whatever vectors they had.
     """
     esp_mgr = get_esp_manager()
     docs = esp_mgr.get_documents_with_content(esp_name)
@@ -91,7 +94,7 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
     docs_path = os.path.join(base_path, 'docs')
     metadata_path = os.path.join(docs_path, 'crawl_metadata.json')
 
-    rebuilt, skipped = [], []
+    rebuilt, skipped, unlabelled = [], [], []
 
     metadata = {}
     if os.path.exists(metadata_path):
@@ -102,9 +105,13 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
             metadata = {}
     metadata.setdefault(esp_key, [])
 
+    from adapters.vector.base import PRODUCT_LABELS
     for doc in docs:
         if not doc.get('content'):
             skipped.append(doc['url'])
+            continue
+        if doc.get('product') not in PRODUCT_LABELS:
+            unlabelled.append(doc['url'])
             continue
 
         url = doc['url']
@@ -139,7 +146,8 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
         })
 
         try:
-            vectorize_single_document(vectorizer, esp_key, url, filepath, filename)
+            vectorize_single_document(vectorizer, esp_key, url, filepath, filename,
+                                      product=doc.get('product'))
             rebuilt.append(url)
         except Exception as e:
             print(f"[REBUILD] Vectorization failed for {url}: {e}")
@@ -149,7 +157,7 @@ def rebuild_esp_vectors(esp_name, vectorizer, base_path):
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=2)
 
-    return rebuilt, skipped
+    return rebuilt, skipped, unlabelled
 
 
 def register_link_check_route(app):
@@ -297,9 +305,12 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
             if not url:
                 return jsonify({'error': 'URL is required'}), 400
+            if 'product' not in data:
+                from product_labels import OUTDATED_PAGE
+                return jsonify({'error': OUTDATED_PAGE}), 400
 
-            # Add to database
-            doc = esp_mgr.add_document(esp_name, url)
+            # Add to database, with the product it covers (required)
+            doc = esp_mgr.add_document(esp_name, url, product=data.get('product'))
 
             return jsonify({
                 'success': True,
@@ -361,9 +372,18 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             if not urls:
                 return jsonify({'error': 'No URLs provided'}), 400
 
+            # Every document must end up labelled. Unlabelled links are
+            # reported, not crawled; the rest of the batch goes ahead.
+            # `product` labels URLs that have no row yet.
+            from product_labels import split_by_label
+            product = data.get('product')
+            urls, refused = split_by_label(esp_mgr, esp_name, urls, product)
+            if not urls:
+                return jsonify({'error': f"{refused[0]['url']}: {refused[0]['error']}"}), 400
+
             results = {
                 'success': [],
-                'failed': []
+                'failed': list(refused)
             }
 
             base_docs_path = os.path.join(BASE_PATH, 'docs')
@@ -386,7 +406,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
                     if not doc:
                         # Add if doesn't exist
-                        doc = esp_mgr.add_document(esp_name, url)
+                        doc = esp_mgr.add_document(esp_name, url, product=product)
 
                     # Crawl the URL
                     filename, crawl_error = crawl_single_url_detailed(url, esp_name, BASE_PATH)
@@ -535,10 +555,15 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             if not esp:
                 return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
 
+            from product_labels import label_problem
+            problem = label_problem(esp_mgr, esp_name, [url], data.get('product'))
+            if problem:
+                return jsonify({'error': problem}), 400
+
             # Get or create document
             doc = esp_mgr.get_document_by_url(esp['id'], url)
             if not doc:
-                doc = esp_mgr.add_document(esp_name, url)
+                doc = esp_mgr.add_document(esp_name, url, product=data.get('product'))
 
             # A name no other URL's saved copy uses (see save_filename_for)
             from crawler import save_filename_for
@@ -682,10 +707,11 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
             summary = {}
             for name in esp_names:
-                rebuilt, skipped = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
+                rebuilt, skipped, unlabelled = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
                 summary[name] = {
                     'rebuilt': len(rebuilt),
-                    'skipped_no_content': skipped
+                    'skipped_no_content': skipped,
+                    'skipped_unlabelled': unlabelled
                 }
 
             clear_mechanics_cache()

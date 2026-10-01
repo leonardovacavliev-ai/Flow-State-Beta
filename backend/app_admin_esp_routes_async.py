@@ -120,9 +120,12 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
 
             if not url:
                 return jsonify({'error': 'URL is required'}), 400
+            if 'product' not in data:
+                from product_labels import OUTDATED_PAGE
+                return jsonify({'error': OUTDATED_PAGE}), 400
 
-            # Add to database
-            doc = esp_mgr.add_document(esp_name, url)
+            # Add to database, with the product it covers (required)
+            doc = esp_mgr.add_document(esp_name, url, product=data.get('product'))
 
             return jsonify({
                 'success': True,
@@ -264,6 +267,14 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             esp_docs_path = os.path.join(BASE_PATH, 'docs', esp_name)
             os.makedirs(esp_docs_path, exist_ok=True)
 
+            # Every document must end up labelled. Unlabelled links are
+            # reported, not queued; `product` labels URLs that have no row yet.
+            from product_labels import split_by_label
+            product = data.get('product')
+            urls, refused = split_by_label(esp_mgr, esp_name, urls, product)
+            if not urls:
+                return jsonify({'error': f"{refused[0]['url']}: {refused[0]['error']}"}), 400
+
             # Refuse before queueing anything: a URL new to this ESP that
             # already lives elsewhere would be crawled and indexed twice
             for url in urls:
@@ -273,8 +284,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
                         return jsonify({'error': str(DuplicateURLError(url, owners, esp_name)),
                                         'duplicate': True, 'url': url, 'matches': owners}), 409
 
-            job_ids, skipped = enqueue_urls(db, esp_mgr, esp, esp_name, urls)
-            return jsonify(queued_response(job_ids, skipped))
+            job_ids, skipped = enqueue_urls(db, esp_mgr, esp, esp_name, urls, product=product)
+            return jsonify(queued_response(job_ids, skipped, refused))
 
         except Exception as e:
             import traceback
@@ -531,10 +542,15 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not esp:
                 return jsonify({'error': f"ESP '{esp_name}' not found"}), 404
 
+            from product_labels import label_problem
+            problem = label_problem(esp_mgr, esp_name, [url], data.get('product'))
+            if problem:
+                return jsonify({'error': problem}), 400
+
             # Get or create document
             doc = esp_mgr.get_document_by_url(esp['id'], url)
             if not doc:
-                doc = esp_mgr.add_document(esp_name, url)
+                doc = esp_mgr.add_document(esp_name, url, product=data.get('product'))
 
             # A name no other URL's saved copy uses (see save_filename_for)
             from crawler import save_filename_for
@@ -630,10 +646,11 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
 
             summary = {}
             for name in esp_names:
-                rebuilt, skipped = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
+                rebuilt, skipped, unlabelled = rebuild_esp_vectors(name, vectorizer, BASE_PATH)
                 summary[name] = {
                     'rebuilt': len(rebuilt),
-                    'skipped_no_content': skipped
+                    'skipped_no_content': skipped,
+                    'skipped_unlabelled': unlabelled
                 }
 
             clear_mechanics_cache()

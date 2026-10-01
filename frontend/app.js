@@ -1523,23 +1523,50 @@ const PRODUCT_LABEL_HELP =
 const PRODUCT_PICKER_CLASSES = 'product-picker w-28 shrink-0 text-xs px-2 py-1 rounded';
 
 function productPickerHTML(espName, link) {
-    if (!link.labelable) {
+    // A global link listed only in the CSV has no database row yet. Its
+    // picker creates one (through global add-link) with the chosen label.
+    const createsRow = !link.labelable && espName === 'global';
+    if (!link.labelable && !createsRow) {
         return `<select disabled class="${PRODUCT_PICKER_CLASSES} border border-border bg-muted text-muted-foreground" title="Crawl this link first — only saved documents can be labelled"><option>Crawl first</option></select>`;
     }
     const unlabelled = !link.product;
+    // The header names one product and the label is the other one. Not
+    // flagged for Shared: that is a decision, not a contradiction.
+    const disagrees = !unlabelled && link.suggested_product && link.product !== 'shared'
+        && link.suggested_product !== link.product;
     // The Yotpo header's suggestion goes in the tooltip, not the option text,
     // so it can't change the picker's size.
-    const title = link.suggested_product && unlabelled
+    const title = link.suggested_product && (unlabelled || disagrees)
         ? `${PRODUCT_LABEL_HELP} The page's Yotpo header says ${PRODUCT_LABELS[link.suggested_product]}.`
         : PRODUCT_LABEL_HELP;
-    const options = [`<option value="" ${unlabelled ? 'selected' : ''}>Unlabelled</option>`]
+    // Every document needs a label, so "Unlabelled" is only shown, never chosen
+    const options = (unlabelled ? ['<option value="" selected disabled>Unlabelled</option>'] : [])
         .concat(Object.entries(PRODUCT_LABELS).map(([value, label]) =>
             `<option value="${value}" ${link.product === value ? 'selected' : ''}>${label}</option>`))
         .join('');
-    return `<select class="${PRODUCT_PICKER_CLASSES} bg-background cursor-pointer border ${unlabelled ? 'border-amber-400 text-amber-800' : 'border-input text-foreground'}"
+    const tone = unlabelled ? 'border-amber-400 text-amber-800'
+        : disagrees ? 'border-red-400 text-foreground' : 'border-input text-foreground';
+    return `<select class="${PRODUCT_PICKER_CLASSES} bg-background cursor-pointer border ${tone}"
                 data-esp="${escapeAttr(espName)}" data-url="${escapeAttr(link.url)}" data-saved="${escapeAttr(link.product || '')}"
+                data-suggested="${escapeAttr(link.suggested_product || '')}" ${createsRow ? 'data-create="1"' : ''}
                 title="${escapeAttr(title)}" aria-label="Yotpo product for ${escapeAttr(link.url)}">${options}</select>`;
 }
+
+// The product picker beside an "Add link" field. Starts empty: a new link
+// has no header to suggest from yet, and a default would get accepted unread.
+function newLinkProductHTML(id) {
+    return `<select id="${escapeAttr(id)}" class="new-link-product w-32 shrink-0 px-2 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Yotpo product for the new link" title="${escapeAttr(PRODUCT_LABEL_HELP)}">
+        <option value="" selected disabled>Product…</option>
+        ${Object.entries(PRODUCT_LABELS).map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+    </select>`;
+}
+
+// Links a crawl request left out (no product label), one line each
+function notQueuedLines(data, label) {
+    return (data.not_queued || []).map(n => `${label ? label + ': ' : ''}${n.url} — ${n.error}`);
+}
+
+const PICK_PRODUCT_MESSAGE = 'Pick which Yotpo product this link covers: Loyalty, Reviews, or Shared (correct for both).';
 
 function updateUnlabelledCount(scope) {
     const counter = scope.querySelector('.unlabelled-count');
@@ -1552,24 +1579,43 @@ function updateUnlabelledCount(scope) {
 
 async function saveProductLabel(select, scope) {
     const previous = select.dataset.saved;
-    const product = select.value || null;
+    const product = select.value;
+    if (!product) return;
     select.disabled = true;
     try {
-        const response = await fetch(`${API_URL}/admin/esp/${encodeURIComponent(select.dataset.esp)}/set-product`, {
-            method: 'POST',
-            headers: adminHeaders(),
-            body: JSON.stringify({ urls: [select.dataset.url], product })
-        });
+        const creating = !!select.dataset.create;
+        const response = creating
+            ? await fetch(`${API_URL}/admin/global-knowledge/add-link`, {
+                method: 'POST',
+                headers: adminHeaders(),
+                body: JSON.stringify({ url: select.dataset.url, product })
+            })
+            : await fetch(`${API_URL}/admin/esp/${encodeURIComponent(select.dataset.esp)}/set-product`, {
+                method: 'POST',
+                headers: adminHeaders(),
+                body: JSON.stringify({ urls: [select.dataset.url], product })
+            });
         const data = await response.json();
         if (!response.ok || !data.success || (data.missing && data.missing.length)) {
             throw new Error(data.error || 'This link has no saved document to label.');
         }
+        delete select.dataset.create;
         select.dataset.saved = select.value;
         loadReviewsCoverage();   // a Reviews label can change what the chat intro says
-        select.classList.toggle('border-amber-400', !product);
-        select.classList.toggle('text-amber-800', !product);
-        select.classList.toggle('border-input', !!product);
-        select.classList.toggle('text-foreground', !!product);
+        select.querySelector('option[value=""]')?.remove();   // labelled now; can't go back
+        const suggested = select.dataset.suggested;
+        const disagrees = suggested && product !== 'shared' && suggested !== product;
+        select.classList.remove('border-amber-400', 'text-amber-800', 'border-red-400', 'border-input');
+        select.classList.add(disagrees ? 'border-red-400' : 'border-input', 'text-foreground');
+        if (data.index_failed && data.index_failed.length) {
+            // Re-choosing the same option fires no change event, so offer the retry here
+            if (confirm(`${data.warning}\n\nRetry now?`)) {
+                select.disabled = false;
+                return saveProductLabel(select, scope);
+            }
+        } else if (data.warning) {
+            alert(data.warning);
+        }
     } catch (error) {
         select.value = previous;
         alert('Could not save the label: ' + error.message);
@@ -1654,6 +1700,7 @@ async function loadESPManagement() {
                 </div>
                 <div class="flex gap-2">
                     <input type="text" placeholder="Add new link URL" id="newLink-${esp.name}" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    ${newLinkProductHTML(`newLinkProduct-${esp.name}`)}
                     <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addLink('${esp.name}')">Add Link</button>
                 </div>
                 <p id="newLinkFlag-${esp.name}" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>
@@ -1670,6 +1717,10 @@ async function loadESPManagement() {
 
             wireProductPickers(espDiv);
             wireDuplicateLinkCheck(espDiv.querySelector(`#newLink-${CSS.escape(esp.name)}`), esp.name);
+            espDiv.querySelector('.new-link-product')?.addEventListener('change', () => {
+                const flag = document.getElementById(`newLinkFlag-${esp.name}`);
+                if (flag && flag.textContent === PICK_PRODUCT_MESSAGE) setLinkFlag(esp.name, null);
+            });
 
             // Add checkbox change listeners for global bulk actions
             const checkboxes = espDiv.querySelectorAll('.link-checkbox');
@@ -1860,6 +1911,7 @@ async function crawlAllSelectedAsync() {
 
                 if (data.success && data.job_ids) {
                     allJobIds = allJobIds.concat(data.job_ids);
+                    queueErrors.push(...notQueuedLines(data, espName));
                 } else {
                     queueErrors.push(`${espName}: ${data.error || `HTTP ${response.status}`}`);
                 }
@@ -1885,6 +1937,7 @@ async function crawlAllSelectedAsync() {
 
                 if (data.success && data.job_ids) {
                     allJobIds = allJobIds.concat(data.job_ids);
+                    queueErrors.push(...notQueuedLines(data, 'Global knowledge'));
                 } else if (data.success) {
                     globalCrawledCount = data.count || 0;
                     (data.results?.failed || []).forEach(f => {
@@ -2022,6 +2075,7 @@ async function crawlAllSelectedSync() {
 
                 if (data.success && data.job_ids) {
                     queuedJobIds = queuedJobIds.concat(data.job_ids);
+                    errors.push(...notQueuedLines(data, espName));
                 } else if (data.success) {
                     // API returns results.success array, not count
                     const successCount = data.results?.success?.length || 0;
@@ -2053,6 +2107,7 @@ async function crawlAllSelectedSync() {
 
                 if (data.success && data.job_ids) {
                     queuedJobIds = queuedJobIds.concat(data.job_ids);
+                    errors.push(...notQueuedLines(data, 'Global Knowledge'));
                 } else if (data.success) {
                     totalCrawled += (data.count || 0);
                     // Per-URL failures (site blocked, pasted local:// doc
@@ -2257,15 +2312,22 @@ function wireDuplicateLinkCheck(input, espName) {
 
 async function addLink(espName) {
     const input = document.getElementById(`newLink-${espName}`);
+    const productSelect = document.getElementById(`newLinkProduct-${espName}`);
     const url = input.value.trim();
 
     if (!url) return;
+    const product = productSelect ? productSelect.value : '';
+    if (!product) {
+        setLinkFlag(espName, PICK_PRODUCT_MESSAGE);
+        productSelect?.focus();
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/admin/esp/${espName}/add-link`, {
             method: 'POST',
             headers: adminHeaders(),
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url, product })
         });
 
         const data = await response.json();
@@ -2273,6 +2335,7 @@ async function addLink(espName) {
         if (data.success) {
             alert('Link added successfully. It will be pre-checked for crawling.');
             input.value = '';
+            productSelect.value = '';
             // Reload the ESP management to show the new link
             await loadESPManagement();
         } else if (data.duplicate) {
@@ -2339,6 +2402,9 @@ document.getElementById('refreshAllBtn').addEventListener('click', async () => {
             startCrawlTracker(data.job_ids);
             loadESPManagement();
             loadGlobalKnowledge();
+            if (data.not_queued && data.not_queued.length) {
+                alert(`${data.message}\n\n${notQueuedLines(data).join('\n')}`);
+            }
         } else if (data.success) {
             alert('All documentation refreshed successfully!');
         } else {
@@ -2705,8 +2771,8 @@ async function loadAuditLog() {
                                 by ${escapeHtml(entry.user_email)} • ${timestamp}
                             </div>
                         </div>
-                        <button class="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors" onclick="restoreFromBackup(${actualIndex}, '${entry.timestamp}')">
-                            Restore
+                        <button class="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="restoreFromBackup(${actualIndex}, '${entry.timestamp}')" title="Put the settings back as they were just before this change">
+                            Undo this change
                         </button>
                     </div>
                     ${entry.backup ? `
@@ -2839,7 +2905,7 @@ document.getElementById('updatePromptBtn').addEventListener('click', async () =>
         const data = await response.json();
 
         if (data.success) {
-            alert('System prompt updated successfully!');
+            alert(data.warning ? `System prompt saved.\n\nNote: ${data.warning}` : 'System prompt updated successfully!');
             document.getElementById('promptChangeEmail').value = '';
             await loadGeneralSettings();
         } else {
@@ -2858,7 +2924,7 @@ async function restoreFromBackup(auditIndex, timestamp) {
         return;
     }
 
-    if (!confirm(`Are you sure you want to restore configuration from ${new Date(timestamp).toLocaleString()}? This will replace the current settings.`)) {
+    if (!confirm(`Put the settings back as they were just BEFORE the change made at ${new Date(timestamp).toLocaleString()}? This replaces the current model and system prompt.`)) {
         return;
     }
 
@@ -2875,7 +2941,7 @@ async function restoreFromBackup(auditIndex, timestamp) {
         const data = await response.json();
 
         if (data.success) {
-            alert('Configuration restored successfully!');
+            alert(data.warning ? `Configuration restored.\n\nNote: ${data.warning}` : 'Configuration restored successfully!');
             await loadGeneralSettings();
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
@@ -2942,17 +3008,32 @@ async function loadGlobalKnowledge() {
     }
 }
 
+function setGlobalLinkFlag(message) {
+    const flag = document.getElementById('newGlobalKnowledgeFlag');
+    if (!flag) return;
+    flag.textContent = message || '';
+    flag.classList.toggle('hidden', !message);
+}
+
 async function addGlobalKnowledgeLink() {
     const input = document.getElementById('newGlobalKnowledgeLink');
+    const productSelect = document.getElementById('newGlobalKnowledgeProduct');
     const url = input.value.trim();
 
     if (!url) return;
+    const product = productSelect ? productSelect.value : '';
+    if (!product) {
+        setGlobalLinkFlag(PICK_PRODUCT_MESSAGE);
+        productSelect?.focus();
+        return;
+    }
+    setGlobalLinkFlag(null);
 
     try {
         const response = await fetch(`${API_URL}/admin/global-knowledge/add-link`, {
             method: 'POST',
             headers: adminHeaders(),
-            body: JSON.stringify({ url })
+            body: JSON.stringify({ url, product })
         });
 
         const data = await response.json();
@@ -2960,7 +3041,10 @@ async function addGlobalKnowledgeLink() {
         if (data.success) {
             alert('Global knowledge link added successfully. It will be pre-checked for crawling.');
             input.value = '';
+            productSelect.value = '';
             await loadESPManagement();
+        } else if (data.duplicate) {
+            setGlobalLinkFlag(data.error);
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
@@ -2968,6 +3052,11 @@ async function addGlobalKnowledgeLink() {
         alert('Error adding link: ' + error.message);
     }
 }
+
+document.getElementById('newGlobalKnowledgeProduct')?.addEventListener('change', () => {
+    const flag = document.getElementById('newGlobalKnowledgeFlag');
+    if (flag && flag.textContent === PICK_PRODUCT_MESSAGE) setGlobalLinkFlag(null);
+});
 
 // Update loadESPManagement to also load global knowledge (in parallel for better performance)
 const originalLoadESPManagement = loadESPManagement;

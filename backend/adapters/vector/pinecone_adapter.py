@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional, Any
 from pinecone import Pinecone, ServerlessSpec
 from sentence_transformers import SentenceTransformer
-from .base import VectorAdapter
+from .base import VectorAdapter, require_product_metadata, refuse_bulk_reindex
 
 class PineconeAdapter(VectorAdapter):
     """Pinecone implementation of VectorAdapter"""
@@ -57,6 +57,7 @@ class PineconeAdapter(VectorAdapter):
 
     def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
         """Add a document to the vector store"""
+        require_product_metadata(metadata)
         chunks = self.chunk_text(text)
         vectors_to_upsert = []
 
@@ -132,7 +133,8 @@ class PineconeAdapter(VectorAdapter):
         }
 
     def refresh_esp(self, esp_name: str, docs_path: str) -> None:
-        """Refresh documents for a specific ESP"""
+        """Refresh documents for a specific ESP (disabled, see refuse_bulk_reindex)"""
+        refuse_bulk_reindex('refresh_esp')
         print(f"Refreshing {esp_name} documentation...")
 
         # Delete existing documents for this ESP
@@ -185,7 +187,8 @@ class PineconeAdapter(VectorAdapter):
         print(f"✓ {esp_name} refresh complete")
 
     def vectorize_all_docs(self, docs_path: str) -> None:
-        """Vectorize all documents in the docs folder"""
+        """Vectorize all documents in the docs folder (disabled, see refuse_bulk_reindex)"""
+        refuse_bulk_reindex('vectorize_all_docs')
         print("Starting vectorization...")
 
         # Load metadata
@@ -246,6 +249,29 @@ class PineconeAdapter(VectorAdapter):
         except Exception as e:
             print(f"Error deleting vectors for {url}: {e}")
             return 0
+
+    def ids_for_url(self, url: str, esp_name: str) -> List[str]:
+        """Ids of every chunk of one document (raises on errors)."""
+        # Answered by the metadata filter, not similarity: any non-zero vector
+        # does, and a constant one avoids loading the embedding model.
+        probe = [1.0] + [0.0] * (self.dimension - 1)
+        results = self.index.query(
+            vector=probe,
+            top_k=10000,
+            filter={"esp": {"$eq": esp_name.lower()}, "source_url": {"$eq": url}},
+            include_metadata=False
+        )
+        return [match['id'] for match in results['matches']]
+
+    def update_metadata(self, ids: List[str], patch: Dict[str, Any]) -> None:
+        """Merge `patch` into each vector's metadata (raises on errors).
+
+        Pinecone's update merges set_metadata into the stored metadata and
+        leaves the embedding alone. One id per call; the change is visible to
+        reads shortly after, not instantly.
+        """
+        for vector_id in ids:
+            self.index.update(id=vector_id, set_metadata=patch)
 
     def get_collection_count(self) -> int:
         """Get total number of vectors in the index"""

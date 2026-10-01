@@ -4,6 +4,12 @@ Update system prompt in production.
 Run this script on the server after deployment to update the system prompt.
 """
 
+# Disabled: its prompt predates the [[product]] placeholders and would make
+# every Reviews chat answer as Loyalty. Edit the prompt in the admin panel.
+import sys
+sys.exit("update_system_prompt.py is disabled: its prompt has no [[product]] placeholders. "
+         "Edit the prompt in Admin > General Settings (template: eval/prompts/system_prompt_template.txt).")
+
 import json
 import os
 from datetime import datetime

@@ -10,6 +10,13 @@ Environment variables required:
     PINECONE_INDEX_NAME (default: esp-loyalty-docs1)
 """
 
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("migrate_to_pinecone.py is disabled: it re-indexes from local files without product labels. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
+
 import os
 import sys
 from adapters.vector.vector_manager import get_vector_adapter

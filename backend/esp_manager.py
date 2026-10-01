@@ -226,21 +226,30 @@ class ESPManager:
 
     # ==================== Document Operations ====================
 
-    def add_document(self, esp_name: str, url: str, filename: str = None) -> Dict:
+    def add_document(self, esp_name: str, url: str, *, product: str, filename: str = None) -> Dict:
         """
         Add a document URL to an ESP.
 
         Args:
             esp_name: ESP name
             url: Document URL to crawl
+            product: Yotpo product line, 'loyalty' | 'reviews' | 'shared'.
+                Required and keyword-only: this is the one place rows are
+                created, so every write path has to say which product a
+                document covers. (Keyword-only so an old positional
+                `filename` can't land here and pass the check.)
             filename: Optional saved filename
 
         Returns:
             Dict with document details
 
         Raises:
-            ValueError: If ESP doesn't exist or URL already exists
+            ValueError: If ESP doesn't exist, the product is missing or
+                unknown, or the URL already exists
         """
+        from product_labels import require_product
+        product = require_product(product)
+
         # Get ESP
         esp = self.get_esp_by_name(esp_name)
         if not esp:
@@ -257,12 +266,12 @@ class ESPManager:
             filename = url.split('/')[-1] or 'document'
 
         query = """
-            INSERT INTO esp_documents (id, esp_id, url, filename, crawl_status)
-            VALUES (%s, %s, %s, %s, 'pending')
+            INSERT INTO esp_documents (id, esp_id, url, filename, crawl_status, product)
+            VALUES (%s, %s, %s, %s, 'pending', %s)
             RETURNING id, url, filename, crawl_status, created_at
         """
         doc_id = str(uuid.uuid4())
-        params = (doc_id, esp['id'], url, filename)
+        params = (doc_id, esp['id'], url, filename, product)
 
         result = self.db.execute_query(query, params, fetch=True)
         if result:
@@ -274,7 +283,8 @@ class ESPManager:
                 'url': row[1],
                 'filename': row[2],
                 'crawl_status': row[3],
-                'created_at': _iso(row[4])
+                'created_at': _iso(row[4]),
+                'product': product
             }
         return None
 
@@ -305,7 +315,8 @@ class ESPManager:
         """Get document by ESP ID and URL."""
         query = """
             SELECT id, esp_id, url, filename, content_hash, crawl_status,
-                   last_crawled_at, error_message, vector_ids, created_at, updated_at
+                   last_crawled_at, error_message, vector_ids, created_at, updated_at,
+                   product
             FROM esp_documents
             WHERE esp_id = %s AND url = %s
         """
@@ -323,7 +334,8 @@ class ESPManager:
                 'error_message': row[7],
                 'vector_ids': row[8],
                 'created_at': _iso(row[9]),
-                'updated_at': _iso(row[10])
+                'updated_at': _iso(row[10]),
+                'product': row[11]
             }
         return None
 
@@ -385,7 +397,8 @@ class ESPManager:
                 for row in rows}
 
     def set_document_product(self, esp_name: str, urls: List[str], product: Optional[str]):
-        """Set (or clear, with None) the product label on an ESP's documents.
+        """Set the product label on an ESP's documents (the route refuses None:
+        every document needs one, and its vectors carry it).
 
         Returns (updated_urls, missing_urls). Missing means no row for that
         URL under this ESP; nothing is created.
@@ -407,6 +420,20 @@ class ESPManager:
                 (product, esp['id']) + tuple(found))
         found_set = set(found)
         return found, [u for u in urls if u not in found_set]
+
+    def get_document_product(self, esp_name: str, url: str) -> Optional[str]:
+        """The product label of one document, or None (no row, or unlabelled).
+
+        Looked up by (esp, url), the key esp_documents enforces and vectors
+        carry -- not by filename, which a rebuild can rewrite.
+        """
+        rows = self.db.execute_query("""
+            SELECT d.product
+            FROM esp_documents d
+            JOIN esps e ON e.id = d.esp_id
+            WHERE e.name = %s AND d.url = %s
+        """, (esp_name.lower(), url), fetch=True) or []
+        return rows[0][0] if rows else None
 
     def reviews_documents(self) -> List[tuple]:
         """(esp, url) of every Reviews-labelled document.
@@ -503,7 +530,7 @@ class ESPManager:
             return []
 
         query = """
-            SELECT id, url, filename, content, content_hash, crawl_status
+            SELECT id, url, filename, content, content_hash, crawl_status, product
             FROM esp_documents
             WHERE esp_id = %s
             ORDER BY created_at ASC
@@ -516,7 +543,8 @@ class ESPManager:
             'filename': row[2],
             'content': row[3],
             'content_hash': row[4],
-            'crawl_status': row[5]
+            'crawl_status': row[5],
+            'product': row[6]
         } for row in results]
 
     def delete_document(self, doc_id: str) -> bool:

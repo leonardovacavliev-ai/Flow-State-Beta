@@ -4,6 +4,13 @@ Rebuild ChromaDB from documentation files
 This script reinitializes the vector database from scratch
 """
 
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("rebuild_chromadb.py is disabled: it re-indexes from local files without product labels. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
+
 import os
 import shutil
 from pathlib import Path

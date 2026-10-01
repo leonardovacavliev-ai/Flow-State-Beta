@@ -25,7 +25,8 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 - RESTful API endpoints for chat, admin, and analytics
 - Serves as orchestration layer between components
 - Manages conversation state in-memory (request-scoped)
-- Admin password: `RICHCSM` (hardcoded)
+- Admin access: a verified @yotpo.com Google account (`backend/auth.py`). The password
+  (`ADMIN_PASSWORD`) is a break-glass fallback, only accepted when `ADMIN_PASSWORD_FALLBACK=true`
 
 #### 2. Vector Database ([vectorize.py](backend/vectorize.py))
 - ChromaDB persistent client at `backend/chroma_db/`
@@ -77,7 +78,7 @@ User → Frontend (JS)
   ↓
 Flask API (/api/chat)
   ↓
-Vector Search (ChromaDB) → ESP-specific + Global docs (3+2 results)
+Vector Search (ChromaDB/Pinecone) → ESP-specific (10) + mechanics (5) + Global (2), score ≥ 0.35
   ↓
 AI Provider (Gemini/Claude) → RAG-enhanced response
   ↓
@@ -302,15 +303,19 @@ Yotpo Reviews integration docs already sit in the ESP namespaces next to the Loy
 (Klaviyo's Reviews guide is a third of that namespace). Every document now carries a product label
 so the two can be told apart, and Reviews docs can be added without contaminating Loyalty answers.
 
-- [x] `esp_documents.product`: `loyalty` | `reviews` | `shared` (correct for both), NULL until labelled
+- [x] `esp_documents.product`: `loyalty` | `reviews` | `shared` (correct for both)
 - [x] Label picker in admin ESP management and global knowledge (`backend/product_labels.py`)
 - [x] All documents labelled (2026-09-30)
-- [ ] Product-neutral system prompt (the live one is written for Loyalty)
-- [ ] Experiment: labels in the context vs a retrieval filter (`eval/product_eval.py`, on branch
-      `feat/product-labels-eval`)
-- [ ] Labels on vectors, required label when adding links, "no Reviews docs for this ESP" guard
+- [x] Chat Loyalty · Reviews picker; one stored prompt with `[[product]]` / `[[if loyalty]]` /
+      `[[if reviews]]` placeholders (`backend/prompt_template.py`); "no Reviews docs for this ESP" guard
+- [x] Label required on every write: `add_document(…, *, product)`, a product picker on both
+      "Add link" forms; every vector carries `product` (adapters refuse writes without it); a label
+      edit updates the row and that URL's vectors. `eval/audit_product_labels.py` checks they agree
+- [ ] Backfill the existing vectors (`eval/audit_product_labels.py backfill --write`)
+- [ ] Experiment: labels in the context vs a retrieval filter (`eval/product_eval.py`)
 
-Chat does not read labels yet. Once it does, an unlabelled document counts as neither product.
+The synchronous `/api/admin/refresh` is disabled (it wrote unlabelled vectors from the CSV);
+Rebuild Vectors re-indexes from the database.
 
 ### Phase 5: Containerize Application
 - [ ] Create Dockerfile
@@ -396,20 +401,13 @@ Chat does not read labels yet. Once it does, an unlabelled document counts as ne
 
 ## System Prompt
 
-```
-You are an email marketing specialist and a loyalty retention specialist at once.
-
-Your goal is to recommend flows and campaigns to setup in the user's ESP using loyalty data.
-You will provide helpful feedback on how to create the flow, how to setup the right triggers, filters, audiences and email content, following industry best practices. In the handbook you will find some templates, but you will also help create more unique and outside the box flows and campaigns.
-
-Answer in a step by step manner, and walk through the process. Answer like you are talking to a person who knows how to work with the ESP, but isn't super in-depth. Make sure you double check your answers across your knowledgebase.
-
-Always prioritize the quality of answer, never try to answer too quickly. Also, if you are missing any information, never assume or guess anything, always ask the user to provide the missing information or context.
-
-Don't flatter and don't "glaze" the user. Be brief, direct and helpful. Tell them when they are wrong and provide helpful feedback.
-
-Aim to answer as short as possible. Act more as a tool than a person.
-```
+The live prompt is stored in Postgres (`app_settings`) and edited in Admin → General Settings. It
+is a template: `[[product]]` and `[[if loyalty]]…[[end]]` / `[[if reviews]]…[[end]]` are filled
+per request for the product picked in chat (`backend/prompt_template.py`). The version stored at
+deploy is `eval/prompts/system_prompt_template.txt`; it is also the fresh-install default. Saving
+or restoring a prompt with no placeholders shows a warning: Reviews chats would get the Loyalty
+wording. Do not roll back below `9f46db1` while the template is stored (older code sends the
+`[[…]]` tokens to the model verbatim); put a placeholder-free prompt back first.
 
 ---
 
@@ -426,11 +424,15 @@ Aim to answer as short as possible. Act more as a tool than a person.
 - `POST /api/admin/verify` - Check admin password
 - `GET /api/admin/esps` - List all ESPs + doc counts
 - `GET /api/admin/esp/<name>/links` - Get links for ESP
-- `POST /api/admin/esp/<name>/add-link` - Add URL to ESP
+- `POST /api/admin/esp/<name>/add-link` - Add URL to ESP (`{url, product}`; product required)
+- `POST /api/admin/esp/<name>/set-product` - Change documents' product label (row and vectors)
+- `POST /api/admin/check-link` - Is this URL already in the knowledge base?
 - `POST /api/admin/esp/<name>/crawl-selected` - Crawl URLs
 - `POST /api/admin/esp/<name>/delete-links` - Remove URLs
 - `POST /api/admin/esp/create` - Create new ESP
-- `POST /api/admin/refresh` - Re-crawl + re-vectorize all
+- `POST /api/admin/refresh` - Re-crawl everything through the crawl queue (409 when the queue is off)
+- `POST /api/admin/rebuild-vectors` - Re-index from database content, labels included (no button)
+- `GET /api/reviews-coverage` - ESPs with Yotpo Reviews documentation (public)
 
 ### Admin - Analytics
 - `GET /api/admin/analytics?time_range=<range>` - Dashboard data
@@ -443,11 +445,11 @@ Aim to answer as short as possible. Act more as a tool than a person.
 - `GET /api/admin/settings/system-prompt` - Get prompt
 - `POST /api/admin/settings/system-prompt` - Update prompt
 - `GET /api/admin/settings/audit-log` - Change history
-- `POST /api/admin/settings/restore` - Restore from backup
+- `POST /api/admin/settings/restore` - Undo an audit-log change (restores the settings from before it)
 
 ### Admin - Global Knowledge
 - `GET /api/admin/global-knowledge/links` - Get global URLs
-- `POST /api/admin/global-knowledge/add-link` - Add URL
+- `POST /api/admin/global-knowledge/add-link` - Add URL (`{url, product}`; creates the database row)
 - `POST /api/admin/global-knowledge/crawl-selected` - Crawl URLs
 - `POST /api/admin/global-knowledge/delete-links` - Remove URLs
 
@@ -501,11 +503,11 @@ Aim to answer as short as possible. Act more as a tool than a person.
 
 ### Workflow: Refresh Existing Documents
 
-**Current (Local)**:
-1. Admin → "Refresh All" button
-2. Re-crawls all URLs in CSV (blocking, ~30-60 seconds)
-3. Deletes entire ChromaDB collection
-4. Re-vectorizes from scratch
+**Current**:
+1. Admin → "Refresh All" button: queues a re-crawl of every labelled document (needs
+   `USE_ASYNC_CRAWL=true`; the old synchronous rebuild from the CSV is disabled)
+2. Or select links → "Crawl Selected"; or `POST /api/admin/rebuild-vectors` to re-index from the
+   database without crawling
 
 **Cloud (Proposed)**:
 1. Admin → ESP page → "Refresh All" or "Refresh Selected"
@@ -611,10 +613,12 @@ def on_s3_upload(event):
 ## RAG Context Retrieval
 
 For each user message:
-1. ESP-specific search: 3 results (filtered by ESP)
-2. Global knowledge search: 2 results (best practices, general info)
-3. Context formatting: Source number, filename, URL, text chunk
-4. Total: 5 document chunks per query
+Built by `backend/rag_context.py::build_rag_context()`:
+1. Query A, ESP-specific: top 10 (the previous answer is appended on follow-ups)
+2. Query B, mechanics for the ESP: top 5, cached (`mechanics_cache.py`), removed from A
+3. Query C, global knowledge: top 2
+4. Kept if score ≥ 0.35; formatted as source number, filename, ESP, URL, text
+5. A Reviews question on an ESP with no Reviews docs gets a note telling the model to say so
 
 ---
 
@@ -789,7 +793,8 @@ export ANTHROPIC_API_KEY="your-key"
 open http://localhost:8000
 ```
 
-**Admin password**: `RICHCSM`
+**Admin access**: sign in with a @yotpo.com Google account (the password fallback is off unless
+`ADMIN_PASSWORD_FALLBACK=true`)
 
 ---
 

@@ -156,7 +156,7 @@ def decide(counts: Dict[str, Dict[str, int]], screened: int) -> Dict:
     Rule (PRODUCT_LINE_SPLIT_SCOPE.md, step 7):
       1. A wrong on <= 10% of the set and <= 2: ship C2 if it adds <= 2
          no-answer/hedged outcomes over A, else keep A.
-      2. Else the cheapest of C1, C2, D, B that at least halves A's wrong count
+      2. Else the cheapest of C1, C2, B that at least halves A's wrong count
          without adding more than 2 no-answer/hedged outcomes.
       3. Else inconclusive: ship C2 and measure live answers.
     """
@@ -174,11 +174,11 @@ def decide(counts: Dict[str, Dict[str, int]], screened: int) -> Dict:
             return {'ship': 'C2', 'reason': f"A is wrong on {a_wrong}/{screened}: low. C2 labels cost nothing extra in answers.", 'arms': summary}
         return {'ship': 'A', 'reason': f"A is wrong on {a_wrong}/{screened}: low, and C2 adds refusals or hedging.", 'arms': summary}
 
-    for arm in ('C1', 'C2', 'D', 'B'):
+    for arm in ('C1', 'C2', 'B'):
         if arm in counts and wrong(arm) * 2 <= a_wrong and soft(arm) - a_soft <= 2:
             reason = f"{arm} cuts wrong-product answers from {a_wrong} to {wrong(arm)} without adding more than 2 refusals or hedges."
-            if arm in ('D', 'B'):
-                reason += " Needs the product selector (step 8)."
+            if arm == 'B':
+                reason += " Needs the retrieval filter (step 8)."
             return {'ship': arm, 'reason': reason, 'arms': summary}
 
     return {'ship': 'C2', 'reason': "Inconclusive: no arm halved A's wrong answers within the limits. Ship C2 and score live answers.",

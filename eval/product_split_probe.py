@@ -361,12 +361,12 @@ def cmd_filters():
         f = dict(base); f.update(extra)
         return {m["id"] for m in idx.query(vector=v, top_k=1000, filter=f)["matches"]}
     b = ids({})
-    for name, extra in [("$in [loyalty,platform]", {"product": {"$in": ["loyalty", "platform"]}}),
+    for name, extra in [("$in [loyalty,shared]", {"product": {"$in": ["loyalty", "shared"]}}),
                         ("$eq loyalty", {"product": {"$eq": "loyalty"}}),
                         ("$nin [reviews]", {"product": {"$nin": ["reviews"]}}),
                         ("$ne reviews", {"product": {"$ne": "reviews"}})]:
         got = ids(extra)
-        print(f"klaviyo, no vector has `product`: {name:<24} -> {len(got):>4} of {len(b)}"
+        print(f"klaviyo: {name:<24} -> {len(got):>4} of {len(b)}"
               f"  (identical set: {got == b})")
 
 

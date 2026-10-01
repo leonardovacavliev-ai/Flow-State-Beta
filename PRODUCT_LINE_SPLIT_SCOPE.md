@@ -1,46 +1,61 @@
 # Splitting the knowledge base by Yotpo product line
 
-**Status:** scope, v6. Progress as of 2026-09-30:
+**Status:** scope, v6. Progress as of 2026-10-01:
 
 | | what | where |
 |---|---|---|
 | ✅ done | `esp_documents.product` column, added on boot | `main` (`0d47b27`) |
 | ✅ done | Loyalty / Reviews / Shared picker on every ESP and global-knowledge link, unlabelled counter per ESP, `POST /api/admin/esp/<esp>/set-product` | `main` (`0d47b27`, fixed width since) |
-| ✅ done | All 84 documents with content labelled by Leo (table below) | production |
-| built, not merged | The seam: retrieval and context assembly moved out of `chat()` into `backend/rag_context.py::build_rag_context()`; `eval/check_context_unchanged.py` shows `chat()`'s context and sources are byte-identical before and after (13 cases) | branch `feat/product-labels-eval` |
-| built, not merged | The experiment: `eval/product_eval.py` (status, export-questions, screen, run, rescore, csm-agreement), `eval/product_scorer.py` + 19 tests, starter `eval/questions.json`; a local-only backend (`backend-local` launch config, `eval/seed_local_db.py`) | branch `feat/product-labels-eval` |
-| built, not merged | Chat product picker (Loyalty · Reviews): remembered per browser, ends the conversation on switch, stored on saved conversations and analytics messages | branch `feat/product-labels-eval` |
-| built, not merged | Dynamic prompt (step 5, replaces the separate neutral prompt): `[[product]]`, `[[if loyalty]]…[[end]]`, `[[if reviews]]…[[end]]` in the one stored prompt, filled per request, validated on save and restore (`backend/prompt_template.py`). Draft: `eval/prompts/system_prompt_template.txt` | branch `feat/product-labels-eval` |
-| built, not merged | Coverage guard (step 6): a Reviews question on an ESP with no indexed Reviews document gets a note telling the model to say so; the chat intro says so too | branch `feat/product-labels-eval` |
-| ✅ done | Placeholder prompt (`eval/prompts/system_prompt_template.txt`) stored in production config at deploy, so the new version loaded it on boot; Leo edits it from the admin prompt editor | production |
+| ✅ done | All 84 documents labelled by Leo (table below) | production |
+| ✅ done | The seam: retrieval and context assembly in `backend/rag_context.py::build_rag_context()`; `eval/check_context_unchanged.py` shows `chat()`'s context and sources are byte-identical to the previous `main` (26 cases) | `main` (`9f46db1`) |
+| ✅ done | Chat product picker (Loyalty · Reviews): remembered per browser, ends the conversation on switch, stored on saved conversations and analytics messages | `main` (`9f46db1`) |
+| ✅ done | Dynamic prompt (step 5): `[[product]]`, `[[if loyalty]]…[[end]]`, `[[if reviews]]…[[end]]` in the one stored prompt, filled per request, validated on save and restore (`backend/prompt_template.py`). Stored in production config at deploy; Leo edits it from the admin prompt editor | `main` (`9f46db1`), production |
+| ✅ done | Coverage guard (step 6): a Reviews question on an ESP with no indexed Reviews document gets a note telling the model to say so; the chat intro says so too | `main` (`9f46db1`) |
+| ✅ done | The experiment tooling (step 7): `eval/product_eval.py`, `eval/product_scorer.py` + 19 tests, starter `eval/questions.json`, local-only backend (`backend-local`, `eval/seed_local_db.py`) | `main` (`ae67d23`) |
+| ✅ done | Required label on every write path (step 2): `add_document(…, *, product)` refuses a row without one; both "Add link" forms have a product picker with no default; crawl and paste of a URL with no row need `product`, and refuse an unlabelled row before crawling; global add-link creates the row (so it is also duplicate-checked); the global list shows rows missing from the CSV | this change |
+| ✅ done | Labels on every vector (step 3): `vectorize_single_document` reads the row's label and refuses before deleting old vectors; the Pinecone and Chroma adapters (and the deprecated `vectorize.py`) refuse a write without one; synchronous `/api/admin/refresh` disabled (the queued one stays) | this change |
+| ✅ done | Label edits update the vectors (step 4): `set-product` updates the row, then that URL's vectors, and says so if the index part fails; a label can't be cleared; the picker flags a Loyalty/Reviews label that contradicts the page's Yotpo header | this change |
+| next | Backfill the 474 existing vectors (`eval/audit_product_labels.py backfill --write`), then the audit must read zero | after deploy |
 | next | Tag the saved real questions (`product_eval.py export-questions`); run step 7 | Leo, then eval |
-| not started | Labels on vectors (step 3), required label on add-link, filter (step 8) | — |
+| waits on step 7 | The retrieval filter (step 8) | — |
 
-Labels in production (`product_eval.py status`, 2026-09-30):
+Not done, deliberately: **pinning `pinecone`.** `backend/requirements.txt` pins nothing, and the
+Docker build installs it in one cached layer. Editing that file rebuilds the layer and upgrades
+every dependency at once (the newest `pinecone` is 10.0.0, a rewrite; production may be on an
+older one from the cached layer). Pin all of them together, deliberately, in a change of its own.
+The new code uses only calls whose keyword form exists in both 7.x and 10.x
+(`index.query(...)`, `index.update(id=…, set_metadata=…)`).
+
+Labels in production (`product_eval.py status`, 2026-10-01):
 
 | esp | loyalty | reviews | shared | Reviews coverage |
 |---|---:|---:|---:|---|
 | attentive | 2 | 1 | 0 | yes |
 | dotdigital | 1 | 2 | 5 | yes |
 | emarsys | 2 | 0 | 3 | no |
-| global | 4 | 0 | 1 | — |
+| global | 5 | 0 | 0 | — |
 | klaviyo | 2 | 1 | 2 | yes |
 | listrak | 1 | 0 | 3 | no |
 | ometria | 3 | 0 | 1 | no |
 | omnisend | 2 | 1 | 0 | yes |
 | other_webhook | 27 | 0 | 18 | no |
-| postscript | 1 | 0 | 1 | no |
+| postscript | 2 | 0 | 0 | no |
 
 Labels that may deserve a second look against §4.1 (`shared` means correct for both products,
-and is visible in both): Listrak `6909272-loyalty-automations-in-listrak-conductor`, Postscript
-`13564274-set-up-your-yotpo-integration` and global `loyaltyapi.yotpo.com/…/record-a-customer-action`
-are labelled `shared` but describe Loyalty only. Listrak `2283752-integration-guide-yotpo` is
-`shared` by decision (2026-10-01): despite its title it is a general connection guide. So Listrak
-has no Reviews coverage, and the guard tells Listrak users so.
+and is visible in both): Listrak `6909272-loyalty-automations-in-listrak-conductor` is labelled
+`shared` but describes Loyalty only. (Postscript `13564274` and global `record-a-customer-action`
+were relabelled `loyalty`.) Listrak `2283752-integration-guide-yotpo` is `shared` by decision
+(2026-10-01): despite its title it is a general connection guide. So Listrak has no Reviews
+coverage, and the guard tells Listrak users so.
+
+**Rollback:** do not roll production back below `9f46db1` while the template prompt is stored —
+older code sends `[[product]]` and both `[[if …]]` blocks to the model verbatim. Put a
+placeholder-free prompt back first. Rolling back below this change is safe: older code ignores
+the `product` metadata on vectors.
 
 Retrieval does not read labels: every document is retrieved as before, whichever product is
-picked. Chat reads them in one place, to decide whether an ESP has Reviews coverage; an
-unlabelled document counts as neither product.
+picked, and vector metadata is not shown to the model. Chat reads them in one place, to decide
+whether an ESP has Reviews coverage.
 
 Line references in §5 predate commits `2b13674` and `d244ee3`, which moved code in `app.py` and
 the crawl path; re-check them before editing.
@@ -91,8 +106,11 @@ changing — documents were added while this was written — so re-run rather th
 Columns are assigned from the source URL, the only label that exists, and **it is wrong for some
 documents**:
 
-- ¹ Listrak's `articles_2283752-integration-guide-yotpo` is a Yotpo Reviews integration guide
-  whose URL names no product. It ranks first on every Reviews question on Listrak (`reviewq`).
+- ¹ Listrak's `articles_2283752-integration-guide-yotpo` was counted here as a Yotpo Reviews
+  integration guide whose URL names no product. It ranks first on every Reviews question on
+  Listrak (`reviewq`). Leo labelled it `shared` (2026-10-01): it is a general connection guide.
+  The guard therefore tells Listrak Reviews users there is no Reviews documentation while this
+  guide is still retrieved for them — intended: it covers connecting, not Reviews content.
 - `global`'s 5 URL-silent chunks are `setting-up-custom-action-earning-rules-on-shopify`, which
   its Yotpo header marks as Loyalty (`headers`). All of `global` is Loyalty.
 - `other_webhook`'s 5 documents were added today: Yotpo developer API pages
@@ -254,8 +272,9 @@ missing from the file, so documents added in the meantime cannot slip through.
 - **The admin forms send a product.** Today both ESP add-link (`frontend/app.js:1912`) and global
   add-link (`frontend/app.js:2569`) post only the URL; add a Loyalty / Reviews / Shared select to
   both in the same change. The paste modal opens only on existing rows, which already carry a
-  label. crawl-selected and paste — ESP and global — for a URL with no row require `product` in
-  the request and reject it otherwise.
+  label — except a global link listed only in the CSV (as built: its picker creates the row).
+  crawl-selected and paste — ESP and global — for a URL with no row require `product` in
+  the request (as built: unlabelled links are reported and the rest of the batch runs).
 - **Global knowledge.** Global add-link writes only to `esp_support_links.csv`
   (`app.py:1520-1566`) and the `esp_documents` row is created later by `_persist_global_doc`,
   after vectorization (vectorize at `app.py:1663` / `:1773`, persist at `:1671` / `:1776`). Create the row, with its product, at global
@@ -289,8 +308,8 @@ missing from the file, so documents added in the meantime cannot slip through.
   confirm `text`, `esp` and `source_url` are unchanged. One id per call, so the backfill is a
   loop of ~400 calls. Add
   `update_metadata(ids, patch)` to `VectorAdapter` and both adapters, and check ChromaDB's
-  `update` semantics the same way locally. Pin `pinecone` in `backend/requirements.txt` (it is
-  unpinned).
+  `update` semantics the same way locally. ~~Pin `pinecone`~~ — deferred, see the status note
+  at the top.
 - **Orphans.** Vector ids are `{esp}_{filename}_{i}` and every vector carries `total_chunks`. An
   orphan is a vector whose `chunk_index ≥ total_chunks` of the same URL's chunk 0 (chunk 0 is
   rewritten on every write). There are none today. The rule cannot see a whole duplicate under a
@@ -360,6 +379,13 @@ Prerequisites:
   model production has stored. An earlier draft called it blocked; that came from a raw API call,
   not from the key. `google.generativeai` is end-of-life and prints a deprecation warning — not a
   blocker for the eval.
+
+> **Re-baselined 2026-10-01.** The chat picker shipped (`9f46db1`), so production always knows
+> the product: every arm is now filled for the picked product (a question naming none is asked
+> with Loyalty, the picker's default), arm D — "told the product" — is what every arm is, and
+> it is dropped. Arms as run: **A** (production) → **C1** (+ instruction) → **C2** (+ source
+> labels) → **B** (+ filter). The rule below reads with D removed; choosing B means building
+> the filter (step 8), not the selector. The table and rule are kept as pre-registered.
 
 Arms — all on the step 5 base prompt, **all with the step 6 guard**:
 

@@ -69,7 +69,7 @@ def main():
     try:
         esp = esp_mgr.get_esp_by_name(TEST_ESP)
         for url in TEST_URLS:
-            doc = esp_mgr.add_document(TEST_ESP, url)
+            doc = esp_mgr.add_document(TEST_ESP, url, product='shared')
             print(f"✓ Added URL: {url}")
             print(f"  Document ID: {doc['id']}")
     except Exception as e:

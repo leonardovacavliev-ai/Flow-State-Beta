@@ -238,7 +238,7 @@ class CrawlWorker:
 
         try:
             result = self.db.execute_query("""
-                SELECT d.url, d.filename, e.name, d.content IS NOT NULL
+                SELECT d.url, d.filename, e.name, d.content IS NOT NULL, d.product
                 FROM esp_documents d
                 JOIN esps e ON d.esp_id = e.id
                 WHERE d.id = %s
@@ -246,7 +246,7 @@ class CrawlWorker:
             if not result:
                 self._finish_failed(job, None, FetchResult(PERMANENT, error="The document was deleted"), None)
                 return
-            url, old_filename, esp_name, has_content = result[0]
+            url, old_filename, esp_name, has_content, product = result[0]
         except Exception as e:
             # Database hiccup before we even know the URL: retry the job
             self._handle_failure(job, None, None, FetchResult(TRANSIENT, error=f"Internal error: {e}"))
@@ -254,6 +254,16 @@ class CrawlWorker:
 
         doc = {'id': document_id, 'url': url, 'filename': old_filename,
                'esp_name': esp_name, 'has_content': bool(has_content)}
+
+        # Indexing an unlabelled document is refused, so don't spend a fetch
+        # (and the host's rate limit) on it, and don't retry: a label is
+        # something an admin has to choose.
+        from adapters.vector.base import PRODUCT_LABELS
+        if product not in PRODUCT_LABELS:
+            self._finish_failed(job, doc, FetchResult(
+                PERMANENT, error="No product label: pick Loyalty, Reviews or Shared beside it, "
+                                 "then crawl it again"), None)
+            return
 
         try:
             print(f"[WORKER] Processing job {job_id}: {url}")

@@ -429,7 +429,8 @@ def _hashed_filename(url):
     return f"{stem}-{hashlib.sha1(url.encode()).hexdigest()[:8]}.txt"
 
 
-def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, content=None):
+def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, content=None,
+                              product=None):
     """
     Replace the vectors for one URL without touching the rest of the ESP.
 
@@ -441,12 +442,25 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
     `content`, when given, is indexed instead of re-reading `filepath`: a
     concurrent crawl of a URL with a colliding filename may have replaced
     the file in between.
+
+    Every vector carries the document's product label, read from its
+    esp_documents row unless `product` is given. A document without one is
+    refused before its old vectors are deleted: deleting first would leave
+    it with no vectors at all.
     """
+    esp_key = esp_name.lower()
+    if product is None:
+        from esp_manager import get_esp_manager
+        product = get_esp_manager().get_document_product(esp_key, url)
+    from adapters.vector.base import PRODUCT_LABELS
+    if product not in PRODUCT_LABELS:
+        raise ValueError(f"{url} has no product label. Pick Loyalty, Reviews or Shared "
+                         "beside it, then crawl it again.")
+
     if content is None:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
 
-    esp_key = esp_name.lower()
     if hasattr(vectorizer, 'delete_by_url'):
         vectorizer.delete_by_url(url, esp_key)
 
@@ -454,7 +468,8 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
         'esp': esp_key,
         'filename': filename,
         'source_url': url,
-        'filepath': filepath
+        'filepath': filepath,
+        'product': product
     })
 
 def crawl_and_save(csv_path, base_docs_path):

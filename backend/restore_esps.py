@@ -3,6 +3,13 @@
 Restore ESPs from crawl_metadata.json to PostgreSQL database (Phase 4 architecture)
 """
 
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("restore_esps.py is disabled: its source (crawl_metadata.json) has no product labels, so every document would be refused. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
+
 import os
 import sys
 import json
@@ -82,10 +89,12 @@ def restore_esps():
                 else:
                     try:
                         # Add document
+                        # add_document needs a product label; this source has none
                         doc = esp_manager.add_document(
                             esp_name=esp_name,
                             url=url,
-                            filename=filename
+                            filename=filename,
+                            product=doc.get('product')
                         )
                         # Mark as completed since it was already crawled
                         esp_manager.update_document_crawl_status(

@@ -558,8 +558,15 @@
                                     </div>
                                     <div class="flex gap-2">
                                         <input type="text" placeholder="Add new global knowledge URL" id="newGlobalKnowledgeLink" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                        <select id="newGlobalKnowledgeProduct" class="new-link-product w-32 shrink-0 px-2 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Yotpo product for the new link" title="Which Yotpo product this document covers. Shared = correct for both.">
+                                            <option value="" selected disabled>Product…</option>
+                                            <option value="loyalty">Loyalty</option>
+                                            <option value="reviews">Reviews</option>
+                                            <option value="shared">Shared</option>
+                                        </select>
                                         <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addGlobalKnowledgeLink()">Add Link</button>
                                     </div>
+                                    <p id="newGlobalKnowledgeFlag" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>
                                 </div>
                             </div>
 
@@ -764,7 +771,7 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=product-picker-2"></script>
+    <script src="app.js?v=product-labels-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>
 </html>

@@ -13,13 +13,14 @@ filter by product?
     python3 eval/product_eval.py rescore DIR        # re-score saved answers
     python3 eval/product_eval.py csm-agreement DIR  # scorer vs the CSM's verdicts
 
-Arms (all on one base prompt, all with the coverage guard):
-    A   today's context
+Arms (all with the coverage guard, and all with the system prompt filled for
+the product picked in chat -- production since the picker shipped in 9f46db1;
+a question naming no product is asked with Loyalty picked, the default):
+    A   production today
     C1  + instruction: name the product you describe, ask if unclear
     C2  + C1 + "Yotpo product line: ..." on every source
-    D   + C2, with the system prompt filled for the question's product -- what
-        the chat product picker does in production
-    B   + D + retrieval restricted to that product and shared documents
+    B   + C2 + retrieval restricted to that product and shared documents
+(An earlier arm D -- "C2, told the product" -- is what every arm is now.)
 
 Production is only read: labels and prompts over a read-only Postgres session,
 vectors by query. Model calls use GEMINI_API_KEY from .env at temperature 0,
@@ -48,9 +49,10 @@ load_dotenv(os.path.join(BASE, '.env'))
 
 from product_scorer import Vocabulary, decide, score_answer  # noqa: E402
 
-ARMS = ['A', 'C1', 'C2', 'D', 'B']
-ARMS_NEEDING_LABELS = {'C2', 'D', 'B'}
-ARMS_NEEDING_PRODUCT = {'D', 'B'}   # the user picked a product; not for questions naming none
+ARMS = ['A', 'C1', 'C2', 'B']
+ARMS_NEEDING_LABELS = {'C2', 'B'}
+ARMS_NEEDING_PRODUCT = {'B'}        # filters by the question's product; not for questions naming none
+DEFAULT_PICKED = 'loyalty'          # what the chat picker starts on (product_labels.DEFAULT_CHAT_PRODUCT)
 UNTAGGED = '?'                       # product placeholder in exported questions
 QUESTION_FILES = [os.path.join(EVAL, 'questions.json'), os.path.join(EVAL, 'questions_real.json')]
 
@@ -198,17 +200,18 @@ def load_questions(paths, esps):
 # ---------------------------------------------------------------- retrieval
 
 def _arm_product(cell, arm):
-    """The product the arm is told: only D and B, as if picked in chat."""
-    return cell['product'] if arm in ARMS_NEEDING_PRODUCT else None
+    """The product picked in chat, as production always has one: the
+    question's product, or the picker's default for a question naming none."""
+    return cell['product'] or DEFAULT_PICKED
 
 
 def _build(vectorizer, cell, arm, labels, coverage):
     from rag_context import build_rag_context
-    # Every arm gets the coverage note where it applies; whether it is worded
-    # as definite depends on whether the arm knows the product.
+    # Every arm gets the coverage note where it applies, worded for the
+    # picked product as in production.
     kwargs = {'product': _arm_product(cell, arm),
               'reviews_coverage': False if not coverage.get(cell['esp'], False) else None}
-    if arm in ('C1', 'C2', 'D', 'B'):
+    if arm in ('C1', 'C2', 'B'):
         kwargs['product_instruction'] = True
     if arm in ARMS_NEEDING_LABELS:
         kwargs['product_of'] = labels.product_of
@@ -381,9 +384,9 @@ def _summarise(rows, out_dir):
             if arm in unnamed:
                 print(f"  {arm:<4}{dict(unnamed[arm])}")
     print(f"\nDECISION: ship {decision['ship']}. {decision['reason']}")
-    if 'D' in counts and 'B' in counts:
-        d, b = decision['arms']['D']['wrong'], decision['arms']['B']['wrong']
-        print(f"D vs B (does the filter add anything over being told the product?): wrong {d} vs {b}")
+    if 'C2' in counts and 'B' in counts:
+        c2, b = decision['arms']['C2']['wrong'], decision['arms']['B']['wrong']
+        print(f"C2 vs B (does the filter add anything over labelled sources?): wrong {c2} vs {b}")
     return summary
 
 
@@ -428,7 +431,7 @@ def cmd_run(args):
         prompt, prompt_source = config.get('system_prompt', ''), 'production'
     if '[[' not in prompt:
         print("WARNING: the prompt has no [[product]] placeholders, so every arm gets the same "
-              "prompt and D cannot differ from C2 by what the prompt says. Add them in the admin "
+              "prompt whatever product is picked, unlike production. Add them in the admin "
               "prompt editor (or pass --prompt) for a result you act on.")
     if 'latest' in model:
         print(f"WARNING: '{model}' is an alias that moves between versions. Pin one with --model.")

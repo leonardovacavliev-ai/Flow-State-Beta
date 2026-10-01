@@ -9,6 +9,13 @@ This script:
 4. Verifies data appears in Pinecone
 """
 
+# Disabled since every document and vector carries a product label (see
+# PRODUCT_LINE_SPLIT_SCOPE.md). Refused here, before any side effect.
+import sys
+sys.exit("vectorize_listrak.py is disabled: it rewrites crawl metadata, then re-indexes from local files without product labels. Re-index from the database with "
+         "POST /api/admin/rebuild-vectors, or re-crawl links from the admin panel.")
+
+
 import os
 import sys
 import json

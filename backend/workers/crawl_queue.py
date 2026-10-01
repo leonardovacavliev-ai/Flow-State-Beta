@@ -184,9 +184,12 @@ def repair_queue(db, document_id=None):
     return len(rows), len(failed)
 
 
-def enqueue_urls(db, esp_mgr, esp, esp_name, urls):
+def enqueue_urls(db, esp_mgr, esp, esp_name, urls, product=None):
     """
     Queue a crawl for each URL under an ESP, creating document rows as needed.
+
+    `product` labels the rows this creates; add_document refuses a new row
+    without one (check with product_labels.label_problem first).
 
     Returns (job_ids, skipped_urls); skipped URLs already had an active job,
     whose id is included in job_ids so the caller can track it.
@@ -195,7 +198,7 @@ def enqueue_urls(db, esp_mgr, esp, esp_name, urls):
     for url in urls:
         doc = esp_mgr.get_document_by_url(esp['id'], url)
         if not doc:
-            doc = esp_mgr.add_document(esp_name, url)
+            doc = esp_mgr.add_document(esp_name, url, product=product)
         job_id, created = enqueue_crawl_job(db, esp['id'], doc['id'], url)
         job_ids.append(job_id)
         if not created:
@@ -203,18 +206,26 @@ def enqueue_urls(db, esp_mgr, esp, esp_name, urls):
     return job_ids, skipped
 
 
-def queued_response(job_ids, skipped):
-    """JSON body for a crawl-selected request that queued jobs."""
+def queued_response(job_ids, skipped, not_queued=None):
+    """JSON body for a crawl-selected request that queued jobs.
+
+    not_queued: [{'url', 'error'}] for links refused before queueing (no
+    product label), reported so the admin sees why they didn't run.
+    """
     message = f'Queued {len(job_ids)} URLs for crawling'
     if skipped:
         message += f' ({len(skipped)} already queued/processing)'
-    return {
+    body = {
         'success': True,
         'job_ids': job_ids,
         'total': len(job_ids),
         'message': message,
         'skipped_count': len(skipped),
     }
+    if not_queued:
+        body['not_queued'] = not_queued
+        body['message'] += f' — {len(not_queued)} not queued: no product label'
+    return body
 
 
 # ==================== Describing state to admins ====================
