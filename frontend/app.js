@@ -323,7 +323,7 @@ function renderIntro(espName) {
     `;
 }
 
-// Swaps the intro's text and glides the card from its current height to the
+// Swaps the intro's text at once and glides the card from its current height to the
 // new one. A switch made mid-morph starts from the height on screen.
 function morphIntro(card, bodyEl, html) {
     const from = card.offsetHeight;   // mid-transition this is the live height
@@ -331,17 +331,12 @@ function morphIntro(card, bodyEl, html) {
     bodyEl.innerHTML = html;
     const to = card.offsetHeight;
 
-    // Re-trigger the text fade even if the previous one is still running
-    bodyEl.classList.remove('gradient-intro-body-in');
-    void bodyEl.offsetWidth;
     if (prefersReducedMotion() || from === to) {
         card.style.height = '';
         card.classList.remove('gradient-intro-morph');
         card.ontransitionend = null;
         return;
     }
-    bodyEl.classList.add('gradient-intro-body-in');
-
     card.style.height = `${from}px`;
     void card.offsetHeight;           // commit the start height before animating
     card.classList.add('gradient-intro-morph');

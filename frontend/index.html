@@ -96,25 +96,17 @@
             transition: height 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
         /* Switching ESP or product morphs the card to its new height (JS sets
-           the pixel heights); the new text fades in as it grows or shrinks.
+           the pixel heights); the text itself snaps to the new copy.
            overflow is only hidden while morphing so the card's shadow and
            layout are untouched the rest of the time. */
         .gradient-intro-morph {
             overflow: hidden;
             transition: height 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
         }
-        @keyframes introBodyIn {
-            0% { opacity: 0; transform: translateY(6px); }
-            100% { opacity: 1; transform: none; }
-        }
-        .gradient-intro-body-in {
-            animation: introBodyIn 0.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
-        }
         @media (prefers-reduced-motion: reduce) {
             .gradient-intro.fade-out { animation: none; opacity: 0; }
             .gradient-intro-collapse { transition: none; }
             .gradient-intro-morph { transition: none; }
-            .gradient-intro-body-in { animation: none; }
         }
 
         /* Answers land block by block instead of all at once. Applied only to
