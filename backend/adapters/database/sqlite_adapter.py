@@ -180,11 +180,9 @@ class SQLiteAdapter(DatabaseAdapter):
                 pass  # Column already exists
 
             # Yotpo product line (product_labels.py). Checked against the
-            # table's columns rather than try/except, which would also swallow
-            # a locked or unwritable database.
-            cursor.execute("PRAGMA table_info(esp_documents)")
-            if 'product' not in {row[1] for row in cursor.fetchall()}:
-                cursor.execute("ALTER TABLE esp_documents ADD COLUMN product TEXT")
+            # table's columns rather than a bare try/except, which would also
+            # swallow a locked or unwritable database.
+            self._add_column_if_missing(cursor, 'esp_documents', 'product', 'TEXT')
 
             # App settings (config + audit log storage)
             cursor.execute("""
@@ -249,6 +247,11 @@ class SQLiteAdapter(DatabaseAdapter):
                 except Exception:
                     pass  # Column already exists
 
+            # The Yotpo product the user picked in chat (product_labels.py).
+            # NULL on rows from before the picker existed, which were Loyalty.
+            for table in ('conversations', 'messages'):
+                self._add_column_if_missing(cursor, table, 'product', 'TEXT')
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS crawl_jobs (
                     id TEXT PRIMARY KEY,
@@ -282,6 +285,22 @@ class SQLiteAdapter(DatabaseAdapter):
 
             conn.commit()
             print("✓ SQLite analytics database initialized")
+
+    @staticmethod
+    def _add_column_if_missing(cursor, table, column, definition):
+        """ALTER TABLE ... ADD COLUMN unless the column is already there.
+
+        A second process can add it between the check and the ALTER; that
+        "duplicate column" error means the work is done. Anything else raises.
+        """
+        cursor.execute(f"PRAGMA table_info({table})")
+        if column in {row[1] for row in cursor.fetchall()}:
+            return
+        try:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+        except sqlite3.OperationalError as e:
+            if 'duplicate column' not in str(e).lower():
+                raise
 
     def close(self):
         """Close database connection (no persistent connection for SQLite)."""

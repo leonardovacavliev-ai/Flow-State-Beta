@@ -362,6 +362,21 @@ class ESPManager:
         found_set = set(found)
         return found, [u for u in urls if u not in found_set]
 
+    def reviews_documents(self) -> List[tuple]:
+        """(esp, url) of every Reviews-labelled document.
+
+        Deliberately no crawl_status or content condition: a failed re-crawl
+        marks a row failed but keeps its previous vectors, and a row can say
+        completed with nothing indexed. product_labels asks the index.
+        """
+        rows = self.db.execute_query("""
+            SELECT e.name, d.url
+            FROM esp_documents d
+            JOIN esps e ON e.id = d.esp_id
+            WHERE d.product = 'reviews'
+        """, fetch=True) or []
+        return [(r[0], r[1]) for r in rows]
+
     def list_all_product_labels(self) -> List[Dict]:
         """Every document with its ESP, URL, label and whether it has content."""
         rows = self.db.execute_query("""

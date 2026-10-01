@@ -9,17 +9,16 @@ from analytics import (
 )
 from config_manager import ConfigManager
 from ai_client import AIClient
-from mechanics_cache import (
-    cache_mechanics_results,
-    clear_mechanics_cache,
-    get_cached_mechanics,
-)
+from mechanics_cache import clear_mechanics_cache
+# Retrieval lives in rag_context so the eval can run the same code without
+# importing this module. filter_by_relevance and MECHANICS_QUERY are re-exported
+# here for callers that still import them from app.
+from rag_context import build_rag_context, filter_by_relevance, MECHANICS_QUERY  # noqa: F401
 from dotenv import load_dotenv
 import os
 import csv
 from datetime import datetime
 import uuid
-import time
 
 # Load environment variables from .env file (if it exists)
 # This must happen before any code that reads os.environ
@@ -125,7 +124,7 @@ if USE_DATABASE_ESP_ROUTES:
 
     # Product-line labels on documents; same for both route modules
     from product_labels import register_product_label_routes
-    register_product_label_routes(app)
+    register_product_label_routes(app, vectorizer)
 
 # Health check endpoint for Railway
 @app.route('/api/health', methods=['GET'])
@@ -163,210 +162,6 @@ def debug_esps():
 # - ChromaDB returns L2 distances (lower = more similar)
 # - Pinecone returns cosine similarity scores (higher = more similar)
 VECTOR_PROVIDER = os.environ.get('VECTOR_DB_PROVIDER', 'chromadb').lower()
-
-# Helper function: Filter vector search results by relevance score
-def filter_by_relevance(results, min_score=None, result_type=''):
-    """
-    Filter vector search results by minimum relevance score.
-    Removes low-quality chunks that could cause hallucinations.
-
-    Args:
-        results: Vector search results dict with 'documents', 'metadatas', 'distances'
-        min_score: Minimum similarity score (0-1). Defaults per provider.
-        result_type: Label for logging (e.g., 'ESP', 'Global')
-
-    Returns:
-        Filtered results dict, preserving the 'ids' and 'distances' keys of the
-        input. Both are required downstream: 'ids' to de-duplicate when merging
-        several result sets, 'distances' so a filtered set can still be scored
-        or re-filtered. Dropping them also made a second filter call a silent
-        no-op via the "no distance info" guard below.
-    """
-    is_similarity_metric = VECTOR_PROVIDER == 'pinecone'
-    if min_score is None:
-        # Cosine similarity (Pinecone) and 1/(1+L2) (ChromaDB) live on
-        # different scales, so each needs its own default threshold.
-        min_score = 0.35 if is_similarity_metric else 0.60
-    # If no distance info, return as-is
-    if 'distances' not in results or not results['distances'] or not results['distances'][0]:
-        return results
-
-    # Check if we have matching documents and metadatas
-    if not results['documents'] or not results['documents'][0]:
-        return results
-    if not results['metadatas'] or not results['metadatas'][0]:
-        return results
-
-    filtered_docs = []
-    filtered_metadatas = []
-    filtered_ids = []
-    filtered_distances = []
-    original_count = len(results['documents'][0])
-
-    # 'ids' is optional defensively, but both adapters supply it. Pad so the
-    # zip below never truncates the result set when it is missing.
-    source_ids = (results.get('ids') or [[]])[0]
-    if len(source_ids) < original_count:
-        source_ids = list(source_ids) + [None] * (original_count - len(source_ids))
-
-    for doc, metadata, distance, chunk_id in zip(
-        results['documents'][0],
-        results['metadatas'][0],
-        results['distances'][0],
-        source_ids
-    ):
-        if is_similarity_metric:
-            # Pinecone already returns cosine similarity (higher = better)
-            similarity = distance
-        else:
-            # ChromaDB uses L2 distance (lower = more similar)
-            # Convert to similarity score: 1 / (1 + distance)
-            similarity = 1 / (1 + distance)
-
-        if similarity >= min_score:
-            filtered_docs.append(doc)
-            filtered_metadatas.append(metadata)
-            filtered_ids.append(chunk_id)
-            filtered_distances.append(distance)
-
-    filtered_count = len(filtered_docs)
-
-    # Log filtering stats
-    if filtered_count < original_count:
-        print(f"[RELEVANCE FILTER] {result_type} results: {original_count} → {filtered_count} "
-              f"(removed {original_count - filtered_count} low-relevance chunks, "
-              f"min_score={min_score})")
-    else:
-        print(f"[RELEVANCE FILTER] {result_type} results: {original_count} kept, "
-              f"none below min_score={min_score}")
-
-    # Return filtered results
-    return {
-        'ids': [filtered_ids],
-        'documents': [filtered_docs],
-        'metadatas': [filtered_metadatas],
-        'distances': [filtered_distances]
-    }
-
-# Platform-mechanics retrieval query, issued alongside the user's own query.
-#
-# Why a second query at all: a question phrased in loyalty vocabulary ("points
-# expire", "Loyalty Expiration Reminder") is lexically saturated with the Yotpo
-# setup guide and never surfaces the Klaviyo flow-mechanics article, which does
-# not contain the words "loyalty" or "expiration" anywhere. Measured against the
-# live index, the mechanics article took 0 of the 10 ESP slots and first
-# appeared at rank 24 of 30.
-#
-# Why it contains NO user text: measured on the same index, the chunk carrying
-# "trigger filters are not checked again at send time" ranks 1st for this query
-# alone, but falls to 11th when the user's message is concatenated in front of
-# it — the question's own vocabulary pulls the embedding back toward the
-# loyalty docs, which is the exact failure this query exists to correct.
-MECHANICS_QUERY = (
-    "How triggers and profile filters qualify subscribers: trigger filters are "
-    "not checked again at send time, profile filters are re-checked before each "
-    "component. Flow trigger types: list, segment, metric event, price drop, "
-    "date property. Understanding time delays between flow components."
-)
-
-# Per-ESP override, for platforms whose docs use different vocabulary.
-# ESPs absent from this dict use MECHANICS_QUERY.
-MECHANICS_QUERY_BY_ESP = {}
-
-# Query B's input does not depend on the user's message, so for a given ESP it
-# returns byte-identical results every time. Measured un-cached, it cost ~200ms
-# per chat request -- including ~217ms on ESPs where it returns zero usable
-# chunks. Cache it per ESP.
-#
-# The store, its lock and its TTL live in mechanics_cache so that the admin
-# route modules and the crawl worker can invalidate it after they change the
-# vector database without importing this module back.
-
-def get_mechanics_results(esp_normalized, n_results=5):
-    """Query B, memoized per ESP. Thread-safe: gunicorn runs gthread workers."""
-    query = MECHANICS_QUERY_BY_ESP.get(esp_normalized, MECHANICS_QUERY)
-    # Key on the query text as well as the ESP, so editing MECHANICS_QUERY or
-    # adding an override invalidates the entry instead of serving stale chunks.
-    cache_key = (esp_normalized, query, n_results)
-    now = time.time()
-
-    cached = get_cached_mechanics(cache_key)
-    if cached is not None:
-        return query, cached, True
-
-    # Executed outside the cache lock: a slow Pinecone call must not block
-    # other threads. A concurrent miss may query twice, which is harmless.
-    results = vectorizer.search(query, esp_filter=esp_normalized, n_results=n_results)
-    log_retrieval('B/mechanics/pre-filter', query, results)
-    results = filter_by_relevance(results, result_type='ESP-mechanics')
-
-    cache_mechanics_results(cache_key, results, now)
-
-    return query, results, False
-
-# Per-request retrieval tracing. Off by default; set RETRIEVAL_DEBUG=1 to enable.
-# Without this you cannot tell a reasoning failure from a retrieval failure —
-# the answer looks equally wrong either way, and the whole point of the
-# threshold and dual-query work is unmeasurable.
-RETRIEVAL_DEBUG = os.environ.get('RETRIEVAL_DEBUG', '').lower() in ('1', 'true', 'yes')
-
-def log_retrieval(label, query, results):
-    """Log what a retrieval actually returned: query, chunk ids, scores, sources."""
-    if not RETRIEVAL_DEBUG:
-        return
-
-    docs = (results.get('documents') or [[]])[0]
-    metas = (results.get('metadatas') or [[]])[0]
-    ids = (results.get('ids') or [[]])[0]
-    dists = (results.get('distances') or [[]])[0]
-
-    query_preview = query if len(query) <= 160 else query[:157] + '...'
-    print(f"[RETRIEVAL:{label}] n={len(docs)} query={query_preview!r}")
-    for i in range(len(docs)):
-        chunk_id = ids[i] if i < len(ids) else None
-        score = dists[i] if i < len(dists) else None
-        meta = metas[i] if i < len(metas) else {}
-        score_str = f"{score:.3f}" if isinstance(score, (int, float)) else "n/a"
-        print(f"    {i+1:2d}. score={score_str} "
-              f"chunk={meta.get('chunk_index')} "
-              f"file={meta.get('filename')} id={chunk_id}")
-
-def merge_dedupe(*result_sets):
-    """
-    Merge vector search result sets, preserving order and dropping duplicates.
-
-    De-duplicates on chunk id, falling back to the document text when an
-    adapter omits ids. Earlier result sets win, so the caller controls
-    precedence by argument order.
-    """
-    merged_ids, merged_docs, merged_metas, merged_dists = [], [], [], []
-    seen = set()
-
-    for results in result_sets:
-        if not results or not results.get('documents') or not results['documents'][0]:
-            continue
-        docs = results['documents'][0]
-        metas = results['metadatas'][0]
-        ids = (results.get('ids') or [[]])[0]
-        dists = (results.get('distances') or [[]])[0]
-
-        for i, doc in enumerate(docs):
-            chunk_id = ids[i] if i < len(ids) and ids[i] is not None else None
-            key = chunk_id if chunk_id is not None else doc
-            if key in seen:
-                continue
-            seen.add(key)
-            merged_ids.append(chunk_id)
-            merged_docs.append(doc)
-            merged_metas.append(metas[i] if i < len(metas) else {})
-            merged_dists.append(dists[i] if i < len(dists) else None)
-
-    return {
-        'ids': [merged_ids],
-        'documents': [merged_docs],
-        'metadatas': [merged_metas],
-        'distances': [merged_dists]
-    }
 
 # Serve frontend
 FRONTEND_PATH = os.path.join(BASE_PATH, 'frontend')
@@ -480,6 +275,16 @@ def chat():
     else:
         conversation_history = session_adapter.get_conversation_history(session_id)
 
+    # The Yotpo product picked in chat. A saved conversation keeps the product
+    # it was started with, whatever the page sends; otherwise the request's
+    # value, and Loyalty -- today's behaviour -- for anything unrecognised.
+    from product_labels import chat_product, esp_display_name, has_reviews_coverage
+    product = None
+    if conversation_id and conversation_user_id:
+        from conversations import get_conversation_product
+        product = get_conversation_product(conversation_id, conversation_user_id)
+    product = product or chat_product(data.get('product'))
+
     # Sign-in almost always happens after the session row was created, so the
     # account is stamped here too -- without this, analytics would count every
     # signed-in visitor as a guest IP.
@@ -488,7 +293,7 @@ def chat():
         attach_user_to_session(session_id, signed_in_user_id)
 
     # Track user message in analytics
-    track_message(session_id, 'user', message, esp)
+    track_message(session_id, 'user', message, esp, product)
 
     # Add user message to session history
     session_adapter.add_message(session_id, 'user', message)
@@ -500,145 +305,34 @@ def chat():
     # model two user turns in a row. The old client-side history recorded on
     # success only; this matches it.
 
-    # Search vector database for relevant context
-    # Normalize ESP name for database lookup
-    esp_normalized = esp.lower().replace('/', '_') if esp else 'klaviyo'
-
-    # Enhance query with conversation context for better follow-up question handling
-    enhanced_query = message
-    if len(conversation_history) > 0:
-        # Include FULL previous assistant message (no char limit)
-        # Token cost is negligible (~400-650 tokens) vs context window (128k)
-        # This preserves ALL property names, technical terms, and context for follow-ups
-        recent_messages = [msg['content'] for msg in conversation_history[-2:] if msg['role'] == 'assistant']
-        if recent_messages:
-            recent_context = " ".join(recent_messages)
-            enhanced_query = f"{message} {recent_context}"
-
-    # Boost query for property-related questions to retrieve definitions
-    # This helps when users ask about multiple properties in one query
-    property_keywords = ['property', 'properties', 'field', 'fields', 'variable', 'variables', 'data', 'attribute']
-    if any(keyword in message.lower() for keyword in property_keywords):
-        enhanced_query = f"{enhanced_query} property definition list documentation"
-
-    # Query A — task/domain. Answers "what is this thing the user is asking about".
-    esp_results = vectorizer.search(enhanced_query, esp_filter=esp_normalized, n_results=10)
-    log_retrieval('A/task/pre-filter', enhanced_query, esp_results)
-
-    # Filter ESP results by relevance score to reduce hallucinations
-    esp_results = filter_by_relevance(esp_results, result_type='ESP')
-
-    # Query B — platform mechanics. Answers "how does this platform actually
-    # behave", which Query A reliably misses when the question is phrased in
-    # domain vocabulary. See MECHANICS_QUERY for the measurements behind this.
-    # Memoized per ESP -- the query does not depend on the user's message, so
-    # re-running it every request cost ~200ms for an identical answer.
-    #
-    # The relevance threshold inside is the same as Query A's, deliberately. A
-    # lower floor was considered and rejected: measured scores on this corpus
-    # run 0.47-0.70, well clear of 0.35, so loosening it would only admit
-    # noise. For an ESP with no mechanics documentation, the standard threshold
-    # is what stops this query injecting loosely-related chunks.
-    mechanics_query, mech_results, cache_hit = get_mechanics_results(esp_normalized)
-    if RETRIEVAL_DEBUG and cache_hit:
-        print(f"[MECHANICS CACHE] hit for esp={esp_normalized}")
-
-    # Mechanics chunks are presented FIRST, in their own section, and removed
-    # from the task set so they are not repeated.
-    #
-    # Ordering is not cosmetic. When mechanics trailed the task results, the
-    # sentence stating that trigger filters are not re-checked at send time
-    # arrived as source 11 of 17, after ten sources describing what the Yotpo
-    # event is -- and the model read past it, producing the same duplicate-
-    # sending flow as before the retrieval fix. A rule that should govern how
-    # every other excerpt is read has to arrive before them, not after.
-    esp_results = merge_dedupe(esp_results)
-    mech_ids = set((mech_results.get('ids') or [[]])[0])
-    if mech_ids:
-        keep = [i for i, cid in enumerate((esp_results.get('ids') or [[]])[0])
-                if cid not in mech_ids]
-        esp_results = {
-            key: [[(esp_results[key][0])[i] for i in keep]]
-            for key in ('ids', 'documents', 'metadatas', 'distances')
-        }
-    log_retrieval('mechanics/final', mechanics_query, mech_results)
-    log_retrieval('task/final', enhanced_query, esp_results)
-
-    # Search global knowledge (2 results) - also use enhanced query
-    global_results = vectorizer.search(enhanced_query, esp_filter='global', n_results=2)
-    log_retrieval('global/pre-filter', enhanced_query, global_results)
-
-    # Filter global results by relevance score
-    global_results = filter_by_relevance(global_results, result_type='Global')
-
-    # Build context from search results
-    context = "# Relevant Documentation:\n\n"
-
-    source_index = 1
-
-    # Platform mechanics first. These describe how the platform behaves --
-    # trigger types, how often a trigger fires, which filters are re-evaluated
-    # at send time. They constrain whether a setup actually works, so they are
-    # placed ahead of the task documentation rather than after it.
-    if mech_results['documents'] and mech_results['documents'][0]:
-        context += "## Platform Mechanics (read these first — they determine "
-        context += "whether a setup works, not just what it is called):\n"
-        for doc, metadata in zip(mech_results['documents'][0], mech_results['metadatas'][0]):
-            context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
-            context += f"ESP: {metadata.get('esp', 'Unknown')}\n"
-            context += f"URL: {metadata.get('source_url', 'N/A')}\n"
-            context += f"{doc}\n\n"
-            source_index += 1
-
-    # Add ESP-specific results
-    if esp_results['documents'] and esp_results['documents'][0]:
-        context += "## ESP-Specific Knowledge:\n"
-        for doc, metadata in zip(esp_results['documents'][0], esp_results['metadatas'][0]):
-            context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
-            context += f"ESP: {metadata.get('esp', 'Unknown')}\n"
-            context += f"URL: {metadata.get('source_url', 'N/A')}\n"
-            context += f"{doc}\n\n"
-            source_index += 1
-
-    # Add global knowledge results
-    if global_results['documents'] and global_results['documents'][0]:
-        context += "## Global Knowledge:\n"
-        for doc, metadata in zip(global_results['documents'][0], global_results['metadatas'][0]):
-            context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
-            context += f"Type: Global Knowledge Base\n"
-            context += f"URL: {metadata.get('source_url', 'N/A')}\n"
-            context += f"{doc}\n\n"
-            source_index += 1
-
-    if source_index == 1:
-        context += "No specific documentation found. Provide general guidance based on ESP best practices.\n\n"
-    elif source_index <= 4:  # Very few sources (3 or fewer)
-        context += "\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n"
-
-    # Combine results for source display, in the same order as the context.
-    all_metadatas = []
-    if mech_results['metadatas'] and mech_results['metadatas'][0]:
-        all_metadatas.extend(mech_results['metadatas'][0])
-    if esp_results['metadatas'] and esp_results['metadatas'][0]:
-        all_metadatas.extend(esp_results['metadatas'][0])
-    if global_results['metadatas'] and global_results['metadatas'][0]:
-        all_metadatas.extend(global_results['metadatas'][0])
-
-    search_results = {'metadatas': [all_metadatas] if all_metadatas else []}
+    # Retrieve (Queries A, B and C) and assemble the context. See rag_context
+    # for the reasoning behind each query and the order sources appear in.
+    # A Reviews question on an ESP with no Reviews documentation gets a note
+    # saying so, instead of an answer built from the Loyalty docs that are
+    # all retrieval can find there. Loyalty requests get today's context.
+    esp_key = esp.lower().replace('/', '_') if esp else 'klaviyo'
+    uncovered = product == 'reviews' and not has_reviews_coverage(esp_key)
+    rag = build_rag_context(vectorizer, message, esp, conversation_history,
+                            product=product,
+                            reviews_coverage=False if uncovered else None,
+                            esp_display=esp_display_name(esp_key) if uncovered else None)
+    context = rag.context
+    search_results = {'metadatas': [rag.metadatas] if rag.metadatas else []}
 
     try:
         # Generate response using configured AI client
         assistant_message = ai_client.generate_response(
             message=message,
             context=context,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            product=product
         )
 
         # Add assistant message to session history
         session_adapter.add_message(session_id, 'assistant', assistant_message)
 
         # Track assistant message in analytics
-        track_message(session_id, 'assistant', assistant_message, esp)
+        track_message(session_id, 'assistant', assistant_message, esp, product)
 
         # Persist the exchange as a pair, now that it actually is one.
         # Failing to save history must not cost the user their answer, so this
@@ -653,6 +347,9 @@ def chat():
 
         return jsonify({
             'response': assistant_message,
+            # The product this answer was generated for. A saved conversation
+            # keeps its own, so it can differ from what the page sent.
+            'product': product,
             'sources': [
                 {
                     'filename': meta.get('filename'),
@@ -971,6 +668,14 @@ def update_system_prompt():
     if not new_prompt:
         return jsonify({'error': 'System prompt cannot be empty'}), 400
 
+    # [[product]] and [[if ...]] placeholders are filled per request
+    # (prompt_template.py); a typo would otherwise reach the model verbatim.
+    from prompt_template import validate as validate_prompt
+    prompt_errors = validate_prompt(new_prompt)
+    if prompt_errors:
+        return jsonify({'error': 'The prompt has placeholder problems: ' + ' '.join(prompt_errors),
+                        'placeholder_errors': prompt_errors}), 400
+
     try:
         updated_prompt = config_manager.update_system_prompt(new_prompt, user_email)
 
@@ -1034,6 +739,8 @@ def restore_from_backup():
             'restored_config': restored_config,
             'status': ai_client.check_status()
         })
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

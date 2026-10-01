@@ -249,6 +249,13 @@ Aim to answer as short as possible. Act more as a tool than a person.""",
             'system_prompt': backup.get('system_prompt', '')
         }
 
+        # Same check as saving: a restored prompt must not carry broken
+        # [[product]] placeholders (prompt_template.py).
+        from prompt_template import validate
+        prompt_errors = validate(updates['system_prompt'])
+        if prompt_errors:
+            raise ValueError("That backup's prompt has placeholder problems: " + ' '.join(prompt_errors))
+
         return self.update_config(
             updates,
             user_email,

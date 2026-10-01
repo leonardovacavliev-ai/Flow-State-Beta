@@ -302,13 +302,18 @@ def end_session(session_id: str):
     batch_queue.add(operation, params)
 
 
-def track_message(session_id: str, role: str, message: str, esp: str):
-    """Track a message in a session"""
-    operation = """
-        INSERT INTO messages (session_id, role, message_length, esp, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+def track_message(session_id: str, role: str, message: str, esp: str,
+                  product: Optional[str] = None):
+    """Track a message in a session.
+
+    product: the Yotpo product picked in chat ('loyalty' | 'reviews'), so
+    Reviews usage can be counted. NULL on rows from before the picker.
     """
-    params = (session_id, role, len(message), esp, datetime.utcnow().isoformat())
+    operation = """
+        INSERT INTO messages (session_id, role, message_length, esp, timestamp, product)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """
+    params = (session_id, role, len(message), esp, datetime.utcnow().isoformat(), product)
     batch_queue.add(operation, params)
 
 

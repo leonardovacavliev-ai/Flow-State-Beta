@@ -29,6 +29,34 @@ function renderMarkdown(content) {
 
 let selectedESP = 'klaviyo';
 
+// The Yotpo product the user is asking about. Remembered per browser; a
+// convenience only, so storage failing (private mode) just means Loyalty.
+const CHAT_PRODUCTS = ['loyalty', 'reviews'];
+let selectedProduct = (() => {
+    try {
+        const stored = localStorage.getItem('flowStateProduct');
+        return CHAT_PRODUCTS.includes(stored) ? stored : 'loyalty';
+    } catch (e) {
+        return 'loyalty';
+    }
+})();
+
+// ESPs with Yotpo Reviews documentation (GET /api/reviews-coverage). Null
+// until loaded, and left null if the request fails: then no warning is shown,
+// and the server still adds its own note to the model's context.
+let reviewsCoverage = null;
+
+// Bumped whenever the chat pane starts over (another ESP, another product, a
+// reopened conversation). A request that returns into a different view is
+// discarded, so an answer never lands in -- or is saved to -- the wrong chat.
+let chatGeneration = 0;
+function startNewChatView() {
+    chatGeneration += 1;
+    // Whatever was in flight belongs to the old view now
+    const btn = document.getElementById('sendBtn');
+    if (btn) btn.disabled = false;
+}
+
 // Headers for admin requests. Admin is now a verified @yotpo.com Google
 // account rather than a shared password, so every admin call carries the
 // session token issued by /api/auth/google (see auth.js).
@@ -53,14 +81,23 @@ async function ensureConversation() {
     if (activeConversationId) return activeConversationId;
     if (!window.Auth || !window.Auth.isSignedIn()) return null;
 
+    const generation = chatGeneration;
     try {
         const response = await fetch(`${API_URL}/conversations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...window.Auth.headers() },
-            body: JSON.stringify({ esp: selectedESP.replace('/', '_'), session_id: sessionId })
+            body: JSON.stringify({ esp: selectedESP.replace('/', '_'), product: selectedProduct, session_id: sessionId })
         });
         if (!response.ok) return null;
         const data = await response.json();
+        if (generation !== chatGeneration) {
+            // The user switched ESP or product while this was being created:
+            // it belongs to a chat that no longer exists. Close it, don't use it.
+            fetch(`${API_URL}/conversations/${data.conversation_id}/end`, {
+                method: 'POST', headers: window.Auth.headers()
+            }).catch(() => {});
+            return null;
+        }
         activeConversationId = data.conversation_id;
         return activeConversationId;
     } catch (error) {
@@ -127,23 +164,31 @@ const saveHistories = () => {
     sessionStorage.setItem('espConversationHistories', JSON.stringify(conversationHistories));
 };
 
+// Guest history is kept per ESP and per product, so a Reviews chat never
+// carries a Loyalty conversation along with it. Loyalty keeps the plain ESP
+// key, which is what histories saved before the product picker used.
+const historyKey = () => selectedProduct === 'loyalty' ? selectedESP : `${selectedESP}|${selectedProduct}`;
+
 // Get current conversation history
 const getCurrentHistory = () => {
-    return conversationHistories[selectedESP] || [];
+    return conversationHistories[historyKey()] || [];
 };
 
-// Add to current conversation history
-const addToHistory = (role, content) => {
-    if (!conversationHistories[selectedESP]) {
-        conversationHistories[selectedESP] = [];
+// Add to a conversation history -- by default the current one. sendMessage
+// passes the key it captured when the message was sent.
+const addToHistory = (role, content, key = historyKey()) => {
+    if (!conversationHistories[key]) {
+        conversationHistories[key] = [];
     }
-    conversationHistories[selectedESP].push({ role, content, timestamp: new Date().toISOString() });
+    conversationHistories[key].push({ role, content, timestamp: new Date().toISOString() });
     saveHistories();
 };
 
-// Clear current ESP history
+// Clear current ESP history, for both products
 const clearCurrentHistory = () => {
-    conversationHistories[selectedESP] = [];
+    CHAT_PRODUCTS.forEach(product => {
+        conversationHistories[product === 'loyalty' ? selectedESP : `${selectedESP}|${product}`] = [];
+    });
     saveHistories();
 };
 
@@ -224,6 +269,120 @@ const adminModal = document.getElementById('adminModal');
 const closeFeedback = document.getElementById('closeFeedback');
 const closeAdmin = document.getElementById('closeAdmin');
 
+// The intro card shown at the start of a conversation, for the selected ESP
+// and product.
+function renderIntro(espName) {
+    const isOtherWebhook = selectedESP === 'other/webhook';
+    const isReviews = selectedProduct === 'reviews';
+    const name = escapeHtml(espName);
+    // true / false once coverage has loaded; null if it hasn't (or failed)
+    const hasReviewsDocs = reviewsCoverage ? reviewsCoverage.has(selectedESP.replace('/', '_')) : null;
+    const feedback = "If something isn't working as expected, please use the Feedback button to let us know.";
+    let welcomeText;
+    if (isReviews) {
+        const sources = hasReviewsDocs === false ? ''
+            : hasReviewsDocs === null ? `I draw from the documentation Flow State has for ${isOtherWebhook ? 'Yotpo APIs and webhooks' : name}. `
+            : isOtherWebhook ? "I draw from Yotpo's official documentation to help you build custom integrations and set up event listeners. "
+            : `I draw from the documentation Flow State has for Yotpo Reviews with ${name} to provide step-by-step guidance tailored to your needs. `;
+        welcomeText = isOtherWebhook
+            ? `Ask me anything about Yotpo Reviews API and Webhook integrations. ${sources}${feedback}`
+            : `Ask me anything about connecting Yotpo Reviews with ${name} and using review data in your campaigns and flows. ${sources}${feedback}`;
+    } else {
+        welcomeText = isOtherWebhook
+            ? "Ask me anything about Yotpo's Loyalty & Referrals API and Webhook integrations. I draw from Yotpo's official API and Webhook documentation to help you build custom integrations, set up event listeners, and leverage our developer resources. If something isn't working as expected, please use the Feedback button to let us know."
+            : `Ask me anything about setting up loyalty campaigns and flows in ${name}. I draw from both Yotpo's loyalty expertise and ${name}'s official resources to provide step-by-step guidance tailored to your needs. If something isn't working as expected, please use the Feedback button to let us know.`;
+    }
+    const coverageNote = isReviews && hasReviewsDocs === false
+        ? `<p class="text-white/95 leading-relaxed mt-3 pt-3 border-t border-white/30">I don't have Yotpo Reviews documentation for ${isOtherWebhook ? 'API & Webhooks' : name} yet. If a question needs it, I'll tell you rather than answer from Loyalty documentation.</p>`
+        : '';
+    const heading = `Yotpo ${isReviews ? 'Reviews ' : ''}${isOtherWebhook ? 'API & Webhooks' : 'x ' + name}`;
+
+    chatMessages.innerHTML = `
+        <div class="max-w-4xl mx-auto">
+            <div class="yotpo-gradient rounded-2xl p-8 shadow-sm gradient-intro" id="gradientIntro">
+                <h2 class="yotpo-heading text-3xl font-bold mb-3 text-white">${heading}</h2>
+                <p class="text-white/95 leading-relaxed">${welcomeText}</p>
+                ${coverageNote}
+            </div>
+        </div>
+    `;
+}
+
+function selectedESPName() {
+    const btn = document.querySelector(`.esp-item[data-esp="${selectedESP}"]`);
+    return btn ? btn.textContent : selectedESP;
+}
+
+// Loyalty / Reviews picker. Switching product ends the conversation, exactly
+// like switching ESP: a conversation is about one product.
+function updateProductPicker() {
+    document.querySelectorAll('.product-choice').forEach(btn => {
+        const active = btn.dataset.product === selectedProduct;
+        btn.setAttribute('aria-checked', active ? 'true' : 'false');
+        btn.tabIndex = active ? 0 : -1;   // one tab stop; arrows move within
+        btn.classList.toggle('bg-background', active);
+        btn.classList.toggle('text-foreground', active);
+        btn.classList.toggle('shadow-sm', active);
+        btn.classList.toggle('text-muted-foreground', !active);
+        btn.classList.toggle('hover:text-sidebar-foreground', !active);
+    });
+}
+
+const INPUT_PLACEHOLDERS = {
+    loyalty: 'Ask about loyalty flows, campaign setup, triggers, or best practices...',
+    reviews: 'Ask about review flows, review data in campaigns, triggers, or setup...'
+};
+
+function setProduct(product) {
+    if (!CHAT_PRODUCTS.includes(product)) product = 'loyalty';
+    selectedProduct = product;
+    try { localStorage.setItem('flowStateProduct', product); } catch (e) { /* convenience only */ }
+    updateProductPicker();
+    messageInput.placeholder = INPUT_PLACEHOLDERS[product];
+}
+
+document.querySelectorAll('.product-choice').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (btn.dataset.product === selectedProduct) return;
+        startNewChatView();
+        endActiveConversation();
+        setProduct(btn.dataset.product);
+        renderIntro(selectedESPName());
+        // A tab left open for a while may hold old coverage; the server's copy
+        // is cached, so this is cheap
+        if (btn.dataset.product === 'reviews') loadReviewsCoverage();
+    });
+    // Radio-group keyboard behaviour: arrows move the choice
+    btn.addEventListener('keydown', (e) => {
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+        e.preventDefault();
+        const choices = [...document.querySelectorAll('.product-choice')];
+        const step = (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 1;
+        const next = choices[(choices.indexOf(btn) + step + choices.length) % choices.length];
+        next.click();
+        next.focus();
+    });
+});
+setProduct(selectedProduct);   // restores the picker and placeholder from storage
+
+async function loadReviewsCoverage() {
+    try {
+        const response = await fetch(`${API_URL}/reviews-coverage`);
+        if (!response.ok) return;
+        const data = await response.json();
+        reviewsCoverage = new Set(data.esps || []);
+        // Redraw the intro if it is on screen and untouched. Once the first
+        // message is sent it fades out, and redrawing then would wipe that
+        // message from the chat.
+        // Also wait for the sidebar: before it loads there is no display name.
+        const intro = document.getElementById('gradientIntro');
+        const sidebarLoaded = !!document.querySelector('.esp-item');
+        if (intro && !intro.classList.contains('fade-out') && sidebarLoaded) renderIntro(selectedESPName());
+    } catch (error) {
+        console.error('Could not load Reviews coverage:', error);
+    }
+}
+
 // Initialize ESP buttons
 function initializeESPButtons() {
     const espButtons = document.querySelectorAll('.esp-item');
@@ -247,6 +406,7 @@ function initializeESPButtons() {
             // Picking an ESP brings the gradient intro back, which is exactly
             // what "the conversation ended" means here. Ends the previous one
             // before the new ESP is selected, so it is attributed correctly.
+            startNewChatView();
             endActiveConversation();
 
             selectedESP = btn.dataset.esp;
@@ -255,20 +415,7 @@ function initializeESPButtons() {
             trackESPSelection(selectedESP);
 
             // Show welcome message for current ESP
-            const espName = btn.textContent;
-            const isOtherWebhook = selectedESP === 'other/webhook';
-            const welcomeText = isOtherWebhook
-                ? "Ask me anything about Yotpo's Loyalty & Referrals API and Webhook integrations. I draw from Yotpo's official API and Webhook documentation to help you build custom integrations, set up event listeners, and leverage our developer resources. If something isn't working as expected, please use the Feedback button to let us know."
-                : `Ask me anything about setting up loyalty campaigns and flows in ${espName}. I draw from both Yotpo's loyalty expertise and ${espName}'s official resources to provide step-by-step guidance tailored to your needs. If something isn't working as expected, please use the Feedback button to let us know.`;
-
-            chatMessages.innerHTML = `
-                <div class="max-w-4xl mx-auto">
-                    <div class="yotpo-gradient rounded-2xl p-8 shadow-sm gradient-intro" id="gradientIntro">
-                        <h2 class="yotpo-heading text-3xl font-bold mb-3 text-white">Yotpo ${isOtherWebhook ? 'API & Webhooks' : 'x ' + espName}</h2>
-                        <p class="text-white/95 leading-relaxed">${welcomeText}</p>
-                    </div>
-                </div>
-            `;
+            renderIntro(btn.textContent);
         });
     });
 
@@ -352,20 +499,7 @@ async function reloadSidebar() {
         // Update welcome message for selected ESP
         const selectedESPData = data.esps.find(esp => esp.name.replace('_', '/') === selectedESP);
         if (selectedESPData) {
-            const displayName = selectedESPData.display_name || selectedESPData.name;
-            const isOtherWebhook = selectedESP === 'other/webhook';
-            const welcomeText = isOtherWebhook
-                ? "Ask me anything about Yotpo's Loyalty & Referrals API and Webhook integrations. I draw from Yotpo's official API and Webhook documentation to help you build custom integrations, set up event listeners, and leverage our developer resources. If something isn't working as expected, please use the Feedback button to let us know."
-                : `Ask me anything about setting up loyalty campaigns and flows in ${displayName}. I draw from both Yotpo's loyalty expertise and ${displayName}'s official resources to provide step-by-step guidance tailored to your needs. If something isn't working as expected, please use the Feedback button to let us know.`;
-
-            chatMessages.innerHTML = `
-                <div class="max-w-4xl mx-auto">
-                    <div class="yotpo-gradient rounded-2xl p-8 shadow-sm gradient-intro" id="gradientIntro">
-                        <h2 class="yotpo-heading text-3xl font-bold mb-3 text-white">Yotpo ${isOtherWebhook ? 'API & Webhooks' : 'x ' + displayName}</h2>
-                        <p class="text-white/95 leading-relaxed">${welcomeText}</p>
-                    </div>
-                </div>
-            `;
+            renderIntro(selectedESPData.display_name || selectedESPData.name);
         }
 
     } catch (error) {
@@ -375,6 +509,7 @@ async function reloadSidebar() {
 
 // Initialize on page load - load ESPs from backend
 reloadSidebar();
+loadReviewsCoverage();
 
 // --- Scroll anchoring -------------------------------------------------------
 // The view is repositioned once, when the user sends: their question moves to
@@ -517,7 +652,8 @@ function applyCascade(contentDiv) {
 // Send Message
 async function sendMessage() {
     const message = messageInput.value.trim();
-    if (!message) return;
+    // Enter still fires while Send is disabled; one question at a time per view
+    if (!message || sendBtn.disabled) return;
 
     // The intro is still on screen on the first message of a conversation; its
     // fade-out changes the layout, so anchor only once it is gone.
@@ -534,6 +670,12 @@ async function sendMessage() {
     if (introVisible) anchorMessageToTopAfterIntro(userMessageDiv);
     else anchorMessageToTop(userMessageDiv);
 
+    // What this message belongs to, fixed at send time: the user can switch
+    // ESP or product before the answer comes back.
+    const generation = chatGeneration;
+    const sentHistoryKey = historyKey();
+    const isStale = () => generation !== chatGeneration;
+
     try {
         // Normalize ESP name for API (other/webhook -> other_webhook)
         const espNormalized = selectedESP.replace('/', '_');
@@ -542,6 +684,8 @@ async function sendMessage() {
         // the gradient intro. Returns null for guests, who keep the
         // sessionStorage path below.
         const conversationId = await ensureConversation();
+        // The view was reset (and Send re-enabled) by the switch; nothing to do
+        if (isStale()) return;
 
         const response = await fetch(`${API_URL}/chat`, {
             method: 'POST',
@@ -552,6 +696,7 @@ async function sendMessage() {
             body: JSON.stringify({
                 message,
                 esp: espNormalized,
+                product: selectedProduct,
                 // When a conversation is active the server loads history from
                 // the database; sending the client copy too would be ignored.
                 ...(conversationId
@@ -561,19 +706,28 @@ async function sendMessage() {
             })
         });
 
+        // Read the whole body before deciding anything: headers can arrive
+        // long before the answer does, and the user can switch in between.
+        const bodyText = await response.text();
+
         // Remove loading
         removeLoading(loadingId);
 
+        // The chat moved on while this was in flight: drop the answer rather
+        // than show it in, or save it to, a conversation it isn't part of.
+        // The switch already reset the view and re-enabled Send.
+        if (isStale()) return;
+
         // Check if response is OK
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Server error response:', errorText);
+            console.error('Server error response:', bodyText);
             addMessage('assistant', `Server error (${response.status}): The service is temporarily unavailable. Please try again in a moment.`, { animate: true });
             holdAnchor();
+            sendBtn.disabled = false;
             return;
         }
 
-        const data = await response.json();
+        const data = JSON.parse(bodyText);
 
         if (data.error) {
             addMessage('assistant', `Error: ${data.error}`, { animate: true });
@@ -585,8 +739,8 @@ async function sendMessage() {
             // sessionStorage would leave account chat content sitting in the
             // browser after sign-out.
             if (!conversationId) {
-                addToHistory('user', message);
-                addToHistory('assistant', data.response);
+                addToHistory('user', message, sentHistoryKey);
+                addToHistory('assistant', data.response, sentHistoryKey);
             }
         } else {
             console.error('Invalid response format:', data);
@@ -594,6 +748,7 @@ async function sendMessage() {
         }
     } catch (error) {
         removeLoading(loadingId);
+        if (isStale()) return;
         console.error('Network or parsing error:', error);
         addMessage('assistant', `Connection error: ${error.message}. Please check your connection and try again.`, { animate: true });
     }
@@ -1411,6 +1566,7 @@ async function saveProductLabel(select, scope) {
             throw new Error(data.error || 'This link has no saved document to label.');
         }
         select.dataset.saved = select.value;
+        loadReviewsCoverage();   // a Reviews label can change what the chat intro says
         select.classList.toggle('border-amber-400', !product);
         select.classList.toggle('text-amber-800', !product);
         select.classList.toggle('border-input', !!product);
@@ -2254,7 +2410,7 @@ async function showHistory(esp) {
     historyContent.innerHTML = conversations.map(c => `
         <div class="bg-muted/50 rounded-lg p-4 mb-3 border border-border flex items-start gap-3">
             <button class="open-conversation-btn flex-1 text-left min-w-0" data-id="${escapeAttr(c.id)}">
-                <div class="text-sm font-medium text-card-foreground truncate">${escapeHtml(c.title || 'Untitled conversation')}</div>
+                <div class="text-sm font-medium text-card-foreground truncate">${c.product === 'reviews' ? '<span class="text-xs font-medium px-1.5 py-0.5 mr-1 rounded bg-slate-100 text-slate-700 align-middle">Reviews</span>' : ''}${escapeHtml(c.title || 'Untitled conversation')}</div>
                 <div class="text-xs text-muted-foreground mt-1">
                     ${relativeTime(c.last_message_at)} · ${c.message_count} message${c.message_count === 1 ? '' : 's'}
                 </div>
@@ -2292,6 +2448,10 @@ async function openConversation(conversationId, esp) {
         return;
     }
 
+    // From here the chat pane belongs to this conversation. Bumped before any
+    // await, so nothing still in flight can land in, or overwrite, it.
+    startNewChatView();
+
     // Switch to the conversation's ESP if it isn't the selected one. Ends the
     // current conversation first -- the same rule as clicking an ESP.
     if (esp && esp !== selectedESP) {
@@ -2300,6 +2460,12 @@ async function openConversation(conversationId, esp) {
     } else {
         await endActiveConversation();
     }
+    // And to its product: a conversation keeps the product it was started with
+    // (the server enforces this too).
+    setProduct(conv.product || 'loyalty');
+    // Again, now the awaits are over: anything sent while they ran belongs to
+    // the view being replaced.
+    startNewChatView();
 
     // Render the transcript. No gradient intro: we are mid-conversation, not
     // at the start of one.

@@ -71,16 +71,21 @@ def _title_from(message: str) -> str:
 
 # ==================== Writes ====================
 
-def create_conversation(user_id: str, esp: str, session_id: Optional[str] = None) -> Dict:
-    """Start a conversation. Returns its id."""
+def create_conversation(user_id: str, esp: str, session_id: Optional[str] = None,
+                        product: str = 'loyalty') -> Dict:
+    """Start a conversation. Returns its id.
+
+    product is the Yotpo product picked in chat. It is fixed for the life of
+    the conversation: switching product in the UI starts a new one.
+    """
     conversation_id = str(uuid.uuid4())
     now = _now()
     db = get_database_adapter()
     db.execute_query(_sql("""
-        INSERT INTO conversations (id, user_id, esp, status, started_at, last_message_at, session_id)
-        VALUES (?, ?, ?, 'active', ?, ?, ?)
-    """), (conversation_id, user_id, esp, now, now, session_id))
-    return {'id': conversation_id, 'esp': esp, 'started_at': now}
+        INSERT INTO conversations (id, user_id, esp, status, started_at, last_message_at, session_id, product)
+        VALUES (?, ?, ?, 'active', ?, ?, ?, ?)
+    """), (conversation_id, user_id, esp, now, now, session_id, product))
+    return {'id': conversation_id, 'esp': esp, 'product': product, 'started_at': now}
 
 
 def append_message(conversation_id: str, user_id: str, role: str, content: str) -> Optional[int]:
@@ -189,7 +194,7 @@ def list_conversations(user_id: str, esp: Optional[str] = None,
     params.extend([limit, offset])
 
     rows = db.execute_query(_sql(f"""
-        SELECT id, esp, title, status, started_at, ended_at, last_message_at, message_count
+        SELECT id, esp, title, status, started_at, ended_at, last_message_at, message_count, product
           FROM conversations
          WHERE {where}
          ORDER BY last_message_at DESC
@@ -205,6 +210,7 @@ def list_conversations(user_id: str, esp: Optional[str] = None,
         'ended_at': _iso(r[5]),
         'last_message_at': _iso(r[6]),
         'message_count': r[7],
+        'product': r[8] or 'loyalty',   # NULL: from before the picker, i.e. Loyalty
     } for r in rows]
 
 
@@ -212,7 +218,7 @@ def get_conversation(conversation_id: str, user_id: str) -> Optional[Dict]:
     """One conversation with its full message list, or None if not this user's."""
     db = get_database_adapter()
     rows = db.execute_query(_sql("""
-        SELECT id, esp, title, status, started_at, ended_at, last_message_at, message_count
+        SELECT id, esp, title, status, started_at, ended_at, last_message_at, message_count, product
           FROM conversations WHERE id = ? AND user_id = ?
     """), (conversation_id, user_id), fetch=True)
     if not rows:
@@ -228,9 +234,21 @@ def get_conversation(conversation_id: str, user_id: str) -> Optional[Dict]:
         'id': str(r[0]), 'esp': r[1], 'title': r[2], 'status': r[3],
         'started_at': _iso(r[4]), 'ended_at': _iso(r[5]),
         'last_message_at': _iso(r[6]), 'message_count': r[7],
+        'product': r[8] or 'loyalty',
         'messages': [{'seq': m[0], 'role': m[1], 'content': m[2], 'created_at': _iso(m[3])}
                      for m in msg_rows],
     }
+
+
+def get_conversation_product(conversation_id: str, user_id: str) -> Optional[str]:
+    """The product a conversation was started for, or None if not this user's."""
+    db = get_database_adapter()
+    rows = db.execute_query(_sql(
+        "SELECT product FROM conversations WHERE id = ? AND user_id = ?"
+    ), (conversation_id, user_id), fetch=True)
+    if not rows:
+        return None
+    return rows[0][0] or 'loyalty'
 
 
 def get_history_for_ai(conversation_id: str, user_id: str, limit: int = 20) -> List[Dict]:
@@ -308,7 +326,9 @@ def register_conversation_routes(app):
         esp = (data.get('esp') or '').strip().lower().replace('/', '_')
         if not esp:
             return jsonify({'error': 'esp is required'}), 400
-        conv = create_conversation(current_user_id(), esp, data.get('session_id'))
+        from product_labels import chat_product
+        conv = create_conversation(current_user_id(), esp, data.get('session_id'),
+                                   chat_product(data.get('product')))
         return jsonify({'conversation_id': conv['id']})
 
     @app.route('/api/conversations', methods=['GET'])

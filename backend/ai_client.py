@@ -156,7 +156,8 @@ class AIClient:
         self,
         message: str,
         context: str,
-        conversation_history: List[Dict[str, str]]
+        conversation_history: List[Dict[str, str]],
+        product: Optional[str] = None
     ) -> str:
         """
         Generate a response using the configured AI provider
@@ -165,6 +166,9 @@ class AIClient:
             message: User's current message
             context: RAG context from vector database
             conversation_history: Previous conversation messages
+            product: 'loyalty' | 'reviews' | None. Fills the [[product]]
+                placeholders in the system prompt (prompt_template.py) for
+                this request only; the stored template is never modified.
 
         Returns:
             Generated response text
@@ -177,12 +181,17 @@ class AIClient:
                 f"{self.provider.title()} API not configured. Please set API key in admin settings."
             )
 
+        # Rendered per call: this client is shared by every request thread, so
+        # the filled prompt must never be written back onto self.
+        from prompt_template import render
+        system_prompt = render(self.system_prompt, product)
+
         if self.provider == 'gemini':
-            return self._generate_gemini(message, context, conversation_history)
+            return self._generate_gemini(message, context, conversation_history, system_prompt)
         elif self.provider == 'claude':
-            return self._generate_claude(message, context, conversation_history)
+            return self._generate_claude(message, context, conversation_history, system_prompt)
         elif self.provider == 'openai':
-            return self._generate_openai(message, context, conversation_history)
+            return self._generate_openai(message, context, conversation_history, system_prompt)
         else:
             raise RuntimeError(f"Unknown provider: {self.provider}")
 
@@ -190,7 +199,8 @@ class AIClient:
         self,
         message: str,
         context: str,
-        conversation_history: List[Dict[str, str]]
+        conversation_history: List[Dict[str, str]],
+        system_prompt: str
     ) -> str:
         """Generate response using Gemini"""
         full_conversation = []
@@ -219,7 +229,7 @@ class AIClient:
 
         model = genai.GenerativeModel(
             model_name=f'models/{self.model_name}',
-            system_instruction=self.system_prompt,
+            system_instruction=system_prompt,
             **gemini_kwargs
         )
 
@@ -234,7 +244,8 @@ class AIClient:
         self,
         message: str,
         context: str,
-        conversation_history: List[Dict[str, str]]
+        conversation_history: List[Dict[str, str]],
+        system_prompt: str
     ) -> str:
         """Generate response using Claude"""
         # Build messages for Claude format
@@ -262,7 +273,7 @@ class AIClient:
         response = self.client.messages.create(
             model=self.model_name,
             max_tokens=4096,
-            system=self.system_prompt,
+            system=system_prompt,
             messages=messages,
             **claude_kwargs
         )
@@ -273,12 +284,13 @@ class AIClient:
         self,
         message: str,
         context: str,
-        conversation_history: List[Dict[str, str]]
+        conversation_history: List[Dict[str, str]],
+        system_prompt: str
     ) -> str:
         """Generate response using OpenAI"""
         # Build messages for OpenAI format
         messages = [
-            {"role": "system", "content": self.system_prompt}
+            {"role": "system", "content": system_prompt}
         ]
 
         # Add conversation history

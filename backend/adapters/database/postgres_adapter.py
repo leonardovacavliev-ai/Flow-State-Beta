@@ -295,6 +295,10 @@ class PostgresAdapter(DatabaseAdapter):
                 ('content', 'TEXT'),
                 ('product', 'VARCHAR(20)'),
             ])
+            # The Yotpo product the user picked in chat: 'loyalty' | 'reviews'.
+            # NULL on rows from before the picker existed, which were Loyalty.
+            self._add_missing_columns(cursor, 'conversations', [('product', 'VARCHAR(20)')])
+            self._add_missing_columns(cursor, 'messages', [('product', 'VARCHAR(20)')])
 
             # Crawl pacing. Jobs are gated per host so a batch of URLs on one
             # site goes out at min_interval_ms apart instead of all at once,
