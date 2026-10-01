@@ -168,9 +168,10 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-4">
-                <div class="grid grid-cols-2 gap-0.5 p-0.5 mb-4 rounded-lg bg-sidebar-accent" id="productPicker" role="radiogroup" aria-label="Yotpo product">
-                    <button type="button" class="product-choice px-3 py-1 text-sm font-medium rounded-md transition-colors" data-product="loyalty" role="radio" aria-checked="true">Loyalty</button>
-                    <button type="button" class="product-choice px-3 py-1 text-sm font-medium rounded-md transition-colors" data-product="reviews" role="radio" aria-checked="false">Reviews</button>
+                <div class="relative grid grid-cols-2 gap-0.5 p-0.5 mb-4 rounded-lg bg-sidebar-accent" id="productPicker" data-product="loyalty" role="radiogroup" aria-label="Yotpo product">
+                    <span class="product-thumb" aria-hidden="true"></span>
+                    <button type="button" class="product-choice relative z-10 px-3 py-1 text-sm font-medium rounded-md transition-colors" data-product="loyalty" role="radio" aria-checked="true">Loyalty</button>
+                    <button type="button" class="product-choice relative z-10 px-3 py-1 text-sm font-medium rounded-md transition-colors" data-product="reviews" role="radio" aria-checked="false">Reviews</button>
                 </div>
                 <h3 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-2">Select Email Platform</h3>
                 <div class="space-y-1" id="espList">
@@ -763,7 +764,7 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=product-picker-1"></script>
+    <script src="app.js?v=product-picker-2"></script>
     <script src="paste-content-modal.js"></script>
 </body>
 </html>

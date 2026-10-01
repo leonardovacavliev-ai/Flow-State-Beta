@@ -316,13 +316,12 @@ function selectedESPName() {
 // Loyalty / Reviews picker. Switching product ends the conversation, exactly
 // like switching ESP: a conversation is about one product.
 function updateProductPicker() {
+    document.getElementById('productPicker').dataset.product = selectedProduct;   // slides the thumb
     document.querySelectorAll('.product-choice').forEach(btn => {
         const active = btn.dataset.product === selectedProduct;
         btn.setAttribute('aria-checked', active ? 'true' : 'false');
         btn.tabIndex = active ? 0 : -1;   // one tab stop; arrows move within
-        btn.classList.toggle('bg-background', active);
         btn.classList.toggle('text-foreground', active);
-        btn.classList.toggle('shadow-sm', active);
         btn.classList.toggle('text-muted-foreground', !active);
         btn.classList.toggle('hover:text-sidebar-foreground', !active);
     });
