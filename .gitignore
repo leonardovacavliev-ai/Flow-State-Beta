@@ -75,3 +75,9 @@ tmp/
 temp/
 *.tmp
 feedback.csv
+
+# Local SQLite copy of the knowledge base (eval/seed_local_db.py)
+backend/local_dev.db
+# Product-line eval: real user questions and run outputs stay local
+eval/questions_real.json
+eval/results/

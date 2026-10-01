@@ -22,6 +22,15 @@
         "cd backend && PORT=5001 python3 app.py"
       ],
       "port": 5001
+    },
+    {
+      "name": "backend-local",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd backend && DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=local_dev.db SESSION_PROVIDER=memory USE_ASYNC_CRAWL=false ADMIN_PASSWORD_FALLBACK=true ADMIN_PASSWORD=local-only PORT=5002 python3 app.py"
+      ],
+      "port": 5002
     }
   ]
 }

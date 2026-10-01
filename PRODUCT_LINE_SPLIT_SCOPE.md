@@ -9,9 +9,12 @@
 | ✅ done | All 84 documents with content labelled by Leo (table below) | production |
 | built, not merged | The seam: retrieval and context assembly moved out of `chat()` into `backend/rag_context.py::build_rag_context()`; `eval/check_context_unchanged.py` shows `chat()`'s context and sources are byte-identical before and after (13 cases) | branch `feat/product-labels-eval` |
 | built, not merged | The experiment: `eval/product_eval.py` (status, export-questions, screen, run, rescore, csm-agreement), `eval/product_scorer.py` + 19 tests, starter `eval/questions.json`; a local-only backend (`backend-local` launch config, `eval/seed_local_db.py`) | branch `feat/product-labels-eval` |
-| next | Product-neutral system prompt (step 5) | Leo |
-| next | Tag the saved real questions (`product_eval.py export-questions`), then run step 7 | Leo, then eval |
-| not started | Labels on vectors (step 3), required label on add-link, coverage guard in chat (step 6), filter (step 8) | — |
+| built, not merged | Chat product picker (Loyalty · Reviews): remembered per browser, ends the conversation on switch, stored on saved conversations and analytics messages | branch `feat/product-labels-eval` |
+| built, not merged | Dynamic prompt (step 5, replaces the separate neutral prompt): `[[product]]`, `[[if loyalty]]…[[end]]`, `[[if reviews]]…[[end]]` in the one stored prompt, filled per request, validated on save and restore (`backend/prompt_template.py`). Draft: `eval/prompts/system_prompt_template.txt` | branch `feat/product-labels-eval` |
+| built, not merged | Coverage guard (step 6): a Reviews question on an ESP with no indexed Reviews document gets a note telling the model to say so; the chat intro says so too | branch `feat/product-labels-eval` |
+| ✅ done | Placeholder prompt (`eval/prompts/system_prompt_template.txt`) stored in production config at deploy, so the new version loaded it on boot; Leo edits it from the admin prompt editor | production |
+| next | Tag the saved real questions (`product_eval.py export-questions`); run step 7 | Leo, then eval |
+| not started | Labels on vectors (step 3), required label on add-link, filter (step 8) | — |
 
 Labels in production (`product_eval.py status`, 2026-09-30):
 
@@ -28,14 +31,15 @@ Labels in production (`product_eval.py status`, 2026-09-30):
 | other_webhook | 27 | 0 | 18 | no |
 | postscript | 1 | 0 | 1 | no |
 
-Labels to reconsider against §4.1 (`shared` means correct for both products, and is visible in
-both): Listrak `2283752-integration-guide-yotpo` is labelled `shared` but is Yotpo Reviews setup
-and ranks first for every Reviews question on Listrak — as `shared`, Listrak counts as having no
-Reviews coverage. Listrak `6909272-loyalty-automations-in-listrak-conductor`, Postscript
+Labels that may deserve a second look against §4.1 (`shared` means correct for both products,
+and is visible in both): Listrak `6909272-loyalty-automations-in-listrak-conductor`, Postscript
 `13564274-set-up-your-yotpo-integration` and global `loyaltyapi.yotpo.com/…/record-a-customer-action`
-are labelled `shared` but describe Loyalty only.
+are labelled `shared` but describe Loyalty only. Listrak `2283752-integration-guide-yotpo` is
+`shared` by decision (2026-10-01): despite its title it is a general connection guide. So Listrak
+has no Reviews coverage, and the guard tells Listrak users so.
 
-Chat does not read labels yet: every document is retrieved as before. Once labels are used, an
+Retrieval does not read labels: every document is retrieved as before, whichever product is
+picked. Chat reads them in one place, to decide whether an ESP has Reviews coverage; an
 unlabelled document counts as neither product.
 
 Line references in §5 predate commits `2b13674` and `d244ee3`, which moved code in `app.py` and

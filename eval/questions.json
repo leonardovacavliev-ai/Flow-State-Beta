@@ -1,0 +1,29 @@
+{
+  "_how_to_use": "Each question runs on every ESP unless 'esps' lists some. 'product' is what the question is about: 'loyalty', 'reviews', or null when it names no product (those run in arms A, C1 and C2 only and are scored on whether the answer asks or covers both). Real saved questions go in questions_real.json via `product_eval.py export-questions`.",
+  "questions": [
+    {"id": "loy-connect", "text": "How do I connect my Yotpo loyalty program to my ESP?", "product": "loyalty"},
+    {"id": "loy-setup", "text": "How do I set up the Yotpo Loyalty and Referrals integration?", "product": "loyalty"},
+    {"id": "loy-events", "text": "Which loyalty events sync to my ESP?", "product": "loyalty"},
+    {"id": "loy-properties", "text": "What loyalty customer properties are available for segmentation?", "product": "loyalty"},
+    {"id": "loy-vip", "text": "How do I build a segment of VIP tier members?", "product": "loyalty"},
+    {"id": "loy-earn", "text": "How do I trigger a flow when a customer earns points?", "product": "loyalty"},
+    {"id": "loy-expiry", "text": "How do I send a points expiration reminder?", "product": "loyalty"},
+    {"id": "loy-activity", "text": "How do I segment customers by their loyalty activity?", "product": "loyalty"},
+    {"id": "loy-balance", "text": "How do I show a customer's point balance in an email?", "product": "loyalty"},
+    {"id": "loy-admin", "text": "Where in the Yotpo Loyalty admin do I connect my ESP?", "product": "loyalty"},
+
+    {"id": "rev-connect", "text": "How do I connect Yotpo Reviews to my ESP?", "product": "reviews"},
+    {"id": "rev-trigger", "text": "How do I trigger a flow when a customer leaves a review?", "product": "reviews"},
+    {"id": "rev-stars", "text": "How do I segment customers by star rating?", "product": "reviews"},
+    {"id": "rev-content", "text": "How do I add review content to an email?", "product": "reviews"},
+    {"id": "rev-events", "text": "Which review events does Yotpo send to my ESP?", "product": "reviews"},
+    {"id": "rev-request", "text": "How do I send a review request email?", "product": "reviews"},
+    {"id": "rev-admin", "text": "Where in the Yotpo Reviews admin do I connect my ESP?", "product": "reviews"},
+
+    {"id": "any-admin", "text": "Where in the Yotpo admin do I start the integration?", "product": null},
+    {"id": "any-enable", "text": "How do I enable the integration from the Yotpo admin?", "product": null},
+    {"id": "any-properties", "text": "Which customer properties does Yotpo send?", "product": null},
+    {"id": "any-events", "text": "What events does Yotpo send to my ESP?", "product": null},
+    {"id": "any-sync", "text": "The integration stopped syncing. What should I check?", "product": null}
+  ]
+}
