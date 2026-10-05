@@ -78,7 +78,8 @@ User → Frontend (JS)
   ↓
 Flask API (/api/chat)
   ↓
-Vector Search (ChromaDB/Pinecone) → ESP-specific (10) + mechanics (5) + Global (2), score ≥ 0.35
+Vector Search (ChromaDB/Pinecone) → ESP-specific (10) + mechanics (5) + Global (2), score ≥ 0.35,
+  Loyalty chats filtered to loyalty + shared chunks, short chunks joined to the next one
   ↓
 AI Provider (Gemini/Claude) → RAG-enhanced response
   ↓
@@ -313,6 +314,8 @@ so the two can be told apart, and Reviews docs can be added without contaminatin
       edit updates the row and that URL's vectors. `eval/audit_product_labels.py` checks they agree
 - [x] Existing vectors backfilled (2026-10-01); `eval/audit_product_labels.py` reads OK
 - [ ] Experiment: labels in the context vs a retrieval filter (`eval/product_eval.py`)
+- [x] Loyalty chats retrieve only `loyalty` + `shared` chunks (Pinecone metadata filter,
+      `rag_context.CHAT_SEARCH_PRODUCTS`); Reviews chats are unfiltered (2026-10-05)
 
 The synchronous `/api/admin/refresh` is disabled (it wrote unlabelled vectors from the CSV);
 Rebuild Vectors re-indexes from the database.
@@ -617,8 +620,15 @@ Built by `backend/rag_context.py::build_rag_context()`:
 1. Query A, ESP-specific: top 10 (the previous answer is appended on follow-ups)
 2. Query B, mechanics for the ESP: top 5, cached (`mechanics_cache.py`), removed from A
 3. Query C, global knowledge: top 2
-4. Kept if score ≥ 0.35; formatted as source number, filename, ESP, URL, text
-5. A Reviews question on an ESP with no Reviews docs gets a note telling the model to say so
+4. Loyalty chats search only `loyalty` and `shared` chunks in all three queries
+5. Kept if score ≥ 0.35; formatted as source number, filename, ESP, URL, text
+6. A task or global chunk under 60 words gets the next chunk of its document appended
+   (headings the chunker cut off from their body)
+7. A Reviews question on an ESP with no Reviews docs gets a note telling the model to say so
+
+`python3 eval/retrieval_recall.py` checks, without model calls, that the context contains the
+facts each case in `eval/retrieval_cases.json` needs; `--index memory` tries a chunking change
+on content from Postgres before production is re-indexed.
 
 ---
 

@@ -6,11 +6,15 @@ Lives outside app.py so the chat route and the retrieval eval
 routes, initialises the database and can start the crawl worker, none of which
 an eval should do.
 
-With every keyword argument of build_rag_context() left at its default, the
-context is byte-identical to what chat() built inline before this module
-existed (eval/check_context_unchanged.py proves it). Chat passes `product` and,
-for Reviews, `reviews_coverage`; the other keyword arguments are the
-product-line experiment's arms.
+With expand_neighbours=False and every other keyword argument of
+build_rag_context() left at its default, the context is byte-identical to what
+chat() built inline before this module existed. eval/check_context_unchanged.py
+proves a refactor leaves chat's context unchanged. Chat passes `product`, for
+Reviews `reviews_coverage`, and search_products, which restricts Loyalty chats
+to Loyalty and shared chunks (see CHAT_SEARCH_PRODUCTS); it leaves
+expand_neighbours on. The other keyword arguments are the product-line
+experiment's arms. eval/retrieval_recall.py checks that contexts contain the
+facts their questions need.
 
 Environment is read at call time, not import time: app.py imports this module
 before it loads .env, and a module-level read would silently see no
@@ -211,7 +215,84 @@ def merge_dedupe(*result_sets):
     }
 
 
-def get_mechanics_results(vectorizer, esp_normalized, n_results=5):
+# A retrieved chunk shorter than this gets the next chunk of its document
+# appended. Such chunks are almost always a heading the chunker cut off from
+# the body it introduces: "List of customer properties" plus a one-line note
+# ranked 2nd for a Klaviyo tier-segmentation question, while the list itself
+# -- the chunk naming swell_vip_tier_name -- ranked 32nd and never reached the
+# model, which then said the property name was not documented. 144 of 505
+# indexed chunks were under 60 words when measured. They cannot hold overlap
+# from a neighbour (the chunker's overlap is 100 words), so appending the next
+# chunk never repeats text.
+NEIGHBOUR_MAX_WORDS = 60
+
+
+def next_chunk_id(metadata):
+    """Id of the chunk after this one in the same document, or None.
+
+    Ids are f"{esp}_{filename}_{chunk_index}" (add_document in both adapters).
+    """
+    try:
+        index = int(metadata['chunk_index'])
+        total = int(metadata['total_chunks'])
+        esp, filename = metadata['esp'], metadata['filename']
+    except (KeyError, TypeError, ValueError):
+        return None
+    if index + 1 >= total:
+        return None
+    return f"{esp}_{filename}_{index + 1}"
+
+
+def expand_short_chunks(vectorizer, results, shown_ids=(), label=''):
+    """Append the next chunk of its document to every short chunk in `results`.
+
+    The neighbour's text joins the short chunk's, so the heading and its body
+    read as one source. A neighbour already in `shown_ids` (e.g. a mechanics
+    chunk presented earlier) or ranked higher in `results` is not repeated; one
+    ranked lower is moved up into the short chunk and its own entry dropped.
+    A failed fetch leaves the results as they were: an unexpanded context is
+    worse than an expanded one, but much better than a failed chat.
+    """
+    docs = (results.get('documents') or [[]])[0]
+    if not docs:
+        return results
+    metas = results['metadatas'][0]
+    ids = (results.get('ids') or [[]])[0]
+    dists = (results.get('distances') or [[]])[0]
+
+    wanted = {i: next_chunk_id(metas[i]) for i, doc in enumerate(docs)
+              if len(doc.split()) < NEIGHBOUR_MAX_WORDS}
+    wanted = {i: nid for i, nid in wanted.items() if nid}
+    if not wanted:
+        return results
+    try:
+        neighbours = vectorizer.get_chunks(sorted(set(wanted.values())))
+    except Exception as e:
+        print(f"[NEIGHBOURS] {label} fetch failed, context not expanded: {e}")
+        return results
+
+    shown = set(shown_ids)
+    out = {'ids': [], 'documents': [], 'metadatas': [], 'distances': []}
+    for i, doc in enumerate(docs):
+        chunk_id = ids[i] if i < len(ids) else None
+        if chunk_id is not None and chunk_id in shown:
+            continue    # already appended to a short chunk ranked above it
+        nid = wanted.get(i)
+        if nid in neighbours and nid not in shown:
+            doc = f"{doc}\n\n{neighbours[nid]['document']}"
+            shown.add(nid)
+            if retrieval_debug():
+                print(f"[NEIGHBOURS] {label} {chunk_id} + {nid}")
+        if chunk_id is not None:
+            shown.add(chunk_id)
+        out['ids'].append(chunk_id)
+        out['documents'].append(doc)
+        out['metadatas'].append(metas[i])
+        out['distances'].append(dists[i] if i < len(dists) else None)
+    return {key: [value] for key, value in out.items()}
+
+
+def get_mechanics_results(vectorizer, esp_normalized, n_results=5, products=None):
     """Query B, memoized per ESP. Thread-safe: gunicorn runs gthread workers.
 
     Query B's input does not depend on the user's message, so for a given ESP
@@ -223,7 +304,7 @@ def get_mechanics_results(vectorizer, esp_normalized, n_results=5):
     query = MECHANICS_QUERY_BY_ESP.get(esp_normalized, MECHANICS_QUERY)
     # Key on the query text as well as the ESP, so editing MECHANICS_QUERY or
     # adding an override invalidates the entry instead of serving stale chunks.
-    cache_key = (esp_normalized, query, n_results)
+    cache_key = (esp_normalized, query, n_results, tuple(products or ()))
     now = time.time()
 
     cached = get_cached_mechanics(cache_key)
@@ -232,7 +313,7 @@ def get_mechanics_results(vectorizer, esp_normalized, n_results=5):
 
     # Executed outside the cache lock: a slow Pinecone call must not block
     # other threads. A concurrent miss may query twice, which is harmless.
-    results = vectorizer.search(query, esp_filter=esp_normalized, n_results=n_results)
+    results = _search(vectorizer, query, esp_normalized, n_results, None, products)
     log_retrieval('B/mechanics/pre-filter', query, results)
     results = filter_by_relevance(results, result_type='ESP-mechanics')
 
@@ -266,6 +347,24 @@ PRODUCT_INSTRUCTION = (
 )
 
 
+# Chunks a chat restricts retrieval to, by the product picked in chat.
+#
+# Loyalty chats search only Loyalty and shared chunks. Unfiltered, Reviews
+# chunks took 5 of the top 13 Klaviyo slots for a Loyalty tier-segmentation
+# question and pushed the property list out of the context; filtered, every
+# case in eval/retrieval_cases.json passes (8/8, against 7/8). Reviews chats
+# stay unfiltered for now: the coverage note handles ESPs with no Reviews
+# documentation, and Reviews retrieval has no eval cases yet.
+CHAT_SEARCH_PRODUCTS = {
+    'loyalty': ('loyalty', 'shared'),
+}
+
+
+def chat_search_products(product):
+    """Product labels a chat for `product` retrieves from, or None for all."""
+    return CHAT_SEARCH_PRODUCTS.get(product)
+
+
 @dataclass
 class RagContext:
     context: str
@@ -274,15 +373,17 @@ class RagContext:
     enhanced_query: str = ''
 
 
-def _search(vectorizer, query, esp, n_results, keep):
+def _search(vectorizer, query, esp, n_results, keep, products=None):
     """vectorizer.search, optionally restricted to chunks `keep` accepts.
 
     With `keep`, fetches FILTER_FETCH results and keeps the first n_results
     that pass, which is what a Pinecone metadata pre-filter would return.
+    `products` is that pre-filter, applied by the vector database.
     """
+    kwargs = {'products': list(products)} if products else {}
     if keep is None:
-        return vectorizer.search(query, esp_filter=esp, n_results=n_results)
-    raw = vectorizer.search(query, esp_filter=esp, n_results=FILTER_FETCH)
+        return vectorizer.search(query, esp_filter=esp, n_results=n_results, **kwargs)
+    raw = vectorizer.search(query, esp_filter=esp, n_results=FILTER_FETCH, **kwargs)
     metas = (raw.get('metadatas') or [[]])[0]
     idx = [i for i, m in enumerate(metas) if keep(m)][:n_results]
     return {key: [[(raw.get(key) or [[]])[0][i] for i in idx]]
@@ -302,6 +403,8 @@ def build_rag_context(
     product_of: Optional[Callable[[dict], Optional[str]]] = None,
     product_instruction: bool = False,
     filter_to_product: bool = False,
+    expand_neighbours: bool = True,
+    search_products: Optional[tuple] = None,
 ) -> RagContext:
     """
     Retrieve for one chat turn and assemble the context the model reads.
@@ -322,6 +425,12 @@ def build_rag_context(
         filter_to_product: keep only chunks of `product` or 'shared' (arm B).
             Requires product_of and product. Bypasses the mechanics cache,
             which holds unfiltered results.
+        expand_neighbours: append the next chunk of its document to each short
+            task and global chunk (see NEIGHBOUR_MAX_WORDS). On in chat; off
+            reproduces the context from before it existed.
+        search_products: product labels every query is restricted to, by
+            the vector database's metadata filter; None searches all. Chat
+            passes chat_search_products(product).
     """
     if filter_to_product and (product_of is None or product is None):
         raise ValueError("filter_to_product needs product_of and product")
@@ -350,7 +459,7 @@ def build_rag_context(
         keep = lambda meta: product_of(meta) in allowed  # noqa: E731
 
     # Query A — task/domain. Answers "what is this thing the user is asking about".
-    esp_results = _search(vectorizer, enhanced_query, esp_normalized, 10, keep)
+    esp_results = _search(vectorizer, enhanced_query, esp_normalized, 10, keep, search_products)
     log_retrieval('A/task/pre-filter', enhanced_query, esp_results)
 
     # Filter ESP results by relevance score to reduce hallucinations
@@ -366,13 +475,14 @@ def build_rag_context(
     # noise. For an ESP with no mechanics documentation, the standard threshold
     # is what stops this query injecting loosely-related chunks.
     if keep is None:
-        mechanics_query, mech_results, cache_hit = get_mechanics_results(vectorizer, esp_normalized)
+        mechanics_query, mech_results, cache_hit = get_mechanics_results(
+            vectorizer, esp_normalized, products=search_products)
         if retrieval_debug() and cache_hit:
             print(f"[MECHANICS CACHE] hit for esp={esp_normalized}")
     else:
         mechanics_query = MECHANICS_QUERY_BY_ESP.get(esp_normalized, MECHANICS_QUERY)
         mech_results = filter_by_relevance(
-            _search(vectorizer, mechanics_query, esp_normalized, 5, keep),
+            _search(vectorizer, mechanics_query, esp_normalized, 5, keep, search_products),
             result_type='ESP-mechanics')
 
     # Mechanics chunks are presented FIRST, in their own section, and removed
@@ -393,15 +503,19 @@ def build_rag_context(
             key: [[(esp_results[key][0])[i] for i in keep_idx]]
             for key in ('ids', 'documents', 'metadatas', 'distances')
         }
+    if expand_neighbours:
+        esp_results = expand_short_chunks(vectorizer, esp_results, mech_ids, 'task')
     log_retrieval('mechanics/final', mechanics_query, mech_results)
     log_retrieval('task/final', enhanced_query, esp_results)
 
     # Search global knowledge (2 results) - also use enhanced query
-    global_results = _search(vectorizer, enhanced_query, 'global', 2, keep)
+    global_results = _search(vectorizer, enhanced_query, 'global', 2, keep, search_products)
     log_retrieval('global/pre-filter', enhanced_query, global_results)
 
     # Filter global results by relevance score
     global_results = filter_by_relevance(global_results, result_type='Global')
+    if expand_neighbours:
+        global_results = expand_short_chunks(vectorizer, global_results, (), 'global')
 
     def product_line(metadata):
         if product_of is None:

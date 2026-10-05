@@ -88,7 +88,8 @@ class PineconeAdapter(VectorAdapter):
             batch = vectors_to_upsert[i:i + batch_size]
             self.index.upsert(vectors=batch)
 
-    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5) -> Dict:
+    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5,
+               products: Optional[List[str]] = None) -> Dict:
         """
         Search for relevant documents
 
@@ -104,15 +105,17 @@ class PineconeAdapter(VectorAdapter):
         query_embedding = self.embedding_model.encode(query).tolist()
 
         # Build filter
-        filter_dict = None
+        filter_dict = {}
         if esp_filter and esp_filter.lower() != 'other/webhook':
-            filter_dict = {"esp": {"$eq": esp_filter.lower()}}
+            filter_dict["esp"] = {"$eq": esp_filter.lower()}
+        if products:
+            filter_dict["product"] = {"$in": list(products)}
 
         # Query Pinecone
         results = self.index.query(
             vector=query_embedding,
             top_k=n_results,
-            filter=filter_dict,
+            filter=filter_dict or None,
             include_metadata=True
         )
 
@@ -249,6 +252,17 @@ class PineconeAdapter(VectorAdapter):
         except Exception as e:
             print(f"Error deleting vectors for {url}: {e}")
             return 0
+
+    def get_chunks(self, ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """Fetch chunks by id (raises on errors). Missing ids are left out."""
+        if not ids:
+            return {}
+        vectors = self.index.fetch(ids=list(ids)).vectors
+        chunks = {}
+        for vector_id, vector in vectors.items():
+            metadata = dict(vector.metadata or {})
+            chunks[vector_id] = {'document': metadata.pop('text', ''), 'metadata': metadata}
+        return chunks
 
     def ids_for_url(self, url: str, esp_name: str) -> List[str]:
         """Ids of every chunk of one document (raises on errors)."""

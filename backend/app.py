@@ -13,7 +13,8 @@ from mechanics_cache import clear_mechanics_cache
 # Retrieval lives in rag_context so the eval can run the same code without
 # importing this module. filter_by_relevance and MECHANICS_QUERY are re-exported
 # here for callers that still import them from app.
-from rag_context import build_rag_context, filter_by_relevance, MECHANICS_QUERY  # noqa: F401
+from rag_context import (  # noqa: F401
+    build_rag_context, chat_search_products, filter_by_relevance, MECHANICS_QUERY)
 from dotenv import load_dotenv
 import os
 import csv
@@ -309,13 +310,15 @@ def chat():
     # for the reasoning behind each query and the order sources appear in.
     # A Reviews question on an ESP with no Reviews documentation gets a note
     # saying so, instead of an answer built from the Loyalty docs that are
-    # all retrieval can find there. Loyalty requests get today's context.
+    # all retrieval can find there. Loyalty requests search only Loyalty and
+    # shared documents (rag_context.CHAT_SEARCH_PRODUCTS).
     esp_key = esp.lower().replace('/', '_') if esp else 'klaviyo'
     uncovered = product == 'reviews' and not has_reviews_coverage(esp_key)
     rag = build_rag_context(vectorizer, message, esp, conversation_history,
                             product=product,
                             reviews_coverage=False if uncovered else None,
-                            esp_display=esp_display_name(esp_key) if uncovered else None)
+                            esp_display=esp_display_name(esp_key) if uncovered else None,
+                            search_products=chat_search_products(product))
     context = rag.context
     search_results = {'metadatas': [rag.metadatas] if rag.metadatas else []}
 

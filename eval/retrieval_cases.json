@@ -1,0 +1,57 @@
+{
+  "_how_to_use": "Each case is a chat turn and the facts its context must contain. A case passes when every string in 'must_contain' appears in the context build_rag_context() returns (whitespace collapsed, so a re-chunk that moves line breaks still matches). Write facts as text from the source document, never from an answer. 'product' is the product picked in chat. 'control' cases pass today: they guard retrieval changes against regressions.",
+  "cases": [
+    {
+      "id": "tier-onboarding",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "recent onboarding - I'd like the team to start segmenting customers in Klaviyo by their Yotpo loyalty tier, but the tiers don't currently appear to be available.\nDo you know where we are with syncing this data and when we'll be able to use it for segmentation?",
+      "must_contain": ["swell_vip_tier_name", "The name of the tier the customer is in now"],
+      "note": "The real question that failed. The definition sits in the property list, whose heading was chunked apart from it."
+    },
+    {
+      "id": "tier-segment",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "How do I segment customers in Klaviyo by Yotpo loyalty tier?",
+      "must_contain": ["swell_vip_tier_name", "The name of the tier the customer is in now"]
+    },
+    {
+      "id": "tier-property",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "What is the Klaviyo property for the customer's loyalty tier?",
+      "must_contain": ["swell_vip_tier_name", "The name of the tier the customer is in now"]
+    },
+    {
+      "id": "tier-missing",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "Our VIP tiers aren't showing up in Klaviyo's segment builder. Which property should we use?",
+      "must_contain": ["swell_vip_tier_name", "The name of the tier the customer is in now"]
+    },
+    {
+      "id": "next-tier",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "How do I show how many points a customer needs to reach the next tier?",
+      "must_contain": ["The number of points the customer must earn in order to proceed to the next tier"],
+      "note": "Passes before any fix: another chunk carries the definition, not only the property list."
+    },
+    {
+      "id": "referral-link",
+      "esp": "klaviyo", "product": "loyalty",
+      "text": "How do I add the customer's referral link to a Klaviyo email?",
+      "must_contain": ["swell_referral_link", "The customer's unique referral link"],
+      "note": "Past the 256 tokens all-MiniLM-L6-v2 reads of the property-list chunk."
+    },
+    {
+      "id": "expiry-mechanics",
+      "esp": "klaviyo", "product": "loyalty", "control": true,
+      "text": "How do I send a points expiration reminder?",
+      "must_contain": ["trigger filters are not checked again at send time"],
+      "note": "The Query B fix. Must keep passing."
+    },
+    {
+      "id": "point-balance",
+      "esp": "klaviyo", "product": "loyalty", "control": true,
+      "text": "How do I show a customer's point balance in an email?",
+      "must_contain": ["swell_point_balance"]
+    }
+  ]
+}

@@ -42,11 +42,16 @@ class ChromaDBAdapter(VectorAdapter):
                 ids=[doc_id]
             )
 
-    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5) -> Dict:
+    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5,
+               products: Optional[List[str]] = None) -> Dict:
         """Search for relevant documents"""
-        where = None
+        clauses = []
         if esp_filter and esp_filter.lower() != 'other/webhook':
-            where = {"esp": esp_filter.lower()}
+            clauses.append({"esp": esp_filter.lower()})
+        if products:
+            clauses.append({"product": {"$in": list(products)}})
+        # ChromaDB rejects a two-key where; it needs $and
+        where = None if not clauses else clauses[0] if len(clauses) == 1 else {"$and": clauses}
 
         results = self.collection.query(
             query_texts=[query],
@@ -149,6 +154,17 @@ class ChromaDBAdapter(VectorAdapter):
         except Exception as e:
             print(f"Error deleting vectors for {url}: {e}")
             return 0
+
+    def get_chunks(self, ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """Fetch chunks by id (raises on errors). Missing ids are left out."""
+        if not ids:
+            return {}
+        results = self.collection.get(ids=list(ids), include=['documents', 'metadatas'])
+        return {
+            chunk_id: {'document': doc, 'metadata': meta or {}}
+            for chunk_id, doc, meta in zip(results['ids'], results['documents'],
+                                           results['metadatas'])
+        }
 
     def ids_for_url(self, url: str, esp_name: str) -> List[str]:
         """Ids of every chunk of one document (raises on errors)."""

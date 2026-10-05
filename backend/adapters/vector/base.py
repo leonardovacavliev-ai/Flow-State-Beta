@@ -59,7 +59,8 @@ class VectorAdapter(ABC):
         pass
 
     @abstractmethod
-    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5) -> Dict:
+    def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5,
+               products: Optional[List[str]] = None) -> Dict:
         """
         Search for relevant documents
 
@@ -67,6 +68,8 @@ class VectorAdapter(ABC):
             query: Search query text
             esp_filter: Filter by ESP name (e.g., 'klaviyo', 'global')
             n_results: Number of results to return
+            products: Keep only chunks whose `product` label is one of these
+                (a metadata filter applied before ranking, not after)
 
         Returns:
             Dict with keys:
@@ -74,6 +77,17 @@ class VectorAdapter(ABC):
                 - documents: List of text chunks
                 - metadatas: List of metadata dicts
                 - distances: List of similarity scores (optional)
+        """
+        pass
+
+    @abstractmethod
+    def get_chunks(self, ids: List[str]) -> Dict[str, Dict[str, Any]]:
+        """
+        Fetch chunks by id, without a similarity search.
+
+        Returns:
+            {id: {'document': text, 'metadata': dict}} for the ids that exist;
+            missing ids are left out. Raises on errors.
         """
         pass
 
