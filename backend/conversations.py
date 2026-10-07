@@ -2,9 +2,10 @@
 Saved conversations.
 
 A conversation begins with the first message after the gradient intro and ends
-when the user picks an ESP again or closes the window. Reopening one resumes
-it, so `ended_at` means "the last time this ended", not a permanent close, and
-one conversation may span several sessions.
+when the user picks an ESP again, signs out or closes the window. One started
+mid-chat is seeded with the exchanges already on screen (seed_messages).
+Reopening one resumes it, so `ended_at` means "the last time this ended", not a
+permanent close, and one conversation may span several sessions.
 
 Only signed-in users get conversations. Guests keep the previous behaviour:
 history lives in sessionStorage and disappears with the tab.
@@ -71,12 +72,46 @@ def _title_from(message: str) -> str:
 
 # ==================== Writes ====================
 
+# A conversation started mid-chat is seeded with at most this many messages,
+# the same window /api/chat sends the model.
+SEED_MAX_MESSAGES = 20
+
+
+def seed_messages(raw) -> List[Dict]:
+    """The exchanges a new conversation starts with, from the request body.
+
+    The page sends what is on screen when a conversation starts mid-chat:
+    after signing in, or when the page came back from the back/forward cache.
+    Without them the model would answer the next message as if the chat had
+    just begun, while the user still sees the earlier exchanges.
+
+    Anything malformed is dropped, as /api/chat does with guest history, and
+    the seed always begins with a user turn.
+    """
+    if not isinstance(raw, list):
+        return []
+    messages = [
+        {'role': m['role'], 'content': m['content']}
+        for m in raw
+        if isinstance(m, dict)
+        and m.get('role') in ('user', 'assistant')
+        and isinstance(m.get('content'), str)
+        and m['content'].strip()
+    ][-SEED_MAX_MESSAGES:]
+    while messages and messages[0]['role'] != 'user':
+        messages.pop(0)
+    return messages
+
+
 def create_conversation(user_id: str, esp: str, session_id: Optional[str] = None,
-                        product: str = 'loyalty') -> Dict:
+                        product: str = 'loyalty', history: Optional[List[Dict]] = None) -> Dict:
     """Start a conversation. Returns its id.
 
     product is the Yotpo product picked in chat. It is fixed for the life of
     the conversation: switching product in the UI starts a new one.
+
+    history (see seed_messages) is written in as the conversation's first
+    messages; the first user message names it.
     """
     conversation_id = str(uuid.uuid4())
     now = _now()
@@ -85,6 +120,8 @@ def create_conversation(user_id: str, esp: str, session_id: Optional[str] = None
         INSERT INTO conversations (id, user_id, esp, status, started_at, last_message_at, session_id, product)
         VALUES (?, ?, ?, 'active', ?, ?, ?, ?)
     """), (conversation_id, user_id, esp, now, now, session_id, product))
+    for m in history or []:
+        append_message(conversation_id, user_id, m['role'], m['content'])
     return {'id': conversation_id, 'esp': esp, 'product': product, 'started_at': now}
 
 
@@ -328,7 +365,8 @@ def register_conversation_routes(app):
             return jsonify({'error': 'esp is required'}), 400
         from product_labels import chat_product
         conv = create_conversation(current_user_id(), esp, data.get('session_id'),
-                                   chat_product(data.get('product')))
+                                   chat_product(data.get('product')),
+                                   seed_messages(data.get('history')))
         return jsonify({'conversation_id': conv['id']})
 
     @app.route('/api/conversations', methods=['GET'])

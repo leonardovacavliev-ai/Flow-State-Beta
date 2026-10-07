@@ -50,8 +50,14 @@ let reviewsCoverage = null;
 // reopened conversation). A request that returns into a different view is
 // discarded, so an answer never lands in -- or is saved to -- the wrong chat.
 let chatGeneration = 0;
+// The exchanges on screen in this view, as {role, content}. A conversation
+// started mid-view (after signing in, or after the page came back from the
+// back/forward cache) is seeded with them, so what the user sees is always
+// what the model remembers.
+let viewTranscript = [];
 function startNewChatView() {
     chatGeneration += 1;
+    viewTranscript = [];
     // Whatever was in flight belongs to the old view now
     const btn = document.getElementById('sendBtn');
     if (btn) btn.disabled = false;
@@ -86,7 +92,12 @@ async function ensureConversation() {
         const response = await fetch(`${API_URL}/conversations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...window.Auth.headers() },
-            body: JSON.stringify({ esp: selectedESP.replace('/', '_'), product: selectedProduct, session_id: sessionId })
+            body: JSON.stringify({
+                esp: selectedESP.replace('/', '_'),
+                product: selectedProduct,
+                session_id: sessionId,
+                history: viewTranscript.slice(-20)
+            })
         });
         if (!response.ok) return null;
         const data = await response.json();
@@ -228,16 +239,21 @@ window.addEventListener('beforeunload', () => {
 document.addEventListener('auth:signingout', () => {
     endActiveConversation();
 });
+// The account's conversation is over, so its transcript leaves the screen too:
+// a guest's next message must not look like a continuation of it.
 document.addEventListener('auth:signedout', () => {
     activeConversationId = null;
+    startNewChatView();
+    renderIntro(selectedESPName());
 });
 
-// beforeunload does not fire on mobile backgrounding or a tab crash, so the
-// conversation would sit 'active' forever. This covers the common case; the
-// server's idle sweep covers the rest.
-document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') endConversationOnUnload();
-});
+// pagehide covers what beforeunload misses: mobile navigation and pages put in
+// the back/forward cache. Not visibilitychange -- that fires on every tab
+// switch, and ending the conversation there started a new, empty one for the
+// next message while the old exchange was still on screen, so the model lost
+// the conversation. A tab left in the background is closed by the server's
+// idle sweep, and append_message reopens it if the user comes back.
+window.addEventListener('pagehide', endConversationOnUnload);
 
 // Track ESP selection
 async function trackESPSelection(esp) {
@@ -740,9 +756,13 @@ async function sendMessage() {
                 product: selectedProduct,
                 // When a conversation is active the server loads history from
                 // the database; sending the client copy too would be ignored.
+                // A signed-in user whose conversation could not be started
+                // has nothing in sessionStorage; the screen is their history.
                 ...(conversationId
                     ? { conversation_id: conversationId }
-                    : { history: getCurrentHistory() }),
+                    : { history: window.Auth && window.Auth.isSignedIn()
+                        ? viewTranscript.slice(-20)
+                        : getCurrentHistory() }),
                 session_id: sessionId
             })
         });
@@ -774,6 +794,8 @@ async function sendMessage() {
             addMessage('assistant', `Error: ${data.error}`, { animate: true });
         } else if (data.response) {
             addMessage('assistant', data.response, { animate: true, sources: data.sources });
+            viewTranscript.push({ role: 'user', content: message },
+                                { role: 'assistant', content: data.response });
 
             // Guests only. When a conversation is active the exchange is
             // already saved to the account, and duplicating it into
@@ -2761,6 +2783,7 @@ async function openConversation(conversationId, esp) {
     chatMessages.innerHTML = '';   // also drops the scroll spacer
     anchoredScrollTop = null;
     conv.messages.forEach(m => addMessage(m.role, m.content));
+    viewTranscript = conv.messages.map(m => ({ role: m.role, content: m.content }));
 
     // Resuming means new messages append to this same conversation.
     activeConversationId = conv.id;
