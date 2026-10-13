@@ -166,11 +166,11 @@ Not part of the suite:
 
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
-| C0.1 | CI baseline | — | dev | 1–2 d | doing | PR #2, both jobs green 2026-10-13; waiting on merge (after #1) |
-| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | PR #1; the pins installed cleanly on Linux/3.11 in #2's CI; waiting on merge, deploy and smoke check |
+| C0.1 | CI baseline | — | dev | 1–2 d | done | PR #2, merged and deployed 2026-10-13 |
+| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | PR #1, merged and deployed 2026-10-13: health and a Klaviyo chat OK; waiting on Leo's admin panel + one crawl |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
-| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | doing | PR #3 (after #1, #2); 🛑 run `scripts/fix_url_spellings.py --apply` before it merges |
+| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | doing | PR #3, CI green; 🛑 Leo runs `scripts/fix_url_spellings.py --apply`, then it merges |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | todo | |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
@@ -1340,4 +1340,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C0.1 | `.github/workflows/ci.yml` (jobs `unit`, `postgres`); Postgres tests read `TEST_DATABASE_URL`; ipapi.co stubbed; sparkline assertion fixed | Claude Code |
 | 2026-10-13 | C0.1 | PRs #1 and #2 opened; both CI jobs green. The red-run check used the local run where a real failing assertion exited 1 (CI runs only on PRs, so a scratch branch would need another PR) | Claude Code |
 | 2026-10-13 | C0.4 | Sources prepared (PR #4): 13 platforms, links checked, 9 flags for Leo | Claude Code |
+| 2026-10-13 | C0.2, C0.1 | #1 and #2 merged and deployed by Claude Code; live health and Klaviyo chat checked after each | Claude Code |
 | 2026-10-13 | C1.1 | Schema, key validation, URL identity, chunk counts, both scripts, tests (PR #3); production URL check found 3 rows, fix script prepared | Claude Code |
