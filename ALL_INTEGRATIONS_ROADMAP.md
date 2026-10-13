@@ -22,8 +22,15 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
 3. **Branching:**
    - Use one branch per checkpoint: `v2/<id>-<slug>` (e.g. `v2/c1-1-schema`).
    - Use conventional commits and open a PR to `main`.
-   - Leo merges and deploys. Claude Code never pushes to `main`, never deploys, and never writes to
-     production (§1.1).
+   - **Claude Code merges and deploys** (Leo's decision, 2026-10-13). Railway deploys every push
+     to `main`, so a merge is a deploy.
+     - Merge only when CI is green, the whole diff has been reviewed, and every 🛑 step the
+       checkpoint puts before the merge is done.
+     - One PR at a time, in dependency order: `git merge --no-ff` into `main`, then push.
+     - After each deploy, smoke-check the live site: `/api/health` answers and one Klaviyo chat
+       answers. The admin panel needs Leo's Google sign-in, so ask him to open it.
+     - If the smoke check fails, revert the merge commit on `main`, push at once, and tell Leo.
+     - Data-changing scripts on production (§1.1) stay Leo's.
 4. **Finishing a checkpoint:**
    - Every task box is ticked.
    - Every acceptance check passes, and its output summary is pasted into the PR.
@@ -285,7 +292,7 @@ versions from the last successful build log. Hand it over as a file. It contains
 **Acceptance**
 - CI is green.
 - A local `docker build .` succeeds.
-- 🛑 After Leo deploys: `/api/health` responds, one Klaviyo chat answers, the admin panel loads,
+- After the deploy: `/api/health` responds, one Klaviyo chat answers, the admin panel loads,
   and one crawl completes.
 
 **Rollback:** revert the PR. The cached layer stays valid.
