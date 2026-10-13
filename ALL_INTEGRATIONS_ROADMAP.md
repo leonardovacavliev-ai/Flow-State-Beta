@@ -157,8 +157,8 @@ Not part of the suite:
 
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
-| C0.1 | CI baseline | — | dev | 1–2 d | todo | |
-| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | files ready 2026-10-13 (uncommitted); waiting on commit, PR, deploy and smoke check |
+| C0.1 | CI baseline | — | dev | 1–2 d | doing | branch `v2/c0-1-ci` (stacked on `v2/c0-2-pin-dependencies`) 2026-10-13; waiting on push, PR and the two acceptance runs on GitHub |
+| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | committed on `v2/c0-2-pin-dependencies` 2026-10-13; waiting on push, PR, deploy and smoke check |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | todo | |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | todo | |
@@ -220,18 +220,18 @@ Order inside Stage 1:
 `backend/test_analytics_providers.py` (how they find `DATABASE_URL`).
 
 **Tasks**
-- [ ] `.github/workflows/ci.yml`, on pull requests and pushes to `main`:
-  - [ ] **job `unit`:** Python 3.11; pip cache; `pip install -r backend/requirements.txt` (with
+- [x] `.github/workflows/ci.yml`, on pull requests and pushes to `main`:
+  - [x] **job `unit`:** Python 3.11; pip cache; `pip install -r backend/requirements.txt` (with
     `-c backend/constraints.txt` once C0.2 lands); run the pure and SQLite block of §1.4 plus the
     import smoke test.
     - Set `VECTOR_DB_PROVIDER=chromadb`, `DATABASE_PROVIDER=sqlite`, `SESSION_PROVIDER=memory` for
       the whole job.
     - Cache the sentence-transformers model directory.
-  - [ ] **job `postgres`:** service container `postgres:16`; `TEST_DATABASE_URL` pointing at it;
+  - [x] **job `postgres`:** service container `postgres:16`; `TEST_DATABASE_URL` pointing at it;
     run the two Postgres-backed tests.
-- [ ] Both Postgres tests read `TEST_DATABASE_URL` first, then fall back to today's `.env` lookup.
+- [x] Both Postgres tests read `TEST_DATABASE_URL` first, then fall back to today's `.env` lookup.
   This is a small change at the top of each file.
-- [ ] Make sure no test needs network access: Pinecone, Google, ipapi.co. Stub any that does, as
+- [x] Make sure no test needs network access: Pinecone, Google, ipapi.co. Stub any that does, as
   `test_product_write_paths.py` stubs the vectorizer.
 
 **Deliverables:** `.github/workflows/ci.yml`; the two test files updated.
@@ -241,6 +241,27 @@ Order inside Stage 1:
 - A deliberately broken assertion on a scratch branch turns `unit` red. Delete the branch afterwards.
 
 **Rollback:** delete the workflow file.
+
+**Deviations (2026-10-13)**
+- **Stacked on C0.2.** CI installs with `-c backend/constraints.txt` from the start, so the branch
+  is cut from `v2/c0-2-pin-dependencies`. On `main`'s unpinned `requirements.txt`, CI would test
+  whatever PyPI serves that day. Merge C0.2 first.
+- **One stale assertion fixed.** `test_analytics_providers.py` expected the last sparkline date
+  to be today. Since `f0c5e92` the sparkline has weekly buckets labelled by their first day, so the
+  last one starts six days ago. The test changed; `analytics.py` did not.
+- **Network, found by running the suite with outbound sockets blocked:**
+  - `test_analytics_providers.py` called ipapi.co through `create_session`. It is stubbed now.
+  - The embedding model (`all-MiniLM-L6-v2`) is checked against huggingface.co on every load.
+    CI downloads it once into an `actions/cache` entry and runs every test with
+    `HF_HUB_OFFLINE=1`.
+  - Nothing else connects. The `postgres` job needs no model.
+- **Verified locally:**
+  - The `unit` job passes from a clean checkout, with no `.env`, network blocked and the model
+    offline. This ran on Python 3.9 with the packages already installed, not the 3.11 pins.
+  - The Postgres tests did not run. There is no local Docker, and the `.env` fallback creates a
+    schema on production. They run first in CI.
+- **CI cost:** the pinned `torch` pulls the CUDA stack (several GB) into both jobs. The pip cache
+  absorbs most of it after the first run. If CI time becomes a problem, that is a CX.3 trigger.
 
 ### C0.2 Pin dependencies
 
@@ -252,10 +273,10 @@ production may run an older one from the cached Docker layer).
 versions from the last successful build log. Hand it over as a file. It contains no secrets.
 
 **Tasks**
-- [ ] `backend/requirements.txt`: same package set, each pinned `==` to the production version.
-- [ ] `backend/constraints.txt`: the full freeze, transitive packages included.
-- [ ] `Dockerfile`: `pip install --no-cache-dir -r backend/requirements.txt -c backend/constraints.txt`.
-- [ ] CI uses the same flags.
+- [x] `backend/requirements.txt`: same package set, each pinned `==` to the production version.
+- [x] `backend/constraints.txt`: the full freeze, transitive packages included.
+- [x] `Dockerfile`: `pip install --no-cache-dir -r backend/requirements.txt -c backend/constraints.txt`.
+- [x] CI uses the same flags (C0.1's workflow).
 
 **Do not:** upgrade, add or remove any package here.
 
@@ -1273,3 +1294,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | — | Map created from plan v3 | Claude Code |
 | 2026-10-13 | — | CLAUDE.md points to this map, with the production `.env` warning | Claude Code |
 | 2026-10-13 | C0.2 | `requirements.txt` pinned and `constraints.txt` added from the production freeze; Dockerfile uses both; CX.3 added | Claude Code |
+| 2026-10-13 | C0.2 | Committed on `v2/c0-2-pin-dependencies`, with the plan, the map and the CLAUDE.md pointer | Claude Code |
+| 2026-10-13 | C0.1 | `.github/workflows/ci.yml` (jobs `unit`, `postgres`); Postgres tests read `TEST_DATABASE_URL`; ipapi.co stubbed; sparkline assertion fixed | Claude Code |
