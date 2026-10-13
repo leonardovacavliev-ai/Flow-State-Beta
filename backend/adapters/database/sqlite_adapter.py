@@ -13,6 +13,7 @@ from contextlib import contextmanager
 import requests
 
 from .base import DatabaseAdapter
+from .seeds import seed_platform_types
 
 
 class SQLiteAdapter(DatabaseAdapter):
@@ -269,6 +270,37 @@ class SQLiteAdapter(DatabaseAdapter):
                     completed_at DATETIME
                 )
             """)
+
+            # Integrations (v2): SQLite dialect of the Postgres columns and
+            # table, see postgres_adapter.initialize. Lists are TEXT holding
+            # JSON, like vector_ids.
+            for column, definition in (('catalog_slugs', 'TEXT'), ('categories', 'TEXT'),
+                                       ('products', 'TEXT'), ('platform_type', 'TEXT'),
+                                       ('catalog_description', 'TEXT')):
+                self._add_column_if_missing(cursor, 'esps', column, definition)
+            for column, definition in (('title', 'TEXT'), ('source_kind', 'TEXT'),
+                                       ('supported_plans', 'TEXT'), ('supported_platforms', 'TEXT'),
+                                       ('vector_count', 'INTEGER'), ('sitemap_lastmod', 'DATETIME'),
+                                       ('consecutive_misses', 'INTEGER NOT NULL DEFAULT 0'),
+                                       ('retired_at', 'DATETIME')):
+                self._add_column_if_missing(cursor, 'esp_documents', column, definition)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS document_proposals (
+                    id              TEXT PRIMARY KEY,
+                    esp_id          TEXT REFERENCES esps(id) ON DELETE CASCADE,
+                    url             TEXT NOT NULL UNIQUE,
+                    source          TEXT,
+                    suggested_label TEXT,
+                    state           TEXT DEFAULT 'open',
+                    note            TEXT,
+                    created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    decided_by      TEXT,
+                    decided_at      DATETIME
+                )
+            """)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_proposals_state_esp ON document_proposals(state, esp_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp_esp ON messages(timestamp, esp)")
+            seed_platform_types(cursor)
 
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")

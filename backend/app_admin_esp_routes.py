@@ -8,6 +8,7 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 """
 
 from flask import jsonify, request
+from urls import normalize_url
 from esp_manager import get_esp_manager, DuplicateURLError
 from crawler import crawl_single_url_detailed, vectorize_single_document, filename_from_url
 from mechanics_cache import clear_mechanics_cache
@@ -174,7 +175,7 @@ def register_link_check_route(app):
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         try:
             data = request.get_json(silent=True) or {}
-            url = (data.get('url') or '').strip()
+            url = normalize_url(data.get('url') or '')
             if not url:
                 return jsonify({'exists': False, 'matches': []})
 
@@ -301,7 +302,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            url = data.get('url', '').strip()
+            url = normalize_url(data.get('url', ''))
 
             if not url:
                 return jsonify({'error': 'URL is required'}), 400
@@ -367,7 +368,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            urls = data.get('urls', [])
+            urls = [normalize_url(u) if isinstance(u, str) else u for u in data.get('urls', [])]
 
             if not urls:
                 return jsonify({'error': 'No URLs provided'}), 400
@@ -539,7 +540,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            url = data.get('url', '')
+            url = normalize_url(data.get('url', ''))
             content = data.get('content', '')
 
             # Verify admin password

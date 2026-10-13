@@ -9,6 +9,7 @@ Usage:
 """
 
 from flask import jsonify, request
+from urls import normalize_url
 from esp_manager import get_esp_manager, DuplicateURLError
 from crawler import vectorize_single_document
 from workers.crawl_queue import enqueue_urls, queued_response, list_document_states, format_wait
@@ -116,7 +117,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            url = data.get('url', '').strip()
+            url = normalize_url(data.get('url', ''))
 
             if not url:
                 return jsonify({'error': 'URL is required'}), 400
@@ -253,7 +254,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             esp_mgr = get_mgr()
             db = get_db()
             data = request.json
-            urls = data.get('urls', [])
+            urls = [normalize_url(u) if isinstance(u, str) else u for u in data.get('urls', [])]
 
             if not urls:
                 return jsonify({'error': 'No URLs provided'}), 400
@@ -526,7 +527,7 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
         try:
             esp_mgr = get_mgr()
             data = request.json
-            url = data.get('url', '')
+            url = normalize_url(data.get('url', ''))
             content = data.get('content', '')
 
             # Verify admin password

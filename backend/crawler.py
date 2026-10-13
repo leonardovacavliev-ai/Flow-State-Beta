@@ -447,6 +447,10 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
     esp_documents row unless `product` is given. A document without one is
     refused before its old vectors are deleted: deleting first would leave
     it with no vectors at all.
+
+    Returns the number of chunks written, and records it on the row
+    (`vector_count`) here rather than in each caller -- crawl, paste,
+    re-index from the saved copy, rebuild -- so none can forget it.
     """
     esp_key = esp_name.lower()
     if product is None:
@@ -464,13 +468,22 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
     if hasattr(vectorizer, 'delete_by_url'):
         vectorizer.delete_by_url(url, esp_key)
 
-    vectorizer.add_document(content, {
+    count = vectorizer.add_document(content, {
         'esp': esp_key,
         'filename': filename,
         'source_url': url,
         'filepath': filepath,
         'product': product
     })
+    if isinstance(count, int):
+        # The vectors are written; a failure to count them must not turn a
+        # good index into a failed crawl
+        try:
+            from esp_manager import get_esp_manager
+            get_esp_manager().set_vector_count(esp_key, url, count)
+        except Exception as e:
+            print(f"[INDEX] Could not record the chunk count for {url}: {e}")
+    return count
 
 def crawl_and_save(csv_path, base_docs_path):
     """Read CSV and crawl all URLs, saving to appropriate folders"""

@@ -55,8 +55,8 @@ class PineconeAdapter(VectorAdapter):
             self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         return self._embedding_model
 
-    def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
-        """Add a document to the vector store"""
+    def add_document(self, text: str, metadata: Dict[str, Any]) -> int:
+        """Add a document to the vector store; returns the chunks written"""
         require_product_metadata(metadata)
         chunks = self.chunk_text(text)
         vectors_to_upsert = []
@@ -87,6 +87,7 @@ class PineconeAdapter(VectorAdapter):
         for i in range(0, len(vectors_to_upsert), batch_size):
             batch = vectors_to_upsert[i:i + batch_size]
             self.index.upsert(vectors=batch)
+        return len(chunks)
 
     def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5,
                products: Optional[List[str]] = None) -> Dict:

@@ -5,10 +5,29 @@ Manages ESPs and their documentation URLs in PostgreSQL.
 Replaces filesystem-based ESP storage (docs/ folders + CSV).
 """
 
+import json
+import time
 import uuid
 import hashlib
-from typing import List, Dict, Optional
+from typing import Iterable, List, Dict, Optional
 from adapters.database.db_manager import get_database_adapter
+from urls import normalize_url
+
+# How long is_active_integration trusts its answer. Every chat request asks,
+# so it is cached; a newly activated integration is accepted within a minute.
+ACTIVE_CACHE_SECONDS = 60
+
+
+def _json_list(value):
+    """A JSON list column: JSONB arrives parsed from Postgres, TEXT from SQLite."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except ValueError:
+            return []
+    return value if isinstance(value, list) else []
 
 
 def _iso(value):
@@ -49,10 +68,13 @@ class ESPManager:
     def __init__(self):
         """Initialize with database adapter."""
         self.db = get_database_adapter()
+        self._active_names = None
+        self._active_loaded_at = 0.0
 
     # ==================== ESP Operations ====================
 
-    def create_esp(self, name: str, display_name: str, description: str = "") -> Dict:
+    def create_esp(self, name: str, display_name: str, description: str = "",
+                   platform_type: Optional[str] = 'messaging') -> Dict:
         """
         Create a new ESP.
 
@@ -60,6 +82,10 @@ class ESPManager:
             name: URL-safe identifier (e.g., 'klaviyo', 'mailchimp')
             display_name: Human-readable name (e.g., 'Klaviyo', 'Mailchimp')
             description: Optional description
+            platform_type: integration_types.PLATFORM_TYPES. Defaults to
+                messaging: until the v2 admin asks, every integration an
+                admin creates is an email/SMS platform. None only for the
+                hidden 'global' row, which serves every type
 
         Returns:
             Dict with esp_id and details
@@ -79,12 +105,15 @@ class ESPManager:
             raise ValueError(f"ESP '{name}' already exists")
 
         query = """
-            INSERT INTO esps (id, name, display_name, description, status)
-            VALUES (%s, %s, %s, %s, 'active')
+            INSERT INTO esps (id, name, display_name, description, status, platform_type)
+            VALUES (%s, %s, %s, %s, 'active', %s)
             RETURNING id, name, display_name, description, status, created_at
         """
+        from integration_types import PLATFORM_TYPES
+        if platform_type is not None and platform_type not in PLATFORM_TYPES:
+            raise ValueError(f"Unknown platform type '{platform_type}'")
         esp_id = str(uuid.uuid4())
-        params = (esp_id, name, display_name, description)
+        params = (esp_id, name, display_name, description, platform_type)
 
         result = self.db.execute_query(query, params, fetch=True)
         if result:
@@ -186,6 +215,57 @@ class ESPManager:
             })
         return esps
 
+    def list_integrations(self, statuses: Iterable[str] = ('active',)) -> List[Dict]:
+        """Integrations with the given statuses, with the v2 fields.
+
+        list_esps stays as it was, listing `active` rows only, so callers
+        that predate the `listed` status never see those rows (I4).
+        """
+        statuses = tuple(statuses)
+        if not statuses:
+            return []
+        placeholders = ','.join(['%s'] * len(statuses))
+        query = f"""
+            SELECT
+                e.id, e.name, e.display_name, e.description, e.status,
+                e.platform_type, e.catalog_slugs, e.categories, e.products,
+                e.catalog_description, COUNT(d.id) as doc_count
+            FROM esps e
+            LEFT JOIN esp_documents d ON e.id = d.esp_id
+            WHERE e.status IN ({placeholders})
+            GROUP BY e.id, e.name, e.display_name, e.description, e.status,
+                     e.platform_type, e.catalog_slugs, e.categories, e.products,
+                     e.catalog_description
+            ORDER BY e.name
+        """
+        rows = self.db.execute_query(query, statuses, fetch=True) or []
+        return [{
+            'id': row[0],
+            'name': row[1],
+            'display_name': row[2],
+            'description': row[3],
+            'status': row[4],
+            'platform_type': row[5],
+            'catalog_slugs': _json_list(row[6]),
+            'categories': _json_list(row[7]),
+            'products': _json_list(row[8]),
+            'catalog_description': row[9],
+            'doc_count': row[10],
+        } for row in rows]
+
+    def is_active_integration(self, name: str) -> bool:
+        """True when `name` is the key of an active integration.
+
+        Cached for ACTIVE_CACHE_SECONDS: chat calls this on every message.
+        """
+        now = time.monotonic()
+        if self._active_names is None or now - self._active_loaded_at > ACTIVE_CACHE_SECONDS:
+            rows = self.db.execute_query(
+                "SELECT name FROM esps WHERE status = 'active'", fetch=True) or []
+            self._active_names = frozenset(row[0] for row in rows)
+            self._active_loaded_at = now
+        return name in self._active_names
+
     def update_esp(self, esp_id: str, display_name: str = None,
                    description: str = None) -> bool:
         """Update ESP details."""
@@ -249,6 +329,7 @@ class ESPManager:
         """
         from product_labels import require_product
         product = require_product(product)
+        url = normalize_url(url)
 
         # Get ESP
         esp = self.get_esp_by_name(esp_name)
@@ -290,8 +371,8 @@ class ESPManager:
 
     def find_documents_by_url(self, url: str) -> List[Dict]:
         """
-        Every document whose URL matches `url` exactly (1:1, no
-        normalisation), across all ESPs including global knowledge.
+        Every document whose URL is `url` once normalised (urls.py), across
+        all ESPs including global knowledge.
 
         Returns a list of {'esp_name', 'display_name', 'filename',
         'crawl_status'}; empty if the URL is new.
@@ -303,7 +384,7 @@ class ESPManager:
             WHERE d.url = %s AND e.status = 'active'
             ORDER BY e.name
         """
-        rows = self.db.execute_query(query, (url,), fetch=True) or []
+        rows = self.db.execute_query(query, (normalize_url(url),), fetch=True) or []
         return [{
             'esp_name': r[0],
             'display_name': r[1] or r[0],
@@ -312,7 +393,7 @@ class ESPManager:
         } for r in rows]
 
     def get_document_by_url(self, esp_id: str, url: str) -> Optional[Dict]:
-        """Get document by ESP ID and URL."""
+        """Get document by ESP ID and URL (normalised, see urls.py)."""
         query = """
             SELECT id, esp_id, url, filename, content_hash, crawl_status,
                    last_crawled_at, error_message, vector_ids, created_at, updated_at,
@@ -320,7 +401,7 @@ class ESPManager:
             FROM esp_documents
             WHERE esp_id = %s AND url = %s
         """
-        result = self.db.execute_query(query, (esp_id, url), fetch=True)
+        result = self.db.execute_query(query, (esp_id, normalize_url(url)), fetch=True)
         if result:
             row = result[0]
             return {
@@ -434,6 +515,13 @@ class ESPManager:
             WHERE e.name = %s AND d.url = %s
         """, (esp_name.lower(), url), fetch=True) or []
         return rows[0][0] if rows else None
+
+    def set_vector_count(self, esp_name: str, url: str, count: int) -> None:
+        """Record how many chunks the last index of a document wrote."""
+        self.db.execute_query("""
+            UPDATE esp_documents SET vector_count = %s
+            WHERE url = %s AND esp_id IN (SELECT id FROM esps WHERE name = %s)
+        """, (count, url, esp_name.lower()))
 
     def reviews_documents(self) -> List[tuple]:
         """(esp, url) of every Reviews-labelled document.

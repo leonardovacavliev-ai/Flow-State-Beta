@@ -69,6 +69,13 @@ def run():
         return 'STUB'
 
     app_module.ai_client.generate_response = stub
+    # Each case's integration exists and is active in production; chat
+    # refuses keys that are not (C1.1). The throwaway database starts empty.
+    from esp_manager import get_esp_manager
+    esp_mgr = get_esp_manager()
+    for esp in sorted({case[0] for case in CASES}):
+        if not esp_mgr.get_esp_by_name(esp, include_archived=True):
+            esp_mgr.create_esp(esp, esp)
     client = app_module.app.test_client()
     out = []
     # Each case twice: as an old browser tab sends it (no product) and as the

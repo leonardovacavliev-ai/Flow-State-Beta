@@ -199,6 +199,9 @@ def enqueue_urls(db, esp_mgr, esp, esp_name, urls, product=None):
         doc = esp_mgr.get_document_by_url(esp['id'], url)
         if not doc:
             doc = esp_mgr.add_document(esp_name, url, product=product)
+        # The row's URL, which add_document normalised (urls.py): the crawl
+        # and its vectors are keyed on it
+        url = doc['url']
         job_id, created = enqueue_crawl_job(db, esp['id'], doc['id'], url)
         job_ids.append(job_id)
         if not created:

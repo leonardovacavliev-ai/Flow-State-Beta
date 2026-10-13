@@ -24,8 +24,8 @@ class ChromaDBAdapter(VectorAdapter):
             embedding_function=self.embedding_function
         )
 
-    def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
-        """Add a document to the vector store"""
+    def add_document(self, text: str, metadata: Dict[str, Any]) -> int:
+        """Add a document to the vector store; returns the chunks written"""
         require_product_metadata(metadata)
         chunks = self.chunk_text(text)
 
@@ -41,6 +41,7 @@ class ChromaDBAdapter(VectorAdapter):
                 }],
                 ids=[doc_id]
             )
+        return len(chunks)
 
     def search(self, query: str, esp_filter: Optional[str] = None, n_results: int = 5,
                products: Optional[List[str]] = None) -> Dict:

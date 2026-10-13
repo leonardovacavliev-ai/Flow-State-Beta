@@ -15,6 +15,7 @@ from psycopg2 import pool
 import requests
 
 from .base import DatabaseAdapter
+from .seeds import seed_platform_types
 
 
 class _IndexPresent(Exception):
@@ -367,6 +368,57 @@ class PostgresAdapter(DatabaseAdapter):
             # Jobs from before pacing get their host in workers.crawl_queue.
             # repair_queue (run when the crawl worker starts and every sweep),
             # using the same url_host() as new jobs.
+
+            # Integrations (v2, ALL_INTEGRATIONS_ROADMAP.md C1.1). Older code
+            # ignores all of these. Lists are JSONB, like vector_ids.
+            # - platform_type: which prompt answers for the integration
+            #   (integration_types.PLATFORM_TYPES); NULL on 'global'
+            # - catalog_*: what yotpo.com/integrations says about it
+            self._add_missing_columns(cursor, 'esps', [
+                ('catalog_slugs', 'JSONB'),
+                ('categories', 'JSONB'),
+                ('products', 'JSONB'),
+                ('platform_type', 'VARCHAR(20)'),
+                ('catalog_description', 'TEXT'),
+            ])
+            # - title, source_kind, supported_*: from the Document360 header
+            # - vector_count: chunks written at the last index, so a document
+            #   that indexed to nothing shows up
+            # - sitemap_lastmod / consecutive_misses / retired_at: the
+            #   refresh pipeline's view of whether the page still exists
+            self._add_missing_columns(cursor, 'esp_documents', [
+                ('title', 'TEXT'),
+                ('source_kind', 'VARCHAR(20)'),
+                ('supported_plans', 'JSONB'),
+                ('supported_platforms', 'JSONB'),
+                ('vector_count', 'INTEGER'),
+                ('sitemap_lastmod', 'TIMESTAMP'),
+                ('consecutive_misses', 'INTEGER NOT NULL DEFAULT 0'),
+                ('retired_at', 'TIMESTAMP'),
+            ])
+            # Links found by the catalog import or the sitemap job, waiting
+            # for an admin to accept or reject them. One row per URL, ever:
+            # a rejected link is not proposed again.
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS document_proposals (
+                    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    esp_id          UUID REFERENCES esps(id) ON DELETE CASCADE,
+                    url             TEXT NOT NULL UNIQUE,
+                    source          VARCHAR(20),
+                    suggested_label VARCHAR(20),
+                    state           VARCHAR(20) DEFAULT 'open',
+                    note            TEXT,
+                    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    decided_by      TEXT,
+                    decided_at      TIMESTAMP
+                )
+            """)
+            if not self._index_exists(cursor, 'idx_proposals_state_esp'):
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_proposals_state_esp ON document_proposals(state, esp_id)")
+            # Serves per-integration analytics over a time range
+            if not self._index_exists(cursor, 'idx_messages_timestamp_esp'):
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp_esp ON messages(timestamp, esp)")
+            seed_platform_types(cursor)
 
             # Create indexes
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id)")

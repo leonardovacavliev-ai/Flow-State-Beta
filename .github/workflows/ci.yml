@@ -77,6 +77,10 @@ jobs:
         env: { HF_HUB_OFFLINE: '1' }
         run: python eval/test_product_scorer.py
 
+      - name: Integrations schema
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_integrations_schema.py
+
       - name: Import smoke test
         working-directory: backend
         env:
@@ -122,3 +126,6 @@ jobs:
 
       - name: Analytics (Postgres)
         run: python backend/test_analytics_providers.py postgres
+
+      - name: Integrations schema (Postgres)
+        run: python backend/test_integrations_schema.py postgres
