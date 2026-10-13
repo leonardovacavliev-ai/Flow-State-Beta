@@ -8,6 +8,23 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 1. Migrate to a **stateless cloud architecture** that can scale for online Yotpo customers as a SaaS service
 2. Support **dynamic knowledge base expansion**: easily add new ESPs and grow documentation for existing ESPs over time
 
+### 🟡 IN PROGRESS: Flow State v2 — every Yotpo Loyalty & Reviews integration
+
+Flow State is being extended from email/SMS platforms to every integration on
+yotpo.com/integrations, answered per platform type (messaging, storefront, service, data, content).
+
+- **The build map is [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md).** For any v2 work,
+  read its §0–§2 first. Then pick the next checkpoint from its status board, and update the board
+  when you finish.
+- **Why** each decision was made: [ALL_INTEGRATIONS_UPDATE.md](ALL_INTEGRATIONS_UPDATE.md) (plan v3,
+  accepted 2026-10-13). Its decision log is settled. Don't reopen it without Leo.
+- **Where this file disagrees with the plan:** the target architecture and phase lists below are v1
+  history. For v2 the plan wins (no FastAPI/React/S3 rewrite, no table rename, no per-ESP Pinecone
+  namespaces). This file is rewritten at checkpoint C2.8.
+- ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
+  backend with it runs schema changes on production at boot, and local crawls write production
+  vectors. Before running anything locally, read roadmap §1.1. Production writes are Leo's.
+
 ---
 
 ## Current Architecture (Local)
