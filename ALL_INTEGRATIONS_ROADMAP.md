@@ -15,7 +15,8 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
 
 ## 0. How to work from this file
 
-1. **Each session:** read §1 (rules), then §2 (status board), then the checkpoint you are on.
+1. **Each session:** read [NEXT_SESSION.md](NEXT_SESSION.md) (the last session's hand-off), then §1
+   (rules), then §2 (status board), then the checkpoint you are on.
 2. **Pick the next checkpoint:** the first `todo` row in §2 whose dependencies are all `done`.
    - 🛑 rows belong to Leo.
    - Claude Code only prepares their inputs, where the checkpoint says so.
@@ -167,10 +168,10 @@ Not part of the suite:
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
 | C0.1 | CI baseline | — | dev | 1–2 d | done | PR #2, merged and deployed 2026-10-13 |
-| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | PR #1, merged and deployed 2026-10-13: health and a Klaviyo chat OK; waiting on Leo's admin panel + one crawl |
+| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | done | PR #1, deployed 2026-10-13; health, Klaviyo chat, admin panel and a crawl OK |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
-| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | doing | PR #3, CI green; 🛑 Leo runs `scripts/fix_url_spellings.py --apply`, then it merges |
+| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | todo | |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
@@ -533,6 +534,11 @@ and pastes any that are blocked.
 - **Key rename dry run:** 16 `esp_selections` rows hold `other/webhook`; feedback, messages and
   conversations hold none. `--apply` also clears the stored aggregate version, so the dashboard
   recomputes after the rename, whatever the deploy order.
+- **Production steps done (2026-10-13, Leo):** `fix_url_spellings.py --apply` (then
+  `check_url_normalisation.py` reports 0 and the label audit is OK: 577 vectors, 95 rows), and
+  `normalize_esp_keys.py --apply` (16 rows). After the deploy: all 11 integrations read
+  `messaging`, `global` NULL; `document_proposals` exists; live chat answers Klaviyo and
+  Other/Webhook, and refuses an unknown key with 400.
 - **Checks (2026-10-13):** the suite passes offline with the network blocked;
   `test_integrations_schema.py` 14/14; golden check 26/26 identical (all 200, captured on
   `v2/c0-1-ci`, checked on this branch back to back); `audit_product_labels.py` OK.
@@ -1341,4 +1347,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C0.1 | PRs #1 and #2 opened; both CI jobs green. The red-run check used the local run where a real failing assertion exited 1 (CI runs only on PRs, so a scratch branch would need another PR) | Claude Code |
 | 2026-10-13 | C0.4 | Sources prepared (PR #4): 13 platforms, links checked, 9 flags for Leo | Claude Code |
 | 2026-10-13 | C0.2, C0.1 | #1 and #2 merged and deployed by Claude Code; live health and Klaviyo chat checked after each | Claude Code |
+| 2026-10-13 | C0.2 | Leo confirmed the admin panel and a crawl after the deploy: done | Leo |
 | 2026-10-13 | C1.1 | Schema, key validation, URL identity, chunk counts, both scripts, tests (PR #3); production URL check found 3 rows, fix script prepared | Claude Code |
+| 2026-10-13 | C1.1 | Merged and deployed (#3); Leo applied the URL fix and the key rename; live checks OK: done | Claude Code |
+| 2026-10-13 | — | NEXT_SESSION.md: hand-off agenda for the next session | Claude Code |
