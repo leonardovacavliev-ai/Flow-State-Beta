@@ -13,6 +13,8 @@ An AI-powered assistant that helps Yotpo customers set up loyalty campaigns and 
 Flow State is being extended from email/SMS platforms to every integration on
 yotpo.com/integrations, answered per platform type (messaging, storefront, service, data, content).
 
+- **Start with [NEXT_SESSION.md](NEXT_SESSION.md)**: where the last session stopped, and what to do
+  next.
 - **The build map is [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md).** For any v2 work,
   read its §0–§2 first. Then pick the next checkpoint from its status board, and update the board
   when you finish.
@@ -26,8 +28,9 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
   every change before committing or pushing it.
 - ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
   backend with it runs schema changes on production at boot, and local crawls write production
-  vectors. Before running anything locally, read roadmap §1.1. Claude Code merges and deploys (Railway deploys every push to `main`);
-  running data-changing scripts on production stays Leo's.
+  vectors. Before running anything locally, read roadmap §1.1.
+- **Claude Code merges and deploys** (Railway deploys every push to `main`). Running
+  data-changing scripts on production stays Leo's.
 
 ---
 
