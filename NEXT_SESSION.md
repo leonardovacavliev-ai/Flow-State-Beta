@@ -116,8 +116,10 @@ sides failed.
   your progress from a worktree, or stage only your own lines. This session did it like this:
   write the edited file from `git show HEAD:<file>`, then
   `git update-index --cacheinfo 100644,$(git hash-object -w <file>),<path>`.
-  Those uncommitted edits also stop `git switch` in the main checkout: it is still on
-  `v2/c1-1-schema`.
+  The main checkout is on `main`. The other session's edits were carried over with `git stash`;
+  the stash entry is kept, and a backup sits in
+  `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
+  refuse when the branches differ there, so work in worktrees.
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
 - **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the
