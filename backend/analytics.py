@@ -125,7 +125,8 @@ _GUEST_USER = "s.user_id IS NULL AND s.ip_address IS NOT NULL AND s.ip_address !
 # Bumped whenever a metric's definition changes. Daily rows already stored
 # under the old definition feed the sparklines, so they are recomputed on the
 # next dashboard load rather than left to mix old and new math in one chart.
-_AGGREGATE_DEFINITION_VERSION = '3'
+# '4': integration keys normalised ('other/webhook' -> 'other_webhook', C1.1)
+_AGGREGATE_DEFINITION_VERSION = '4'
 
 
 def _num(value, default=0.0) -> float:
