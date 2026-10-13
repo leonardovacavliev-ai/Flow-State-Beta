@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY backend/requirements.txt ./backend/
-RUN pip install --no-cache-dir -r backend/requirements.txt
+# Install dependencies at the versions production runs: requirements.txt pins
+# the direct ones, constraints.txt everything they pull in (see both headers).
+COPY backend/requirements.txt backend/constraints.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt -c backend/constraints.txt
 
 # Copy application files
 COPY backend ./backend

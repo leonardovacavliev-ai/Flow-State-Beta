@@ -1,17 +1,25 @@
-flask
-flask-cors
-gunicorn
-chromadb
-beautifulsoup4
-requests
-google-generativeai
-anthropic
-openai
-pinecone
-sentence-transformers
-psycopg2-binary
-python-dotenv
-redis
-apscheduler
-google-auth
-PyJWT
+# Pinned to the exact versions production ran on 2026-10-13
+# (`railway ssh -- pip freeze`; checkpoint C0.2 in ALL_INTEGRATIONS_ROADMAP.md).
+# These are the packages the app imports directly. backend/constraints.txt pins
+# everything they pull in, so a fresh build installs exactly what production runs.
+#
+# Upgrade on purpose, one package per change: edit the pin here and in
+# constraints.txt, run the checks, deploy. Never remove the pins to "get the latest".
+
+flask==3.1.3
+flask-cors==6.0.5
+gunicorn==26.2.0
+chromadb==1.5.9
+beautifulsoup4==4.15.0
+requests==2.34.2
+google-generativeai==0.8.6
+anthropic==1.11.0
+openai==3.26.0
+pinecone==10.0.0
+sentence-transformers==6.1.0
+psycopg2-binary==2.9.13
+python-dotenv==1.2.4
+redis==8.1.0
+apscheduler==3.11.3
+google-auth==2.60.0
+PyJWT==2.15.1
