@@ -134,11 +134,13 @@ python3 backend/test_conversation_seed.py
 python3 backend/test_crawl_pacing.py              # pure part
 python3 backend/test_analytics_providers.py sqlite
 python3 eval/test_product_scorer.py
+python3 backend/test_integrations_schema.py
 # Import smoke test: §1.1 command
 
 # Postgres-backed (TEST_DATABASE_URL, throwaway schema)
 python3 backend/test_crawl_pacing.py postgres
 python3 backend/test_analytics_providers.py postgres
+python3 backend/test_integrations_schema.py postgres  # TEST_DATABASE_URL only
 
 # Read-only against the live index (allowed)
 python3 eval/check_context_unchanged.py capture /tmp/golden.json   # before the change
@@ -157,11 +159,11 @@ Not part of the suite:
 
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
-| C0.1 | CI baseline | — | dev | 1–2 d | doing | branch `v2/c0-1-ci` (stacked on `v2/c0-2-pin-dependencies`) 2026-10-13; waiting on push, PR and the two acceptance runs on GitHub |
-| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | committed on `v2/c0-2-pin-dependencies` 2026-10-13; waiting on push, PR, deploy and smoke check |
+| C0.1 | CI baseline | — | dev | 1–2 d | doing | PR #2, both jobs green 2026-10-13; waiting on merge (after #1) |
+| C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | doing | PR #1; the pins installed cleanly on Linux/3.11 in #2's CI; waiting on merge, deploy and smoke check |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
-| C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | todo | |
-| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | todo | |
+| C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
+| C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | doing | PR #3 (after #1, #2); 🛑 run `scripts/fix_url_spellings.py --apply` before it merges |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | todo | |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
@@ -412,23 +414,23 @@ and pastes any that are blocked.
 - `add_document` in both vector adapters (it returns `None` today).
 
 **Tasks**
-- [ ] **Columns, Postgres and SQLite.** Lists are JSONB in Postgres and TEXT holding JSON in SQLite,
+- [x] **Columns, Postgres and SQLite.** Lists are JSONB in Postgres and TEXT holding JSON in SQLite,
   like `vector_ids`.
   - `esps`: `catalog_slugs`, `categories`, `products` (JSONB), `platform_type VARCHAR(20)`,
     `catalog_description TEXT`.
   - `esp_documents`: `title TEXT`, `source_kind VARCHAR(20)`, `supported_plans JSONB`,
     `supported_platforms JSONB`, `vector_count INTEGER`, `sitemap_lastmod TIMESTAMP`,
     `consecutive_misses INTEGER NOT NULL DEFAULT 0`, `retired_at TIMESTAMP`.
-- [ ] **Table `document_proposals`:**
+- [x] **Table `document_proposals`:**
   - columns: `id UUID PK`, `esp_id UUID REFERENCES esps(id) ON DELETE CASCADE`,
     `url TEXT NOT NULL UNIQUE`, `source VARCHAR(20)` (`catalog`|`sitemap`|`manual`),
     `suggested_label VARCHAR(20)`, `state VARCHAR(20) DEFAULT 'open'`, `note TEXT`, `created_at`,
     `decided_by TEXT`, `decided_at`;
   - index on `(state, esp_id)`;
   - SQLite mirror.
-- [ ] **Index** `idx_messages_timestamp_esp ON messages(timestamp, esp)`, created only when missing
+- [x] **Index** `idx_messages_timestamp_esp ON messages(timestamp, esp)`, created only when missing
   (`_index_exists`).
-- [ ] **`backend/integration_types.py`** (pure):
+- [x] **`backend/integration_types.py`** (pure):
   - `PLATFORM_TYPES = ('messaging','storefront','service','data','content')`.
   - `CATEGORY_DEFAULT_TYPE`: catalog category slug → type.
     - messaging: `email-marketing`, `sms-marketing`, `whatsapp-social-dms`.
@@ -444,41 +446,41 @@ and pastes any that are blocked.
       `loyalty-referrals`.
   - `default_type(categories)`: first match in the priority order messaging → service →
     storefront → content → data. An admin overrides conflicts.
-- [ ] **Boot seed, idempotent:**
+- [x] **Boot seed, idempotent:**
   - `platform_type = 'messaging'` for every existing ESP row where it is NULL. This includes
     **`other_webhook`**: it is live on the email prompt today and moves to `data` only in C2.4.
   - `global` keeps NULL.
-- [ ] **`backend/urls.py`:** `normalize_url(url)`. It strips whitespace, drops the `#fragment`,
+- [x] **`backend/urls.py`:** `normalize_url(url)`. It strips whitespace, drops the `#fragment`,
   lowercases scheme and host, drops default ports, and strips the trailing slash except on the
   root. The query string is kept. Pure, with tests.
-- [ ] **`eval/check_url_normalisation.py`** (read-only): lists `esp_documents` rows whose `url !=
+- [x] **`eval/check_url_normalisation.py`** (read-only): lists `esp_documents` rows whose `url !=
   normalize_url(url)`.
   - 🛑 Run it against production. Expected: 0.
   - If not 0, Leo decides per row **before** the next task merges. Vectors are keyed on
     `(esp, source_url)`, so normalising lookups would orphan those rows.
-- [ ] **Use `normalize_url`:**
+- [x] **Use `normalize_url`:**
   - in `ESPManager.add_document`, `find_documents_by_url`, `get_document_by_url`;
   - in the `check-link` route;
   - in proposals.
-- [ ] **Vector chunk counts:**
+- [x] **Vector chunk counts:**
   - Vector adapters' `add_document` returns the number of chunks written.
   - `vectorize_single_document` returns it.
   - Every caller stores it in `vector_count`: the crawl worker's `_finish_completed`, paste,
     rebuild.
-- [ ] **Key validation:**
+- [x] **Key validation:**
   - `ESPManager.is_active_integration(name)`, with a 60 s in-process cache.
   - `chat()`: when `esp` is present and not an active row → 400
     `{"error": "Unknown integration. Reload the page."}`.
   - When `esp` is missing, the `klaviyo` default stays, for old tabs.
   - `select_esp()`, `submit_feedback()` and conversation create normalise `/` → `_` server-side.
-- [ ] **`scripts/normalize_esp_keys.py`** (dry run / `--apply`):
+- [x] **`scripts/normalize_esp_keys.py`** (dry run / `--apply`):
   - `UPDATE … SET esp = 'other_webhook' WHERE esp = 'other/webhook'` on `esp_selections`,
     `feedback`, `messages`, `conversations`.
   - Then bump `analytics._AGGREGATE_DEFINITION_VERSION` to `'4'`.
   - 🛑 Leo runs `--apply` on production after deploy.
-- [ ] **`ESPManager.list_integrations(statuses=('active',), …)`** returns the new fields.
+- [x] **`ESPManager.list_integrations(statuses=('active',), …)`** returns the new fields.
   `list_esps` is unchanged, so older callers and older code still see only `active` rows (I4).
-- [ ] **`backend/test_integrations_schema.py`:**
+- [x] **`backend/test_integrations_schema.py`:**
   - booting twice on SQLite is a no-op; the columns exist;
   - `listed` rows are invisible to `list_esps`;
   - `normalize_url` cases;
@@ -494,6 +496,39 @@ and pastes any that are blocked.
 - `check_url_normalisation.py` reports 0 on production, or Leo's decisions are recorded.
 
 **Rollback:** older code ignores the new columns and table. Revert is safe. Leave the columns.
+
+**Deviations (2026-10-13)**
+- **Production URL check: 3 rows, not 0.** Two Attentive guides and the Klaviyo guide were stored
+  with a `#section`. No page is stored twice. Leo chose to tidy them:
+  `scripts/fix_url_spellings.py` re-points each one's vectors (`source_url`), then its row. The dry
+  run shows 48 vectors (5, 3, 40). 🛑 **Leo runs `--apply` before PR #3 merges.** The current code
+  works with the tidy URLs; C1.1's code would not find the old spellings. After the fix, the
+  golden context differs only where these documents are cited, since their URL is shown to the
+  model.
+- **`normalize_url` rewrites only http(s).** `local://Yotpo`, the name of pasted global text, is a
+  name and keeps its case. The legacy CSV has one such link.
+- **Links are normalised at each route's entry** (add, paste, check, crawl-selected, global
+  add/crawl/paste), not only in `ESPManager`. Each route carries its `url` into the crawl and the
+  vectors, so normalising only the row would split one document across two spellings.
+  `enqueue_urls` also uses the row's URL. Delete and set-product still match stored URLs exactly.
+- **The boot seed runs once**, recorded in `app_settings` (`seed:platform_type_messaging`), not on
+  every boot. Otherwise a catalog row imported in C1.2 with no type would become `messaging` at the
+  next boot.
+- **`create_esp` defaults `platform_type` to `messaging`.** Today's admin only creates email/SMS
+  platforms (C0.4's 13 included). The hidden `global` row is created with `None`.
+- **`vector_count` is recorded inside `vectorize_single_document`**, not by each caller. Every
+  indexing path goes through it, so none can skip it. A failure to record the count is logged; it
+  does not fail the crawl.
+- **Chat lets a message through if the key check itself fails** (database error), and logs it. A
+  validation step should not take chat down.
+- **`check_context_unchanged.py` creates its cases' integrations** in its throwaway database. Chat
+  now refuses unknown keys, and that database starts empty.
+- **Key rename dry run:** 16 `esp_selections` rows hold `other/webhook`; feedback, messages and
+  conversations hold none. `--apply` also clears the stored aggregate version, so the dashboard
+  recomputes after the rename, whatever the deploy order.
+- **Checks (2026-10-13):** the suite passes offline with the network blocked;
+  `test_integrations_schema.py` 14/14; golden check 26/26 identical (all 200, captured on
+  `v2/c0-1-ci`, checked on this branch back to back); `audit_product_labels.py` OK.
 
 ### C1.2 Document360 header parser + catalog import (dry run)
 
@@ -1296,3 +1331,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C0.2 | `requirements.txt` pinned and `constraints.txt` added from the production freeze; Dockerfile uses both; CX.3 added | Claude Code |
 | 2026-10-13 | C0.2 | Committed on `v2/c0-2-pin-dependencies`, with the plan, the map and the CLAUDE.md pointer | Claude Code |
 | 2026-10-13 | C0.1 | `.github/workflows/ci.yml` (jobs `unit`, `postgres`); Postgres tests read `TEST_DATABASE_URL`; ipapi.co stubbed; sparkline assertion fixed | Claude Code |
+| 2026-10-13 | C0.1 | PRs #1 and #2 opened; both CI jobs green. The red-run check used the local run where a real failing assertion exited 1 (CI runs only on PRs, so a scratch branch would need another PR) | Claude Code |
+| 2026-10-13 | C0.4 | Sources prepared (PR #4): 13 platforms, links checked, 9 flags for Leo | Claude Code |
+| 2026-10-13 | C1.1 | Schema, key validation, URL identity, chunk counts, both scripts, tests (PR #3); production URL check found 3 rows, fix script prepared | Claude Code |
