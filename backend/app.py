@@ -3,6 +3,7 @@ from flask_cors import CORS
 from adapters.vector.vector_manager import get_vector_adapter
 from adapters.session.session_manager import get_session_adapter
 from crawler import vectorize_single_document
+from urls import normalize_url
 from analytics import (
     create_session, track_message, track_esp_selection,
     track_feedback, get_analytics, end_session, attach_user_to_session
@@ -214,12 +215,29 @@ def end_session_endpoint():
         end_session(session_id)
     return jsonify({'success': True})
 
+def integration_key(esp):
+    """The esps.name form of an integration key: the page has sent
+    'other/webhook' for 'other_webhook' (I6)."""
+    return esp.strip().lower().replace('/', '_') if isinstance(esp, str) else esp
+
+
+def _is_active_integration(key):
+    """esp_manager.is_active_integration, but a database hiccup lets the
+    message through rather than failing chat over a validation step."""
+    try:
+        from esp_manager import get_esp_manager
+        return get_esp_manager().is_active_integration(key)
+    except Exception as e:
+        print(f"[CHAT] Could not check integration '{key}': {e}")
+        return True
+
+
 @app.route('/api/esp/select', methods=['POST'])
 def select_esp():
     """Track ESP selection"""
     data = request.json
     session_id = data.get('session_id')
-    esp = data.get('esp')
+    esp = integration_key(data.get('esp'))
 
     if session_id and esp:
         track_esp_selection(session_id, esp)
@@ -239,6 +257,13 @@ def chat():
 
     if not session_id:
         return jsonify({'error': 'No session_id provided'}), 400
+
+    # One integration key everywhere (esps.name). A page sending a key that is
+    # not an active integration -- renamed, archived, or a stale tab -- gets
+    # told to reload instead of an answer built from nothing. A request with
+    # no esp keeps the klaviyo default, for tabs opened before the picker.
+    if isinstance(esp, str) and esp.strip() and not _is_active_integration(integration_key(esp)):
+        return jsonify({'error': 'Unknown integration. Reload the page.'}), 400
 
     # A signed-in user with a conversation_id gets their history from the
     # database, which is authoritative. get_history_for_ai scopes by user_id,
@@ -371,7 +396,7 @@ def submit_feedback():
     """Save feedback to CSV and track in analytics"""
     data = request.json
     email = data.get('email', '')
-    esp = data.get('esp', '')
+    esp = integration_key(data.get('esp', '')) or ''
     comments = data.get('comments', '')
     session_id = data.get('session_id')
 
@@ -878,7 +903,8 @@ def _ensure_global_esp(esp_mgr):
     esp = esp_mgr.get_esp_by_name('global', include_archived=True)
     if not esp:
         esp = esp_mgr.create_esp('global', 'Global Knowledge',
-                                 'Internal: global knowledge base (not a selectable ESP)')
+                                 'Internal: global knowledge base (not a selectable ESP)',
+                                 platform_type=None)
     elif esp.get('status') != 'active':
         # Reactivate: it's filtered out of the selectable ESP list by
         # name, and add_document/list_documents only see active ESPs
@@ -957,7 +983,7 @@ def _delete_global_docs(urls):
 def add_global_knowledge_link():
     """Add a new link to global knowledge"""
     data = request.json
-    url = (data.get('url') or '').strip()
+    url = normalize_url(data.get('url') or '')
 
     if not is_admin_request():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
@@ -1050,7 +1076,7 @@ def crawl_global_knowledge_links():
     database from that copy ('backfilled') so the NO BACKUP flag can clear.
     """
     data = request.json
-    urls = data.get('urls', [])
+    urls = [normalize_url(u) if isinstance(u, str) else u for u in data.get('urls', [])]
 
     if not is_admin_request():
         return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
@@ -1201,7 +1227,7 @@ def crawl_global_knowledge_links():
 def paste_global_content():
     """Manually add content for a global knowledge link that can't be crawled"""
     data = request.json
-    url = data.get('url', '')
+    url = normalize_url(data.get('url', ''))
     content = data.get('content', '')
 
     if not is_admin_request():

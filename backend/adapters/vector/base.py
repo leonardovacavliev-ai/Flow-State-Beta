@@ -35,7 +35,7 @@ class VectorAdapter(ABC):
     """Base interface for vector database adapters"""
 
     @abstractmethod
-    def add_document(self, text: str, metadata: Dict[str, Any]) -> None:
+    def add_document(self, text: str, metadata: Dict[str, Any]) -> int:
         """
         Add a document to the vector store
 
@@ -43,6 +43,9 @@ class VectorAdapter(ABC):
             text: Document content to embed
             metadata: Metadata dict with keys: esp, filename, source_url,
                 filepath, product. Raises ValueError without a valid product.
+
+        Returns:
+            The number of chunks written
         """
         pass
 
