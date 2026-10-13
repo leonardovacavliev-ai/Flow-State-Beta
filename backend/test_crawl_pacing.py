@@ -4,8 +4,9 @@ Verify crawl pacing, retry classification and crawl-state reporting.
 Usage:
     python test_crawl_pacing.py            # pure checks only (no database)
     python test_crawl_pacing.py postgres   # + queue/worker checks against
-                                           #   DATABASE_URL from .env, isolated
-                                           #   in schema crawl_ci_test
+                                           #   TEST_DATABASE_URL (else DATABASE_URL
+                                           #   from .env), isolated in schema
+                                           #   crawl_ci_test
 
 The postgres run never touches production tables: it creates (and drops) a
 dedicated schema and points search_path at it via the connection URL. No
@@ -279,17 +280,21 @@ class FakeVectorizer:
 
 
 def setup_postgres():
-    from dotenv import dotenv_values
-    d = os.path.dirname(os.path.abspath(__file__))
-    env_file = None
-    while d != os.path.dirname(d):
-        if os.path.exists(os.path.join(d, '.env')):
-            env_file = os.path.join(d, '.env')
-            break
-        d = os.path.dirname(d)
-    url = dotenv_values(env_file).get('DATABASE_URL') if env_file else None
+    # A dedicated test database (CI, local Docker) wins over .env, whose
+    # DATABASE_URL is production
+    url = os.environ.get('TEST_DATABASE_URL')
     if not url:
-        print("FAIL: DATABASE_URL not set in .env")
+        from dotenv import dotenv_values
+        d = os.path.dirname(os.path.abspath(__file__))
+        env_file = None
+        while d != os.path.dirname(d):
+            if os.path.exists(os.path.join(d, '.env')):
+                env_file = os.path.join(d, '.env')
+                break
+            d = os.path.dirname(d)
+        url = dotenv_values(env_file).get('DATABASE_URL') if env_file else None
+    if not url:
+        print("FAIL: neither TEST_DATABASE_URL nor DATABASE_URL in .env is set")
         sys.exit(1)
 
     import psycopg2

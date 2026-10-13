@@ -3,7 +3,8 @@ Verify analytics.py works through the database adapter with both providers.
 
 Usage:
     python test_analytics_providers.py sqlite     # temp SQLite file
-    python test_analytics_providers.py postgres   # DATABASE_URL from .env,
+    python test_analytics_providers.py postgres   # TEST_DATABASE_URL (else
+                                                  # DATABASE_URL from .env),
                                                   # isolated in schema
                                                   # analytics_ci_test
 
@@ -40,15 +41,18 @@ def setup_provider(provider):
         print(f"Using temp SQLite db: {db_file}")
         return None
 
-    # postgres
-    from dotenv import dotenv_values
-    env_file = _find_env_file()
-    if not env_file:
-        print("FAIL: no .env found for DATABASE_URL")
-        sys.exit(1)
-    url = dotenv_values(env_file).get('DATABASE_URL')
+    # postgres: a dedicated test database (CI, local Docker) wins over .env,
+    # whose DATABASE_URL is production
+    url = os.environ.get('TEST_DATABASE_URL')
     if not url:
-        print("FAIL: DATABASE_URL not set in .env")
+        from dotenv import dotenv_values
+        env_file = _find_env_file()
+        if not env_file:
+            print("FAIL: neither TEST_DATABASE_URL nor a .env with DATABASE_URL")
+            sys.exit(1)
+        url = dotenv_values(env_file).get('DATABASE_URL')
+    if not url:
+        print("FAIL: neither TEST_DATABASE_URL nor DATABASE_URL in .env is set")
         sys.exit(1)
 
     import psycopg2
@@ -78,6 +82,9 @@ def teardown_postgres(base_url):
 
 def run_checks():
     import analytics
+
+    # Country lookup calls ipapi.co; tests make no network requests
+    analytics.get_country_from_ip = lambda ip_address: 'Unknown'
 
     checks = []
 
@@ -226,7 +233,10 @@ def run_checks():
     check("sparkline has all 7 series", all(
         k in spark for k in ['dates', 'sessions', 'unique_users', 'avg_messages',
                              'feedback', 'session_time', 'msg_length']))
-    check("sparkline covers today", spark['dates'] and spark['dates'][-1] == now.date().isoformat())
+    # Sparklines are weekly buckets labelled by their first day; the last one
+    # ends today, so it starts six days ago
+    check("sparkline covers today", spark['dates'] and
+          spark['dates'][-1] == (now.date() - timedelta(days=6)).isoformat())
     check("sparkline series lengths match", len({len(v) for v in spark.values()}) == 1)
     check("today's sparkline sessions >= 2", spark['sessions'] and spark['sessions'][-1] >= 2)
 

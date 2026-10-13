@@ -1,0 +1,124 @@
+# The check suite from ALL_INTEGRATIONS_ROADMAP.md §1.4, minus the read-only
+# runs against the live index: those need production credentials, which CI
+# never has. Nothing here reaches the network after install: the embedding
+# model comes from the cache (HF_HUB_OFFLINE), the tests stub everything else.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: '1'
+  # Local providers only: no Pinecone, no Redis, no production Postgres
+  VECTOR_DB_PROVIDER: chromadb
+  DATABASE_PROVIDER: sqlite
+  SESSION_PROVIDER: memory
+  USE_ASYNC_CRAWL: 'false'
+
+jobs:
+  unit:
+    name: unit (pure + SQLite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/constraints.txt
+
+      # The same flags as the Dockerfile, so CI installs what production runs
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt -c backend/constraints.txt
+
+      - name: Restore the embedding model
+        id: hf-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-all-MiniLM-L6-v2-${{ hashFiles('backend/constraints.txt') }}
+
+      - name: Download the embedding model
+        if: steps.hf-cache.outputs.cache-hit != 'true'
+        run: python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+      - name: Prompt template
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_prompt_template.py
+
+      - name: Product write paths
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_product_write_paths.py
+
+      - name: Conversation seed
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_conversation_seed.py
+
+      - name: Crawl pacing (pure)
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_crawl_pacing.py
+
+      - name: Analytics (SQLite)
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_analytics_providers.py sqlite
+
+      - name: Product scorer
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python eval/test_product_scorer.py
+
+      - name: Import smoke test
+        working-directory: backend
+        env:
+          HF_HUB_OFFLINE: '1'
+          SQLITE_DB_PATH: ${{ runner.temp }}/smoke.db
+        run: python -c "import app; print('ok')"
+
+  postgres:
+    name: postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The tests isolate themselves in a throwaway schema on this database
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      HF_HUB_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: |
+            backend/requirements.txt
+            backend/constraints.txt
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt -c backend/constraints.txt
+
+      - name: Crawl pacing (Postgres)
+        run: python backend/test_crawl_pacing.py postgres
+
+      - name: Analytics (Postgres)
+        run: python backend/test_analytics_providers.py postgres

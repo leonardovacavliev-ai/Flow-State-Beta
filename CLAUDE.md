@@ -21,6 +21,9 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
 - **Where this file disagrees with the plan:** the target architecture and phase lists below are v1
   history. For v2 the plan wins (no FastAPI/React/S3 rewrite, no table rename, no per-ESP Pinecone
   namespaces). This file is rewritten at checkpoint C2.8.
+- **Talk to Leo in plain language, without jargon.** Say what was done and why it matters in a
+  sentence or two, then whether anything is needed from him, as short numbered steps. Review
+  every change before committing or pushing it.
 - ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
   backend with it runs schema changes on production at boot, and local crawls write production
   vectors. Before running anything locally, read roadmap §1.1. Production writes are Leo's.
