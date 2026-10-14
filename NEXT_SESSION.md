@@ -22,9 +22,10 @@ Production data steps Leo ran on 2026-10-13:
   `other_webhook`. The dashboard recomputes its daily aggregates on its next load.
 
 **Open:**
-- **C1.2 (branch `v2/c1-2-catalog-import`)**: header parser, catalog import, and the **partner app
-  overviews** Leo asked for on 2026-10-14 (the import also proposes up to 3 of each partner's own
-  general help articles, so Flow State knows what the app does; source `overview`). Nothing is
+- **C1.2 (branch `v2/c1-2-catalog-import`)**: header parser, catalog import, and the **partner mechanics
+  articles** Leo asked for on 2026-10-14 (the import also proposes up to 3 of each partner's own
+  articles on the features the integration uses, e.g. Recharge's subscription discount codes;
+  source `mechanics`). Leo rejected a first version that picked "Welcome to the app" articles. Nothing is
   written to production by this branch. Waiting for Leo to read
   `docs/integrations/catalog_dry_run.md`; then merge when CI is green. `--apply` stays C1.9.
 - **PR #4 (C0.4 sources)**: `docs/integrations/messaging_sources.md`, the help links for the 13
@@ -119,10 +120,10 @@ sides failed.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
-- **Overview picks are suggestions, not truth.** About half are the app's own "getting started"
-  articles; some are weak. C1.4's inbox must show their note (title and why picked) so an admin
-  can reject quickly. In the waves, watch whether overview chunks push the Yotpo guide out of
-  Query A (roadmap wave template, "Watch in W3").
+- **Mechanics picks are suggestions, not truth.** Leo wants articles on how the feature the
+  integration plugs into works (his email-platform picks are the model), not general
+  introductions. The topic lists in `backend/mechanics_topics.py` decide what is searched; change
+  them there, not in the scoring. C1.4's inbox must show each pick's note (title and topic).
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
 - **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the

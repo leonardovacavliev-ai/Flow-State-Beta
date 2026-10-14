@@ -1,0 +1,230 @@
+{
+ "pages": {
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20discount%20codes&locale=en-us&per_page=10": {
+   "file": "00-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20discount%20codes&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=discount%20codes&locale=en-us&per_page=10": {
+   "file": "01-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=discount%20codes&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=recurring%20orders&locale=en-us&per_page=10": {
+   "file": "02-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=recurring%20orders&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20renewal&locale=en-us&per_page=10": {
+   "file": "03-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20renewal&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=customer%20portal&locale=en-us&per_page=10": {
+   "file": "04-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=customer%20portal&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20products&locale=en-us&per_page=10": {
+   "file": "05-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20products&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=selling%20plans&locale=en-us&per_page=10": {
+   "file": "06-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=selling%20plans&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=flow%20triggers&locale=en-us&per_page=10": {
+   "file": "07-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=flow%20triggers&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=create%20a%20flow&locale=en-us&per_page=10": {
+   "file": "08-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=create%20a%20flow&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=custom%20properties&locale=en-us&per_page=10": {
+   "file": "09-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=custom%20properties&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=custom%20events&locale=en-us&per_page=10": {
+   "file": "10-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=custom%20events&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=create%20a%20segment&locale=en-us&per_page=10": {
+   "file": "11-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=create%20a%20segment&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=segments&locale=en-us&per_page=10": {
+   "file": "12-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=segments&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=time%20delay&locale=en-us&per_page=10": {
+   "file": "13-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=time%20delay&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=re-entry&locale=en-us&per_page=10": {
+   "file": "14-help-klaviyo-com-api-v2-help-center-articles-search-json-que.txt",
+   "status": 200,
+   "url": "https://help.klaviyo.com/api/v2/help_center/articles/search.json?query=re-entry&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.omnisend.com/en": {
+   "file": "15-support-omnisend-com-en.txt",
+   "status": 200,
+   "url": "https://support.omnisend.com/en",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.omnisend.com/en/collections/2440850-audience-segmentation": {
+   "file": "16-support-omnisend-com-en-collections-2440850-audience-segment.txt",
+   "status": 200,
+   "url": "https://support.omnisend.com/en/collections/2440850-audience-segmentation",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.omnisend.com/en/collections/35881-automation": {
+   "file": "17-support-omnisend-com-en-collections-35881-automation.txt",
+   "status": 200,
+   "url": "https://support.omnisend.com/en/collections/35881-automation",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en": {
+   "file": "18-support-dixa-help-en.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/llms.txt": {
+   "file": "19-support-dixa-help-llms-txt.txt",
+   "status": 502,
+   "url": "https://support.dixa.help/llms.txt",
+   "content_type": "text/html"
+  },
+  "https://support.dixa.help/robots.txt": {
+   "file": "20-support-dixa-help-robots-txt.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/robots.txt",
+   "content_type": "text/plain; charset=utf-8"
+  },
+  "https://support.dixa.help/en/sitemap.xml": {
+   "file": "21-support-dixa-help-en-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/sitemap.xml",
+   "content_type": "application/xml"
+  },
+  "https://support.dixa.help/sitemap.xml": {
+   "file": "22-support-dixa-help-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/sitemap.xml",
+   "content_type": "application/xml"
+  },
+  "https://help.smile.io/en": {
+   "file": "23-help-smile-io-en.txt",
+   "status": 200,
+   "url": "https://help.smile.io/home",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://help.smile.io/llms.txt": {
+   "file": "24-help-smile-io-llms-txt.txt",
+   "status": 200,
+   "url": "https://help.smile.io/llms.txt",
+   "content_type": "text/plain; charset=utf-8"
+  }
+ },
+ "expected": {
+  "recharge": {
+   "help_centre": "https://support.getrecharge.com/hc/en-us",
+   "method": "zendesk-search",
+   "topics": [
+    "discount codes on subscriptions",
+    "recurring orders and renewals",
+    "customer portal",
+    "subscription products and plans"
+   ],
+   "picked": [
+    "https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes",
+    "https://support.getrecharge.com/hc/en-us/articles/360008682094-Manually-process-a-recurring-order-immediately",
+    "https://support.getrecharge.com/hc/en-us/articles/360008683274-Understanding-the-customer-portal"
+   ]
+  },
+  "klaviyo": {
+   "help_centre": "https://help.klaviyo.com/hc/en-us",
+   "method": "zendesk-search",
+   "topics": [
+    "flows and their triggers",
+    "custom properties and events",
+    "segments and lists",
+    "delays, filters and re-entry"
+   ],
+   "picked": [
+    "https://help.klaviyo.com/hc/en-us/articles/115002774952-Guide-to-Flow-Triggers-and-Flow-Filters",
+    "https://help.klaviyo.com/hc/en-us/articles/360003057151-How-to-create-a-metric-triggered-flow",
+    "https://help.klaviyo.com/hc/en-us/articles/360003040052-How-to-create-a-segment-or-list-triggered-flow"
+   ]
+  },
+  "omnisend": {
+   "help_centre": "https://support.omnisend.com/en",
+   "method": "pages",
+   "topics": [
+    "flows and their triggers",
+    "custom properties and events",
+    "delays, filters and re-entry",
+    "segments and lists"
+   ],
+   "picked": [
+    "https://support.omnisend.com/en/articles/3954813-set-up-automation-workflow-settings",
+    "https://support.omnisend.com/en/articles/4298431-understand-event-data-in-automation-workflows",
+    "https://support.omnisend.com/en/articles/12569070-understand-omnisend-segment-filters"
+   ]
+  },
+  "dixa": {
+   "help_centre": "https://support.dixa.help/en",
+   "method": "sitemap",
+   "topics": [
+    "customer profile in the sidebar",
+    "macros and replies",
+    "rules and automations",
+    "AI agent knowledge and actions"
+   ],
+   "picked": [
+    "https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar",
+    "https://support.dixa.help/en/articles/2001-how-to-create-and-use-macros",
+    "https://support.dixa.help/en/articles/1895-auto-adding-conversation-contacts-attributes-through-automations"
+   ]
+  },
+  "smile_io": {
+   "help_centre": "https://help.smile.io/en",
+   "method": "pages + llms.txt",
+   "topics": [
+    "points and rewards",
+    "importing customers and balances",
+    "referrals and VIP tiers"
+   ],
+   "picked": [
+    "https://help.smile.io/en/articles/4036271-configure-ways-to-redeem-points",
+    "https://help.smile.io/en/articles/shopify-flow-adjust-points-balance",
+    "https://help.smile.io/en/articles/4036321-understand-vip-tier-milestones"
+   ]
+  }
+ }
+}

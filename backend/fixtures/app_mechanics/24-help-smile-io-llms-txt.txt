@@ -1,0 +1,235 @@
+# Smile Help Center
+
+- [Smile Help Center](https://help.smile.io/home.md): Guides to help you set up and manage your loyalty program
+- [Supported eCommerce platforms](https://help.smile.io/en/articles/4036185-supported-ecommerce-platforms.md): Find out which eCommerce platforms you can use with Smile.
+- [Import loyalty points from another loyalty program](https://help.smile.io/en/articles/4036254-import-loyalty-points-to-smile-from-another-program.md): Import customer loyalty points when switching to Smile.
+- [Smile paid plan advantages](https://help.smile.io/en/articles/4036304-smile-paid-plan-advantages.md): Learn about the features available on Smile's paid plans
+- [Test your loyalty program](https://help.smile.io/en/articles/12632066-test-your-loyalty-program.md): Test your loyalty program on your live site after launching it, while keeping it hidden from customers.
+- [Move a Smile loyalty program to a new eCommerce platform](https://help.smile.io/en/articles/13370251-move-a-smile-loyalty-program-to-a-new-ecommerce-platform.md): Learn how to move your Smile loyalty program to a new eCommerce platform while keeping your customers' points intact.
+- [How to log in to Smile](https://help.smile.io/en/articles/13441174-how-to-log-in-to-smile.md): Learn how to log in to Smile and access your account based on the eCommerce platform your store uses.
+- [Configure program participation](https://help.smile.io/en/articles/4536631-configure-program-participation.md): Use program participation settings to manage which customers can participate in your loyalty program.
+- [Understanding store name, program name, and points currency name](https://help.smile.io/en/articles/12702120-understanding-store-name-program-name-and-points-currency-name.md): Discover how each name shapes your loyalty program experience and how to customize them in Smile.
+- [Update order settings - Shopify](https://help.smile.io/en/articles/4036177-update-order-settings-shopify.md): Configure how points are awarded for orders, including eligible order statuses, taxes, shipping, discounts, and POS purchases.
+- [Update order settings - BigCommerce](https://help.smile.io/en/articles/5467063-update-order-settings-bigcommerce.md): Configure how points are awarded for orders, including eligible order statuses, taxes, shipping, discounts, store credit, and gift certificates.
+- [Translate Smile Admin](https://help.smile.io/en/articles/13431624-translate-smile-admin.md): How Smile Admin language settings work and how you can change them.
+- [Supported languages in Smile](https://help.smile.io/en/articles/4036240-supported-languages-in-smile.md): Learn which languages Smile supports, how automatic translation works, and how default language settings are applied.
+- [How Smile handles currency](https://help.smile.io/en/articles/4036180-how-smile-handles-currency.md): Learn which currency Smile uses, how it’s displayed to customers, and how multi-currency works on Shopify and BigCommerce.
+- [Find your Public Key or Private Key](https://help.smile.io/en/articles/4036181-find-your-public-key-or-private-key.md): How to locate the public and private keys for your account.
+- [Configure points cancellation for refunds](https://help.smile.io/en/articles/4036183-configure-points-cancellation-for-refunds.md): Configure how Smile handles refunds and returns by cancelling points when an order is refunded or partially refunded.
+- [JavaScript SDK](https://help.smile.io/en/articles/4891875-javascript-sdk.md): Enable the JavaScript SDK to use Smile.js in custom JavaScript.
+- [Manage API keys](https://help.smile.io/en/articles/11328240-manage-api-keys.md): Manage your API keys to connect integrations, sync data into external systems, and interact with Smile's REST API.
+- [Manage signing keys](https://help.smile.io/en/articles/11878129-manage-signing-keys.md): Manage your signing keys to use and integrate with Smile's frontend libraries and JavaScript SDK.
+- [Find publishable key](https://help.smile.io/en/articles/11878403-find-publishable-key.md): Locate your account's publishable key to initialize Smile's JavaScript SDK.
+- [Using Smile with Shopify's new customer accounts](https://help.smile.io/en/articles/14020240-using-smile-with-shopify-s-new-customer-accounts.md): How your Smile loyalty program works with Shopify's new customer accounts.
+- [Configure discount combinations](https://help.smile.io/en/articles/8685572-configure-discount-combinations.md): Learn how to let customers combine multiple Smile discount codes or use them with other Shopify discounts during checkout.
+- [Customize points currency name](https://help.smile.io/en/articles/4036264-customize-points-currency-name.md): Create or update a custom name for your loyalty program currency.
+- [How customers see their points](https://help.smile.io/en/articles/12589592-how-customers-see-their-points.md): Learn how customers can view their points in different parts of your store.
+- [Award points on previous purchases](https://help.smile.io/en/articles/4036234-award-points-on-previous-purchases.md): Manually award points for purchases made before launching with Smile.
+- [Import points via CSV file](https://help.smile.io/en/articles/4036233-import-points-via-csv-file.md): How to add points for multiple customers or reset customer points balances using a CSV upload.
+- [Cancel a points redemption](https://help.smile.io/en/articles/4668896-cancel-a-points-redemption.md): Cancel a customer's redemption by refunding their points and canceling the reward code.
+- [Customize the icon for a way to earn or redeem](https://help.smile.io/en/articles/4088026-customize-the-icon-for-a-way-to-earn-or-redeem.md): Upload a custom icon for a way to earn or a way to redeem.
+- [Understand points expiry](https://help.smile.io/en/articles/5348802-understand-points-expiry.md): Learn how points expiry works, when customers are considered inactive, and how customers are notified about expiring points.
+- [Configure points expiry](https://help.smile.io/en/articles/4036281-configure-points-expiry.md): Set whether points expire, choose the expiration period, and adjust how far in advance customers are notified.
+- [Deactivate points program](https://help.smile.io/en/articles/4036222-deactivate-points-program.md): Temporarily disable or pause your points program, or reactivate a points program that's currently deactivated.
+- [Troubleshoot earning points](https://help.smile.io/en/articles/4036248-troubleshoot-earning-points.md): Understand common reasons why a customer may not have earned points.
+- [Creating cashback-style rewards in Smile](https://help.smile.io/en/articles/12945842-creating-cashback-style-rewards-in-smile.md): Create a cashback-style experience by letting customers earn points on purchases that they can redeem for discounts.
+- [Configure points delay for orders](https://help.smile.io/en/articles/configure-points-delay-for-orders.md): Control when customers receive points from orders by setting a delay in days.
+- [Earning rules: Ways customers can earn points](https://help.smile.io/en/articles/4036265-earning-rules-ways-customers-can-earn-points.md): Learn about the different earning rules you can add to your points program.
+- [Configure ways to earn points](https://help.smile.io/en/articles/4036267-configure-ways-to-earn-points.md): Create and edit ways for customers to earn points, and disable or activate earning actions.
+- [Configure points earning limits](https://help.smile.io/en/articles/4036269-configure-points-earning-limits.md): Limit the number of times a customer can earn points for an earning action, and limit customer eligibility for an action using VIP tiers.
+- [Customize the name of a way to earn](https://help.smile.io/en/articles/10603965-customize-the-name-of-a-way-to-earn.md): Create or edit a custom name for a way to earn.
+- [Understand birthday points](https://help.smile.io/en/articles/4036229-understand-birthday-points.md): Learn how birthday points work, when customers are awarded birthday points, and security measures in place to prevent fraud.
+- [Troubleshoot birthday points](https://help.smile.io/en/articles/11074454-troubleshoot-birthday-points.md): Learn how to check if and when a customer received birthday points, and troubleshoot why they may not have earned them.
+- [Understand social media points earning](https://help.smile.io/en/articles/4036266-understand-social-media-points-earning.md): Learn how social media points work and when customers are awarded points for social media actions.
+- [Manage a bonus points campaign](https://help.smile.io/en/articles/8802037-manage-a-bonus-points-campaign.md): Create and manage a bonus points campaign to offer customers increased points on their orders.
+- [Understand points earning on gift cards](https://help.smile.io/en/articles/4036280-understand-points-earning-on-gift-cards.md): Learn how customers earn points when purchasing a gift card or when paying with a gift card.
+- [Award points for clicking a link](https://help.smile.io/en/articles/13452369-award-points-for-clicking-a-link.md): Create flexible ways for customers to earn points—no code required.
+- [How to create custom ways for customers to earn points](https://help.smile.io/en/articles/13676984-how-to-create-custom-ways-for-customers-to-earn-points.md): Create flexible ways for customers to earn points using links, Shopify Flow automation, or custom development.
+- [Manage custom activity types](https://help.smile.io/en/articles/4036268-manage-custom-activity-types.md): Define custom and brand-specific actions that customers can perform to earn rewards.
+- [Exclude products from earning points](https://help.smile.io/en/articles/9616008-exclude-products-from-earning-points.md): Exclude specific products or discounted products from earning points in your loyalty program.
+- [Supported reward types](https://help.smile.io/en/articles/4967798-supported-reward-types.md): Learn which reward options are available for each eCommerce platform.
+- [Configure ways to redeem points](https://help.smile.io/en/articles/4036271-configure-ways-to-redeem-points.md): Create and manage ways for customers to spend their points, including activating, editing, or disabling redemption options.
+- [Understand fixed and incremental rewards](https://help.smile.io/en/articles/4036249-understand-fixed-and-incremental-rewards.md): Learn about discount reward options and how customers spend points on fixed and incremental rewards.
+- [Configure free product rewards](https://help.smile.io/en/articles/4036272-configure-free-product-rewards.md): Create a free product reward as a redemption option for customers.
+- [Configure free shipping rewards](https://help.smile.io/en/articles/4036273-configure-free-shipping-rewards.md): Create a free shipping reward as a redemption option for customers.
+- [Configure Shopify store credit rewards](https://help.smile.io/en/articles/configure-store-credit-rewards.md): Set up Shopify store credit as a points redemption option.
+- [Configure reward restrictions](https://help.smile.io/en/articles/4779069-configure-reward-restrictions.md): Restrict rewards by minimum purchase amount or product collection.
+- [Configure reward expiry](https://help.smile.io/en/articles/4036282-configure-reward-expiry.md): Set an expiry for the discount codes customers receive when they redeem rewards.
+- [Comparing gift card and discount rewards](https://help.smile.io/en/articles/4036279-comparing-gift-card-and-discount-rewards.md): Understand the benefits, limitations, and best-use cases for gift card and fixed amount discount rewards in your loyalty program.
+- [Import discount codes for redemption](https://help.smile.io/en/articles/4036283-import-discount-codes-for-redemption.md): Use manually imported discount codes for rewards instead of auto-generated ones.
+- [How customers redeem points](https://help.smile.io/en/articles/9188741-how-customers-redeem-points.md): Learn how customers redeem points through the Smile panel, at checkout, and in Loyalty Hub.
+- [Configure loyalty discounts for subscriptions](https://help.smile.io/en/articles/12258089-configure-loyalty-discounts-for-subscriptions.md): Set loyalty discount codes to apply to one-time purchases, subscriptions, or both, and configure recurring payment options.
+- [Link discount codes to customer accounts](https://help.smile.io/en/articles/12703595-link-discount-codes-to-customer-accounts.md): Learn how to link discount codes to individual customer accounts.
+- [Add prefixes to discount codes](https://help.smile.io/en/articles/13370118-add-prefixes-to-discount-codes.md): Add a prefix to Smile-generated discount codes.
+- [Add Smile to Shopify POS](https://help.smile.io/en/articles/10478692-add-smile-to-shopify-pos.md): Allow customers to earn loyalty points and redeem discounts in physical retail locations.
+- [Set up in-store points earning](https://help.smile.io/en/articles/4036277-set-up-in-store-points-earning.md): Reward customers with points for in-store purchases through Shopify POS.
+- [Set up and spend points in-store](https://help.smile.io/en/articles/4036276-set-up-and-spend-points-in-store.md): Configure rewards and redeem customer points for in-store discounts with Shopify POS.
+- [Configure free product rewards for Shopify POS](https://help.smile.io/en/articles/free-product-rewards-POS.md): Let customers redeem their points for free products in person with Shopify POS.
+- [Troubleshoot Smile issues in Shopify POS](https://help.smile.io/en/articles/10722975-troubleshoot-pos-app-failed-to-load-error.md): Resolve common issues with the Smile app in Shopify POS.
+- [Understand Shopify Flow and Smile](https://help.smile.io/en/articles/shopify-flow-and-smile.md): Use Shopify Flow to automatically award points or adjust a customer's points balance based on events in your store.
+- [Use Shopify Flow to award points](https://help.smile.io/en/articles/4036187-use-shopify-flow-to-award-points-with-smile.md): Award points automatically using Shopify Flow and Smile.
+- [Use Shopify Flow to adjust a customer’s points balance](https://help.smile.io/en/articles/shopify-flow-adjust-points-balance.md): Automatically add or remove points from a customer's points balance using the Adjust points balance action in Shopify Flow.
+- [Example: Award bonus points for repeat purchases using Shopify Flow](https://help.smile.io/en/articles/6647447-award-bonus-points-for-repeat-purchases-using-shopify-flow.md): Reward customers with bonus points when they reach a specific order milestone, such as their 3rd, 5th, or 10th order.
+- [Understand how referrals work](https://help.smile.io/en/articles/4036289-understand-how-referrals-work.md): Learn how customers share referrals with friends and how referral rewards are earned.
+- [Configure referral program rewards](https://help.smile.io/en/articles/4036288-configure-referral-program-rewards.md): Create referral rewards for existing customers to share with new customers.
+- [Preventing referral fraud](https://help.smile.io/en/articles/4036291-preventing-referral-fraud.md): Learn how Smile detects and blocks potentially fraudulent referrals.
+- [Cancel a referral](https://help.smile.io/en/articles/4036297-cancel-referral.md): Cancel referrals manually or learn when Smile cancels them automatically.
+- [Deactivate referral program](https://help.smile.io/en/articles/11800524-deactivate-referral-program.md): Temporarily disable or pause your referral program, or reactivate a referral program that is currently deactivated.
+- [Choose a referral landing page](https://help.smile.io/en/articles/4036295-add-referral-landing-page.md): Select which page on your store customers visit after clicking a referral link.
+- [Customize the referral landing popup icon](https://help.smile.io/en/articles/referral-landing-popup-icon.md): Customize the icon displayed in the referral landing popup.
+- [Customize referral domain](https://help.smile.io/en/articles/4036294-customize-referral-domain.md): Set a custom domain for your referral links.
+- [Customize referral social sharing](https://help.smile.io/en/articles/4036296-customize-referral-social-sharing.md): Select which social channels customers can use to share their referral link, and customize the message that's shared.
+- [Understand VIP tier milestones](https://help.smile.io/en/articles/4036321-understand-vip-tier-milestones.md): How VIP tier milestones work and how different settings impact customer progression.
+- [Configure VIP settings](https://help.smile.io/en/articles/4036300-configure-vip-settings.md): How to set up VIP tier milestone rules in Smile Admin.
+- [Configure VIP tiers](https://help.smile.io/en/articles/4036322-add-vip-tiers.md): Learn how to add VIP tiers during setup or after your VIP program is active.
+- [Manage VIP metafield sync](https://help.smile.io/en/articles/9834432-manage-vip-metafield-sync.md): Control how customer VIP tier information is synced to Shopify metafields.
+- [Understand VIP rewards and perks](https://help.smile.io/en/articles/4036320-vip-rewards-and-perks.md): Learn the difference between VIP entry rewards and perks, and how each works in your loyalty program.
+- [Configure VIP tier entry rewards](https://help.smile.io/en/articles/4036325-configure-vip-tier-entry-rewards.md): Add entry rewards to your VIP tiers to automatically reward customers when they reach a new tier.
+- [Configure VIP perks](https://help.smile.io/en/articles/4036326-add-vip-perks.md): Add perks to your VIP tiers to provide ongoing benefits to customers in each tier.
+- [Configure points earning rules for VIP tiers](https://help.smile.io/en/articles/configure-points-earning-rules-for-vip-tiers.md): Create tier-specific earning rules so customers in each VIP tier earn points at different rates.
+- [Configure ongoing VIP discounts](https://help.smile.io/en/articles/9834457-configure-ongoing-vip-discounts.md): Provide ongoing benefits to your VIP customers in the form of discounts, special bundles, or deals at checkout.
+- [Customize VIP tier icons](https://help.smile.io/en/articles/4036323-customize-vip-tier-icons.md): How to customize the icons used in your VIP tiers.
+- [Configure VIP exclusive ways to redeem](https://help.smile.io/en/articles/configure-vip-exclusive-ways-to-redeem.md): Create rewards that are only available to customers in specific VIP tiers.
+- [Change customer VIP tier](https://help.smile.io/en/articles/4036327-change-customer-vip-tier.md): Learn how to manually adjust a VIP tier for a single customer, or update multiple customers at once using a CSV import.
+- [Cancel VIP rewards](https://help.smile.io/en/articles/4036284-cancel-vip-rewards.md): How to cancel an issued VIP reward.
+- [VIP program tier rewards and customer email notifications](https://help.smile.io/en/articles/4036329-vip-program-tier-rewards-and-customer-email-notifications.md): How VIP program tier entry rewards and customer emails work
+- [Deactivate or reactivate VIP program](https://help.smile.io/en/articles/11801166-deactivate-or-reactivate-vip-program.md): Temporarily disable or pause your VIP program, or reactivate a VIP program that is currently deactivated.
+- [Customize your brand colors ](https://help.smile.io/en/articles/4036206-customize-your-display-and-branding.md): Customize the colors used throughout your loyalty program.
+- [The Smile font](https://help.smile.io/en/articles/4036213-the-smile-font.md): How your program's font creates a clear, consistent experience.
+- [Add Smile to your Shopify theme](https://help.smile.io/en/articles/4036186-apply-smile-ui-to-shopify-theme.md): How to add Smile as an app embed in your Shopify theme.
+- [Customize the launcher's look and feel](https://help.smile.io/en/articles/4036212-customize-the-launcher-s-look-and-feel.md): Add images, text, and shapes to personalize the launcher's appearance.
+- [Change launcher placement](https://help.smile.io/en/articles/4036210-change-launcher-placement.md): Choose where your loyalty program launcher appears.
+- [Change the z-index of your Smile launcher](https://help.smile.io/en/articles/12953289-change-the-z-index-of-your-smile-launcher.md): Adjust how your Smile launcher or panel layers over elements on your storefront.
+- [Show or hide the loyalty launcher](https://help.smile.io/en/articles/4036211-show-or-hide-the-loyalty-launcher.md): Control where your launcher appears on your site, and choose when to show or hide it for customers.
+- [Customize loyalty program name](https://help.smile.io/en/articles/4036208-customize-loyalty-program-name.md): Edit the name of your loyalty program in the reward panel.
+- [Customize the reward panel](https://help.smile.io/en/articles/customize-the-reward-panel.md): Update the content and appearance of your reward panel.
+- [Hide Smile branding](https://help.smile.io/en/articles/10729340-hide-smile-branding.md): Remove Smile branding from your reward panel.
+- [Use deep links to open the panel](https://help.smile.io/en/articles/4036219-use-deep-links-to-open-the-panel.md): Use deep links to open specific sections of your loyalty panel directly from any page on your store.
+- [Download Smile's default icons](https://help.smile.io/en/articles/6557285-download-smile-s-default-icons.md): Download Smile's default panel icons for your store's personal use.
+- [Configure Nudges](https://help.smile.io/en/articles/4036261-configure-nudges.md): How to choose and set up different on-site customer reminders, or Nudges.
+- [Add Loyalty Hub to your store](https://help.smile.io/en/articles/11325846-add-loyalty-hub-to-your-store.md): Let customers earn points, redeem for rewards, and track their loyalty progress directly from their customer account—in just a few clicks.
+- [Customize Loyalty Hub](https://help.smile.io/en/articles/11325869-customize-loyalty-hub.md): Brand your Loyalty Hub by customizing text, images, icons, colors and fonts. No code required.
+- [Loyalty landing page or Loyalty Hub: What's the difference?](https://help.smile.io/en/articles/13908433-loyalty-landing-page-or-loyalty-hub-what-s-the-difference.md): Understand which loyalty experience is right for your store.
+- [Create and customize a loyalty landing page](https://help.smile.io/en/articles/8174498-create-a-loyalty-landing-page.md): Create and customize a dedicated page where customers can learn about your loyalty program, including ways to earn points, available rewards, referrals, and VIP tiers.
+- [Move from a legacy loyalty landing page](https://help.smile.io/en/articles/legacy-loyalty-landing-page.md): Learn how to replace a legacy loyalty landing page with Smile's new loyalty landing page.
+- [Redeem points at checkout](https://help.smile.io/en/articles/10476740-redeem-points-at-checkout.md): Let customers redeem their points for rewards directly in the checkout.
+- [Show points at checkout](https://help.smile.io/en/articles/10476659-show-points-at-checkout.md): Show the points customers will earn at checkout.
+- [Show points earned after purchase](https://help.smile.io/en/articles/10477246-show-points-earned-after-purchase.md): Show customers how many points they earned after completing a purchase on the thank you page.
+- [Embed points balance on the customer account page](https://help.smile.io/en/articles/8659125-embed-points-balance-on-the-customer-account-page.md): Show customers their points balance directly on their account page.
+- [Shopify Plus checkout extensions](https://help.smile.io/en/articles/6596847-shopify-plus-checkout-extensions.md): Add loyalty to your checkout using Smile's powerful checkout extensions. No code required.
+- [Embed points on the product page](https://help.smile.io/en/articles/8659115-embed-points-on-the-product-page.md): Show customers how many points they'll earn when they purchase a product.
+- [Add the Smile loyalty block to Shopify customer pages](https://help.smile.io/en/articles/13639207-add-the-smile-loyalty-block-to-shopify-customer-pages.md): View and manage loyalty details directly from Shopify customer profiles.
+- [Understand customer emails](https://help.smile.io/en/articles/4036257-customer-email-overview.md): Learn which customer emails Smile sends and when they're triggered.
+- [Understand how customers unsubscribe from emails](https://help.smile.io/en/articles/10042926-understand-how-customers-unsubscribe-from-emails.md): Learn how Smile manages email subscription preferences and allows customers to unsubscribe from specific types of emails.
+- [Send a test customer email in Smile Admin](https://help.smile.io/en/articles/test-customer-email.md): Preview how your loyalty emails appear in a real inbox.
+- [Turn a customer email on or off](https://help.smile.io/en/articles/4036260-enable-or-disable-a-customer-email.md): Turn a customer email on or off to control which messages are sent from your program.
+- [Add images to customer emails](https://help.smile.io/en/articles/4036258-add-images-to-customer-emails.md): Add your logo and banner images to customize the appearance of Smile customer emails.
+- [Use variables in customer emails](https://help.smile.io/en/articles/4036262-use-variables-to-insert-relevant-information-into-customer-emails.md): Customize customer emails with dynamic variables that display customer and loyalty program information.
+- [Customize email sender name and reply-to address](https://help.smile.io/en/articles/11896011-customize-email-sender-name-and-reply-to-address.md): Configure the sender name your customers see and the email address that receives their replies.
+- [Find a customer](https://help.smile.io/en/articles/9718243-find-a-customer.md): Search for a customer in Smile's interface using their name or email.
+- [Understand reward issuing](https://help.smile.io/en/articles/4036256-understand-reward-issuing.md): Learn how rewards are generated and issued to customers, and about the meaning of each reward status.
+- [Understand customer types](https://help.smile.io/en/articles/4036221-understand-customer-types.md): Learn how customer types work in Smile, including members, guest customers, and excluded customers.
+- [Redeem customer points in Smile Admin](https://help.smile.io/en/articles/11793706-redeem-customer-points-in-smile-admin.md): Spend points on behalf of a customer and issue a discount code.
+- [View points expiry for a customer](https://help.smile.io/en/articles/view-points-expiry.md): Check when a customer's points are set to expire.
+- [Manage customers](https://help.smile.io/en/articles/11793874-manage-customers.md): Add, edit, or remove customers from your loyalty program through your eCommerce platform.
+- [Adjust customer points balance](https://help.smile.io/en/articles/4036217-adjust-customer-points-balance.md): Manually change a customer's points balance by adding or removing points.
+- [Manage customer birthdays](https://help.smile.io/en/articles/11886789-import-birthdays-with-a-csv-file.md): Add or edit customer birthdays individually from a customer profile, or add them in bulk using a CSV file.
+- [Understand customer exclusions](https://help.smile.io/en/articles/understand-customer-exclusions.md): Learn how exclusions affect points, rewards, referrals, and customer visibility in your loyalty program.
+- [Exclude a customer manually](https://help.smile.io/en/articles/4036235-exclude-a-customer.md)
+- [Exclude customers by tag](https://help.smile.io/en/articles/4036223-exclude-customers-by-tag.md): Exclude wholesale or other customer groups from your loyalty program using Shopify tags or BigCommerce customer groups.
+- [Filter and export customers](https://help.smile.io/en/articles/4036251-filter-and-export-customers.md): Download your customer data, and use filters to create segments of your customer base.
+- [Understand performance benchmarks](https://help.smile.io/en/articles/12109028-understand-performance-benchmarks.md): Review key engagement metrics to track your loyalty program's performance.
+- [Understand loyalty program insights](https://help.smile.io/en/articles/12587689-understand-loyalty-program-insights.md): See how your loyalty program drives engagement, retention, and growth with built-in analytics.
+- [Understand business growth analytics](https://help.smile.io/en/articles/12109185-understand-business-growth-analytics.md): See how your loyalty program drives revenue and retention with key growth metrics.
+- [Understand customer segments analytics](https://help.smile.io/en/articles/12110423-understand-customer-segments-analytics.md): Understand how key loyalty segments contribute to your business growth.
+- [Understand VIP segment insights](https://help.smile.io/en/articles/12587829-understand-vip-segment-insights.md): Use metrics to understand how each VIP segment impacts your business growth.
+- [View program activity](https://help.smile.io/en/articles/14021875-view-program-activity.md): View activity for points, referrals, and VIP programs in Smile Admin.
+- [View loyalty program reports](https://help.smile.io/en/articles/12587879-view-loyalty-program-reports.md): Gain deeper insights into your loyalty program with pre-built, downloadable reports.
+- [Understand referral performance](https://help.smile.io/en/articles/12118817-understand-referral-performance.md): Track your referral program to see how many customers are sharing and how referrals are driving growth.
+- [Understand points activity](https://help.smile.io/en/articles/12118748-understand-points-activity.md): Review points activity to see how members engage with points and rewards.
+- [Use Smile with Shopify Sidekick](https://help.smile.io/en/articles/use-smile-with-shopify-sidekick.md): Learn how to use Shopify Sidekick to ask questions about your Smile loyalty program.
+- [Quick launch guide](https://help.smile.io/en/articles/4036174-launch-checklist.md): Set up and launch your Smile loyalty program with this quick-start checklist for points, referrals, VIP, branding, integrations, and customer-facing experiences.
+- [How to build an effective points program in 3 steps](https://help.smile.io/en/articles/4036285-3-steps-to-build-the-best-points-program.md): Learn how to set the value of your points, choose ways for customers to earn, and create a range of rewards.
+- [How to build an effective referral program in 3 steps](https://help.smile.io/en/articles/4036299-3-steps-to-build-the-best-referral-program.md): Learn how to set your referral rewards, choose sharing channels, and decide where referred friends land.
+- [How to build an effective VIP program in 3 steps](https://help.smile.io/en/articles/vip-program-in-3-steps.md): Learn how to structure your VIP tiers, create meaningful rewards and perks, and make the most of your VIP program.
+- [How to increase loyalty program engagement](https://help.smile.io/en/articles/4036310-maximize-rewards-program-roi.md): Once your loyalty program is live, use these recommendations to help more customers discover and engage with it.
+- [Email marketing with reward data](https://help.smile.io/en/articles/4036305-email-marketing-with-reward-data.md): How to promote the program using reward data in email campaigns
+- [Email marketing campaign guide](https://help.smile.io/en/articles/4036302-email-marketing-campaign-guide.md): How to launch and promote a loyalty program with customer email marketing
+- [Improve program performance with email marketing and customer segments](https://help.smile.io/en/articles/4036315-improve-program-performance-with-email-marketing-and-customer-segments.md): How to improve loyalty program performance using email campaigns to targeted customer segments
+- [Manage your plan](https://help.smile.io/en/articles/10131412-manage-your-plan.md): Learn how to manage your pricing plan, including updating your subscription, changing your billing details, and understanding billing cycles.
+- [Update billing information](https://help.smile.io/en/articles/4036178-update-billing-information.md): Change the billing email address and credit card details associated with a Smile account.
+- [Change account email or password](https://help.smile.io/en/articles/4036176-change-account-email-or-password.md): Update the email address and password associated with a Smile account.
+- [Understand Smile's Free plan](https://help.smile.io/en/articles/12326868-understand-smile-s-free-plan.md): Learn how the Free plan works and what's included.
+- [Free trials for paid plans](https://help.smile.io/en/articles/13860797-free-trials-for-paid-plans.md): Start a 14-day free trial of a paid plan.
+- [Understand order limits](https://help.smile.io/en/articles/10131396-understand-order-limits.md): Learn about the monthly order limits for the Free, Essential, and Standard plans, what happens if you exceed them, and how to monitor your order usage.
+- [Understand usage-based pricing](https://help.smile.io/en/articles/10131405-understand-usage-based-pricing.md): Learn how usage-based pricing adapts to your store's order volume, ensuring you only pay for what you use, with flexible options for additional orders.
+- [Understand how orders are counted](https://help.smile.io/en/articles/10131407-understand-how-orders-are-counted.md): Learn how Smile calculates your monthly order count, what orders are excluded, and how to track your usage.
+- [Understand pricing protection](https://help.smile.io/en/articles/10149099-understand-pricing-protection.md): Learn how pricing protection helps you avoid unexpected fees during high-sales periods such as Black Friday
+- [Smile API overview](https://help.smile.io/en/articles/4036313-smile-api-overview.md): Extend your loyalty program with custom experiences and developer tools.
+- [Why your Smile changes aren't showing right away](https://help.smile.io/en/articles/5128059-why-your-smile-changes-aren-t-showing-right-away.md): How caching can delay the visibility of recent changes.
+- [Does Smile affect storefront performance?](https://help.smile.io/en/articles/smile-storefront-performance.md): Learn how Smile is designed to minimize its impact on storefront performance.
+- [Supported browsers and devices](https://help.smile.io/en/articles/4036239-supported-browsers-and-devices.md): Find out which browsers and devices work best with Smile
+- [Can I use Smile across multiple stores?](https://help.smile.io/en/articles/4779003-connecting-to-multiple-stores.md): Learn how Smile works if you have more than one store.
+- [Security and compliance](https://help.smile.io/en/articles/security-compliance.md): Learn about Smile's security certifications, privacy practices, and compliance resources.
+- [Privacy and data collection](https://help.smile.io/en/articles/4036238-privacy-and-data-collection.md): Understand the personal information and transactional customer data Smile collects and stores
+- [GDPR and Smile](https://help.smile.io/en/articles/4036237-gdpr-and-smile.md): How Smile adheres to the General Data Protection Regulation (GDPR)
+- [CCPA and Smile](https://help.smile.io/en/articles/4036236-ccpa-and-smile.md): How Smile adheres to the California Consumer Privacy Act (CCPA)
+- [How to get help with Smile](https://help.smile.io/en/articles/4495476-how-to-get-help-with-smile.md): Learn how to connect with the Smile team for technical support, onboarding help, or general questions.
+- [Smile status page](https://help.smile.io/en/articles/5607938-smile-status-page.md): Learn how to check the Smile status page for updates on known issues or outages.
+- [Integrations overview](https://help.smile.io/en/integrations/overview.md): Power up your loyalty program by integrating Smile with your favorite apps and tools.
+- [List of integrations](https://help.smile.io/en/integrations/list.md): A list of all the integrations available in Smile.
+- [CM Commerce integration overview](https://help.smile.io/en/integrations/cm-commerce/overview.md): Connect Smile.io with CM Commerce to sync loyalty data into your email campaigns and reward customers for product reviews.
+- [ConvertCart integration overview](https://help.smile.io/en/integrations/convertcart/overview.md): Connect Smile.io with ConvertCart to sync loyalty data into your email campaigns and trigger workflows from loyalty events.
+- [Digioh integration overview](https://help.smile.io/en/integrations/digioh/overview.md): Connect Smile.io with Digioh to reward points for completing quizzes, surveys, and pop-ups.
+- [Digioh integration setup](https://help.smile.io/en/integrations/digioh/setup.md): Setup instructions for installing and configuring the Smile and Digioh integration.
+- [Dotdigital integration overview](https://help.smile.io/en/integrations/dotdigital/overview.md): Connect Smile.io with Dotdigital to sync points balance and VIP tier into your email campaigns.
+- [Dotdigital integration setup](https://help.smile.io/en/integrations/dotdigital/setup.md): Setup instructions for installing and configuring the Smile and Dotdigital integration.
+- [Fera integration overview](https://help.smile.io/en/integrations/fera/overview.md): Connect Smile.io with Fera to reward customers with points for writing product, photo, and video reviews.
+- [Glew integration overview](https://help.smile.io/en/integrations/glew/overview.md): Connect Smile.io with Glew to analyze loyalty program performance alongside your other ecommerce metrics.
+- [Gorgias integration overview](https://help.smile.io/en/integrations/gorgias/overview.md): Connect Smile.io with Gorgias to display loyalty data alongside support tickets.
+- [Hive integration overview](https://help.smile.io/en/integrations/hive/overview.md): Connect Smile.io with Hive to sync points balance and VIP tier into your email and SMS campaigns.
+- [HubSpot integration overview](https://help.smile.io/en/integrations/hubspot/overview.md): Connect Smile.io with HubSpot to sync points balance and VIP tier into your CRM and email campaigns.
+- [HubSpot integration setup](https://help.smile.io/en/integrations/hubspot/setup.md): Setup instructions for installing and configuring the Smile and HubSpot integration.
+- [Create segments and lists in HubSpot](https://help.smile.io/en/integrations/hubspot/segments-lists.md): Use HubSpot to create segments and lists of customers based on Smile loyalty data.
+- [Judge.me integration overview](https://help.smile.io/en/integrations/judge-me/overview.md): Connect Smile.io with Judge.me to reward customers with points when they write a product review.
+- [Klaviyo integration overview](https://help.smile.io/en/integrations/klaviyo/overview.md): Connect Smile.io with Klaviyo to sync loyalty data into your email and SMS campaigns.
+- [Klaviyo integration setup](https://help.smile.io/en/integrations/klaviyo/setup.md): Setup instructions for installing and configuring the Smile and Klaviyo integration.
+- [Create a segment within Klaviyo](https://help.smile.io/en/integrations/klaviyo/segments.md): Use Klaviyo to create segments of customers based on Smile loyalty data.
+- [Klaviyo data syncing](https://help.smile.io/en/integrations/klaviyo/data-syncing.md): Learn about what data is synced from Smile to Klaviyo and what you can expect from the data syncing process.
+- [Reward customers for Klaviyo Reviews](https://help.smile.io/en/integrations/klaviyo/reviews.md): Reward customers with points for leaving a verified review through Klaviyo Reviews.
+- [Use pre-built Klaviyo flows](https://help.smile.io/en/integrations/klaviyo/flows.md): Use Smile's pre-built Klaviyo flows to send fully customizable reward program emails through your Klaviyo account.
+- [Troubleshoot common Klaviyo integration issues](https://help.smile.io/en/integrations/klaviyo/troubleshoot.md): Learn how to resolve common issues with the Smile and Klaviyo integration.
+- [Lifetimely integration overview](https://help.smile.io/en/integrations/lifetimely/overview.md): Connect Smile.io with Lifetimely for AI-powered loyalty analytics, from profit to lifetime value, and more.
+- [Loop Returns integration overview](https://help.smile.io/en/integrations/loop-returns/overview.md): Connect Smile.io with Loop Returns to offer enhanced return experiences based on a customer's loyalty status.
+- [Loox integration overview](https://help.smile.io/en/integrations/loox/overview.md): Connect Smile.io with Loox to reward customers with points for writing product, photo, and video reviews.
+- [Mailchimp integration overview](https://help.smile.io/en/integrations/mailchimp/overview.md): Connect Smile.io with Mailchimp to sync points balance and VIP tier into your email campaigns.
+- [Mailchimp integration setup](https://help.smile.io/en/integrations/mailchimp/setup.md): Setup instructions for installing and configuring the Smile and Mailchimp integration.
+- [Create segments in Mailchimp](https://help.smile.io/en/integrations/mailchimp/segments.md): Use Mailchimp to create segments of customers based on Smile loyalty data.
+- [Makappi integration overview](https://help.smile.io/en/integrations/makappi/overview.md): Connect Smile.io with Makappi to view and redeem loyalty points inside your mobile app.
+- [Okendo integration overview](https://help.smile.io/en/integrations/okendo/overview.md): Connect Smile.io with Okendo to reward customers with points for writing product reviews.
+- [Omnisend integration overview](https://help.smile.io/en/integrations/omnisend/overview.md): Connect Smile.io with Omnisend to sync points balance and VIP tier into your email and SMS campaigns.
+- [Privy integration overview](https://help.smile.io/en/integrations/privy/overview.md): Connect Smile.io with Privy to sync loyalty data into your email, SMS, and popup campaigns.
+- [PushOwl integration overview](https://help.smile.io/en/integrations/pushowl/overview.md): Connect Smile.io with PushOwl to sync points balance and VIP tier into your email, web push, and SMS campaigns.
+- [Re:amaze integration overview](https://help.smile.io/en/integrations/re-amaze/overview.md): Connect Smile.io with Re:amaze to display loyalty data alongside support conversations.
+- [Recharge integration overview](https://help.smile.io/en/integrations/recharge/overview.md): Connect Smile.io with Recharge to automatically reward points on recurring subscription orders.
+- [Recharge integration setup](https://help.smile.io/en/integrations/recharge/setup.md): Setup instructions for installing and configuring the Smile and Recharge integration.
+- [Setup Recharge subscription rewards](https://help.smile.io/en/integrations/recharge/subscription-rewards.md): Add Recharge subscription rewards to your points and referral programs.
+- [Redo integration overview](https://help.smile.io/en/integrations/redo/overview.md): Connect Smile.io with Redo to show loyalty points in your marketing messages.
+- [Remarkety integration overview](https://help.smile.io/en/integrations/remarkety/overview.md): Connect Smile.io with Remarkety to sync points balance and VIP tier into your email and SMS campaigns.
+- [Rep AI integration overview](https://help.smile.io/en/integrations/rep-ai/overview.md): Connect Smile.io with Rep AI to use customer points data in AI shopping conversations.
+- [ReSci integration overview](https://help.smile.io/en/integrations/resci/overview.md): Connect Smile.io with ReSci to sync points balance and VIP tier into your email and SMS campaigns.
+- [REVIEWS.io integration overview](https://help.smile.io/en/integrations/reviews-io/overview.md): Connect Smile.io with REVIEWS.io to reward customers with points for writing product and company reviews.
+- [Sendlane integration overview](https://help.smile.io/en/integrations/sendlane/overview.md): Connect Smile.io with Sendlane to sync points balance and VIP tier into your email and SMS campaigns.
+- [Shop for Good integration overview](https://help.smile.io/en/integrations/shop-for-good/overview.md): Connect Smile.io with Shop for Good to reward customers with points for donating to charitable causes.
+- [Stamped.io integration overview](https://help.smile.io/en/integrations/stamped/overview.md): Connect Smile.io with Stamped.io to reward customers with points for writing product reviews.
+- [Stay AI integration overview](https://help.smile.io/en/integrations/stay-ai/overview.md): Connect Smile.io with Stay AI to display loyalty information in the customer portal.
+- [Stay AI integration setup](https://help.smile.io/en/integrations/stay-ai/setup.md): Setup instructions for configuring the Smile and Stay AI integration.
+- [Subtotal integration overview](https://help.smile.io/en/integrations/subtotal/overview.md): Connect Smile.io with Subtotal to reward points for verified retail purchases at major retailers.
+- [Tapcart integration overview](https://help.smile.io/en/integrations/tapcart/overview.md): Connect Smile.io with Tapcart to reward and redeem loyalty points inside your mobile app.
+- [TargetBay integration overview](https://help.smile.io/en/integrations/targetbay/overview.md): Connect Smile.io with TargetBay to reward customers with points for writing product, photo, and site reviews.
+- [Verified Reviews integration overview](https://help.smile.io/en/integrations/verified-reviews/overview.md): Connect Smile.io with Verified Reviews to reward customers with points for writing product and website reviews.
+- [Yotpo integration overview](https://help.smile.io/en/integrations/yotpo/overview.md): Connect Smile.io with Yotpo to reward customers with points for writing product reviews.
+- [Yotpo integration setup](https://help.smile.io/en/integrations/yotpo/setup.md): Setup instructions for installing and configuring the Smile and Yotpo integration.
+
+
+This documentation is built and hosted on [Mintlify](https://mintlify.com), a developer documentation platform.

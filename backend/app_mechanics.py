@@ -1,14 +1,21 @@
 """
-Find a partner app's own "what this app does" articles.
+Find a partner app's mechanics: its own articles on the features a Yotpo
+integration plugs into.
 
-A Yotpo guide explains the integration; it assumes the reader knows the other
-app. Flow State answers better when it also has a few of the partner's own
-general articles: what the app is, its main concepts, how to get started.
-The catalog import uses this module to propose them, one help centre per
-integration, a handful of articles each. Nothing is approved here: every
-result becomes a proposal that an admin accepts or rejects URL by URL.
+A Yotpo guide explains how to connect the integration. To answer well, Flow
+State also needs to know how the partner's side behaves: for an email
+platform, how its flows, triggers, delays and segments work; for Recharge, how
+discount codes apply to subscriptions. Leo picked exactly such articles for
+the email platforms already in the knowledge base. The catalog import uses
+this module to propose them for every integration: a few per integration,
+each tied to a topic. Nothing is approved here: every result becomes a
+proposal that an admin accepts or rejects URL by URL.
 
-How a help centre is found, in order:
+What to look for comes from backend/mechanics_topics.py: topics per catalog
+category (flows, discount codes, customer sidebar…), ranked by what the
+integration's own Yotpo guide and partner pages talk about.
+
+How the help centre is found, in order:
   1. an admin override (scripts/help_centres.json);
   2. a documentation link the catalog detail page itself gives;
   3. a link inside the Yotpo guide to the partner's documentation;
@@ -20,19 +27,16 @@ Gorgias), so a Shopify link inside the Gorgias guide is never taken as
 Gorgias's help centre. Names are never guessed into domains: "Rule" or
 "Target" would find someone else's site.
 
-How articles are picked inside it:
-  - Zendesk help centres: their public Help Center API (categories, then the
-    articles of the overview-like categories). Many Zendesk centres show a bot
-    check to page fetches but answer the API.
-  - Anything else: the home page's links, scored on their text and address;
-    the best one or two "Getting started"-like sections are opened and their
-    first articles taken in the order the partner lists them.
-  - If the pages gave nothing (centres that build their pages in the
-    browser): the centre's llms.txt, a list of its articles with titles;
-    then its sitemap, scored on the address alone.
+How articles are found inside it, for each top topic:
+  - Zendesk help centres: their public search API, with the topic's searches.
+    Many Zendesk centres show a bot check to page fetches but answer the API.
+  - Anything else: the titles the centre lists itself (home page, the
+    sections named like a topic, llms.txt) and the addresses in its sitemap.
+An article is on topic when its title (or address) uses the topic's words;
+explanations ("Managing…", "How … works") rank above troubleshooting.
 
-The scoring is deliberately simple and visible (score_link). A wrong pick
-costs one rejected proposal.
+Bounded: one help centre per integration, about ten requests, one per second
+per host. Not a crawler.
 
 The network is injected: discover() takes a fetch(url) -> Page | None, so the
 logic is tested on saved pages without touching the network.
@@ -46,9 +50,11 @@ from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
+from mechanics_topics import Topic, mentions, rank_topics, topics_for
 from urls import normalize_url
 
 DEFAULT_LIMIT = 3
+TOPICS_TRIED = 4
 
 # Never a partner's own documentation: Yotpo, shorteners, social and video
 # sites, app stores, form and page builders. Matched as a whole domain.
@@ -82,22 +88,6 @@ _INDEX_NAMES = {'articles', 'article', 'docs', 'doc', 'collections', 'categories
 # "8 articles" / "3 categories" in a link's text marks a listing card
 _COUNT_TEXT = re.compile(r'\b\d+\s+(articles?|categor(y|ies)|sections?)\b', re.I)
 
-# Overview-like wording, by weight. Text and address are both scored.
-_STRONG = ('getting started', 'get started', 'start here', 'overview', 'introduction', 'intro to',
-           'what is', 'welcome to', 'quick start', 'quickstart', 'basics', 'onboarding',
-           'how it works', 'first steps', 'beginner', '101', 'new users', 'how to use')
-_MEDIUM = ('features', 'key concepts', 'concepts', 'glossary', 'dashboard', 'navigating',
-           'tour', 'set up your', 'setting up', 'setup guide', 'fundamentals', 'essentials', 'about')
-# Not what this is for: account admin, legal, news, and the Yotpo integration
-# itself (that one comes from the catalog, labelled by its own rules)
-_NEGATIVE = ('api', 'changelog', 'release notes', "what's new", 'whats new', 'billing', 'invoice',
-             'pricing', 'password', 'log in', 'login', 'sign in', 'gdpr', 'privacy', 'terms',
-             'cookie', 'troubleshoot', 'error', 'faq', 'contact', 'status', 'careers', 'blog',
-             'community', 'webinar', 'partner', 'legal', 'security', 'uninstall', 'cancel',
-             'delete', 'yotpo', 'deprecated', 'legacy', 'migration', 'migrate', 'developer',
-             'sdk', 'webhook', 'refund policy', 'accessibility', 'integration', 'integrations',
-             ' x ')  # "Rebuy x Klaviyo": about another app
-
 
 @dataclass
 class Page:
@@ -110,22 +100,64 @@ class Page:
 Fetch = Callable[[str], Optional[Page]]
 
 
+# Never proposed: news, account admin, legal
+_EXCLUDE = ('changelog', 'release notes', "what's new", 'whats new', 'password', 'log in to',
+            'careers', 'webinar', 'legal', 'terms of service', 'cookie', 'uninstall', 'status page',
+            'yotpo', 'announcing', 'announcement', 'announcements', 'code freeze', 'laws', 'law',
+            'trends', 'tax', 'taxes')
+# Usually not how the feature works: problems, money, other integrations
+_DOWNRANK = ('troubleshoot', 'troubleshooting', 'error', 'errors', 'issue', 'issues', 'not working',
+             'faq', 'faqs', 'billing', 'pricing', 'invoice', 'migration', 'migrate', 'integration',
+             'integrations', 'api', 'developer', 'developers', 'sdk', 'legacy', 'deprecated', 'why',
+             'warning', ' x ', 'not', "isn't", "doesn't", "don't", "can't", 'cannot', 'unable',
+             'failed', 'fails', 'compliance', 'webhook', 'webhooks', 'video')
+# Explanations of a feature
+_EXPLAINS = ('how', 'managing', 'manage', 'creating', 'create', 'understanding', 'understand',
+             'about', 'overview', 'setting up', 'set up', 'using', 'use', 'guide', 'getting started',
+             'introduction', 'works', 'configure', 'configuring', 'adding', 'add', 'build', 'building')
+
+
 @dataclass
 class Candidate:
     url: str
     title: str
     score: int
     reason: str
+    topic: str = ''
 
 
 @dataclass
-class Overview:
+class Mechanics:
     """What discover() found for one integration."""
     help_centre: Optional[str] = None     # root URL used
     found_via: Optional[str] = None       # override | catalog | guide | homepage | probe
-    method: Optional[str] = None          # zendesk-api, pages, llms.txt, sitemap; joined by +
+    method: Optional[str] = None          # zendesk-search, pages, llms.txt, sitemap; joined by +
+    topics: List[str] = field(default_factory=list)   # the topics searched, best first
     candidates: List[Candidate] = field(default_factory=list)
     problem: Optional[str] = None         # why nothing was found, in plain words
+
+
+def score_article(title: str, url: str, topic: Topic) -> int:
+    """How well an article explains one topic. 0 or less: not for this topic."""
+    path = urlsplit(url).path
+    slug = path.rstrip('/').rsplit('/', 1)[-1]
+    text = f'{title} {slug.replace("-", " ").replace("_", " ")}'
+    # The whole address counts against an article (/developer/, /video/), only
+    # its title and slug for it
+    hay = _words(f'{text} {path}')
+    if any(_words(w) in hay for w in _EXCLUDE):
+        return -1
+    if re.search(r'[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]', title or ''):
+        return -1  # a Japanese, Chinese or Korean copy of an article
+    hits = mentions(text, topic.words)
+    if not hits:
+        return 0
+    score = 3 + min(hits - 1, 2)
+    if any(_words(w) in hay for w in _EXPLAINS):
+        score += 1
+    if any(_words(w) in hay for w in _DOWNRANK):
+        score -= 3
+    return score
 
 
 # ---------- pure helpers ----------
@@ -227,35 +259,6 @@ def help_centre_root(url: str) -> str:
     return urlunsplit((parts.scheme.lower() or 'https', (parts.hostname or '').lower(), path, '', ''))
 
 
-def score_link(text: str, url: str, app_tokens: Iterable[str] = ()) -> Tuple[int, str]:
-    """How much a link looks like a general overview of the app: (score, why).
-    Below 1 means "not an overview"."""
-    hay = _words(text) + _words(urlsplit(url).path)
-    score, why = 0, []
-    app_tokens = list(app_tokens)
-    for w in _NEGATIVE:
-        if _words(w) in hay and w.strip() not in app_tokens:
-            return -5, f'skipped: "{w.strip()}"'
-    for w in _STRONG:
-        if _words(w) in hay:
-            score += 3
-            why.append(w)
-            phrase = _words(w).strip()
-            if any(re.search(rf' {re.escape(phrase)} (?:to |with |for |of |using )?{re.escape(t)} ', hay)
-                   or f' {t} {phrase} ' in hay for t in app_tokens):
-                score += 2  # "Introduction to Dixa", "Gorgias 101"
-            break
-    for w in _MEDIUM:
-        if _words(w) in hay:
-            score += 1
-            why.append(w)
-            break
-    if score and any(f' {t} ' in hay for t in app_tokens):
-        score += 1
-        why.append('names the app')
-    return score, ', '.join(why)
-
-
 def _clean_title(text: str) -> str:
     """Link text minus the counts and dates help centres print under titles."""
     text = re.sub(r'\s+', ' ', text or '').strip()
@@ -326,18 +329,6 @@ _GENERIC_TITLES = {'', 'read more', 'learn more', 'more', 'view all', 'see all',
                    'see more', 'click here', 'here', 'documentation', 'docs'}
 
 
-def _pick(cands: List[Candidate], limit: int) -> List[Candidate]:
-    """Best first; on a tie, the partner's own order. One per URL and one per
-    title (the same article in three languages is one article)."""
-    seen, out = set(), []
-    for _, c in sorted(enumerate(cands), key=lambda ic: (-ic[1].score, ic[0])):
-        title = re.sub(r'\s+', ' ', c.title or '').strip().lower()
-        if c.score > 0 and c.url not in seen and title not in seen and title not in _GENERIC_TITLES:
-            seen.update((c.url, title))
-            out.append(c)
-    return out[:limit]
-
-
 # ---------- finding the help centre ----------
 
 def find_help_centre(app_tokens: List[str], catalog_links: Iterable[str],
@@ -403,7 +394,7 @@ def _looks_like_help_page(page: Page, app_tokens: Iterable[str]) -> bool:
         or 'zendesk' in head or 'intercom' in head
 
 
-# ---------- picking articles ----------
+# ---------- the pool of articles a help centre lists ----------
 
 def _zendesk_locale(root: str) -> Optional[str]:
     segs = [s for s in urlsplit(root).path.split('/') if s]
@@ -430,141 +421,76 @@ def _on_host(url: str, public_host: str) -> str:
     return normalize_url(urlunsplit(parts))
 
 
-def zendesk_candidates(root: str, fetch: Fetch, app_tokens: List[str]) -> List[Candidate]:
-    """Overview articles through the Zendesk Help Center API: the overview-like
-    categories, their first sections, and those sections' first articles, all
-    in the partner's own order."""
+def zendesk_pool(root: str, fetch: Fetch, topics: List[Topic]) -> List[Tuple[str, str]]:
+    """(url, title) from the Help Center search API, two searches per topic."""
     locale = _zendesk_locale(root) or 'en-us'
-    base = f'https://{host_of(root)}/api/v2/help_center/{locale}'
-    order = 'sort_by=position&sort_order=asc'
-    cats_page = fetch(f'{base}/categories.json?per_page=100&{order}')
-    cats = _json(cats_page)
-    if not cats or 'categories' not in cats:
-        return []
-    # Where the centre really lives (help.attentivemobile.com -> help.attentive.com)
-    public_host = host_of(cats_page.url) or host_of(root)
-    cands = []
-    scored = [(score_link(c.get('name', ''), '', app_tokens), c) for c in cats['categories']]
-    for (cat_score, _), cat in [s for s in scored if s[0][0] > 0][:2]:
-        secs = _json(fetch(f"{base}/categories/{cat['id']}/sections.json?per_page=100&{order}"))
-        sections = (secs or {}).get('sections', [])
-        # A "Getting started" section first; otherwise the category's first one
-        sections.sort(key=lambda sec: -score_link(sec.get('name', ''), '', app_tokens)[0])
-        taken = 0
-        for sec in sections[:4]:
-            if taken >= 6:
-                break
-            arts = (_json(fetch(f"{base}/sections/{sec['id']}/articles.json?per_page=30&{order}"))
-                    or {}).get('articles', [])
-            # Some centres leave every position at 0: then the order is just
-            # "newest first", and only the titles say anything
-            ordered = len({a.get('position') for a in arts}) > 1
-            rank = 0
-            for a in arts:
-                s, w = score_link(a.get('title', ''), '', app_tokens)
-                if a.get('draft') or s < 0:
-                    continue
-                rank += 1
-                taken += 1
-                if ordered and rank > 6:
-                    break
-                cands.append(Candidate(_on_host(a['html_url'], public_host), a.get('title', ''),
-                                       cat_score + max(s, 0) + ((6 - rank) // 3 if ordered else 0),
-                                       f'in "{cat.get("name")} › {sec.get("name")}"' + (f'; {w}' if w else '')))
-    if not cands:
-        app = app_tokens[0] if app_tokens else ''
-        for query in ([f'getting started with {app}', f'{app} overview'] if app else []) + ['getting started']:
-            found = _json(fetch(f'https://{host_of(root)}/api/v2/help_center/articles/search.json'
-                                f'?query={quote(query)}&locale={locale}&per_page=10'))
-            for a in (found or {}).get('results', []):
-                s, w = score_link(a.get('title', ''), '', app_tokens)
-                if s > 0:
-                    cands.append(Candidate(_on_host(a['html_url'], public_host), a.get('title', ''), s,
-                                           f'search "{query}"; {w}'))
-    if not cands and cats['categories']:
-        # No overview-like category: a centre's first section is usually its
-        # introduction. Weak evidence, so it scores 1.
-        first = cats['categories'][0]
-        secs = _json(fetch(f"{base}/categories/{first['id']}/sections.json?per_page=100&{order}"))
-        for sec in ((secs or {}).get('sections') or [])[:1]:
-            arts = _json(fetch(f"{base}/sections/{sec['id']}/articles.json?per_page=30&{order}")) or {}
-            for a in arts.get('articles', [])[:3]:
-                if not a.get('draft') and score_link(a.get('title', ''), '', app_tokens)[0] >= 0:
-                    cands.append(Candidate(_on_host(a['html_url'], public_host), a.get('title', ''), 1,
-                                           f'first section of the help centre, "{sec.get("name")}"'))
-    return cands
+    pool = []
+    for topic in topics:
+        for query in topic.queries[:2]:
+            page = fetch(f'https://{host_of(root)}/api/v2/help_center/articles/search.json'
+                         f'?query={quote(query)}&locale={locale}&per_page=10')
+            found = _json(page)
+            if not found:
+                continue
+            public_host = host_of(page.url) or host_of(root)
+            for a in found.get('results', []):
+                if not a.get('draft') and a.get('html_url'):
+                    pool.append((_on_host(a['html_url'], public_host), a.get('title', '')))
+    return pool
 
 
-def llms_candidates(root: str, fetch: Fetch, app_tokens: List[str]) -> List[Candidate]:
-    """Overview articles from the centre's llms.txt: a markdown list of its
-    pages ("- [Title](url): description") that many help centres publish."""
-    page = fetch(f'https://{host_of(root)}/llms.txt')
-    if not page or page.status != 200 or '](' not in (page.text or ''):
-        return []
-    cands = []
-    root_path = urlsplit(root).path.rstrip('/')
-    for title, url in re.findall(r'\[([^\]]+)\]\((https?://[^)\s]+)\)', page.text)[:3000]:
-        url = normalize_url(re.sub(r'\.md$', '', url))
-        if not _same_site(url, root) or not _is_article(url, root):
-            continue
-        if root_path and not urlsplit(url).path.startswith(root_path):
-            continue  # another language
-        s, w = score_link(title, url, app_tokens)
-        if s > 0:
-            cands.append(Candidate(url, title, s, w))
-    return cands
-
-
-def page_candidates(root: str, home: Page, fetch: Fetch, app_tokens: List[str]) -> List[Candidate]:
-    """Overview articles from the help centre's own pages."""
-    cands, listings = [], []
+def pages_pool(root: str, home: Page, fetch: Fetch, topics: List[Topic]) -> List[Tuple[str, str]]:
+    """(url, title) the centre lists on its home page, plus the articles of
+    the one or two sections named like a topic (a "Flows" or "Discounts"
+    section)."""
+    pool, sections = [], []
     for url, text, full in page_links(home.text, home.url):
         if not _same_site(url, root):
             continue
-        score, why = score_link(text, url, app_tokens)
-        if score <= 0:
-            continue
         if _LISTING_PATH.search(urlsplit(url).path) or _COUNT_TEXT.search(full):
-            listings.append((score, url, _clean_title(text)))
+            best = max((mentions(text, t.words) for t in topics), default=0)
+            if best:
+                sections.append((best, url))
         elif _is_article(url, root):
-            cands.append(Candidate(url, _clean_title(text), score, why))
-    # Open the best one or two sections; their first articles are the
-    # partner's own reading order for a newcomer
-    for score, url, name in sorted(listings, key=lambda l: -l[0])[:2]:
+            pool.append((url, _clean_title(text)))
+    for _, url in sorted(sections, key=lambda s: -s[0])[:2]:
         page = fetch(url)
-        if not page or page.status != 200:
-            continue
-        rank = 0
-        for a_url, text, _ in page_links(page.text, page.url):
-            if not _same_site(a_url, root) or not _is_article(a_url, root) or a_url == url:
-                continue
-            s, why = score_link(text, a_url, app_tokens)
-            if s < 0 or not text:
-                continue
-            rank += 1
-            if rank > 6:
-                break
-            # Earlier in the section ranks higher, as the partner ordered it
-            cands.append(Candidate(a_url, _clean_title(text), score + max(s, 0) + (6 - rank) // 3,
-                                   f'in "{name}"' + (f'; {why}' if why else '')))
-    return cands
+        if page and page.status == 200:
+            for a_url, text, _ in page_links(page.text, page.url):
+                if _same_site(a_url, root) and _is_article(a_url, root) and a_url != url:
+                    pool.append((a_url, _clean_title(text)))
+    return pool
 
 
-def sitemap_candidates(root: str, fetch: Fetch, app_tokens: List[str]) -> List[Candidate]:
-    """Overview articles from the sitemap's addresses, for centres whose pages
-    are built in the browser."""
+def llms_pool(root: str, fetch: Fetch) -> List[Tuple[str, str]]:
+    """(url, title) from the centre's llms.txt, a markdown list of its pages
+    ("- [Title](url): description") that many help centres publish."""
+    page = fetch(f'https://{host_of(root)}/llms.txt')
+    if not page or page.status != 200 or '](' not in (page.text or ''):
+        return []
+    root_path = urlsplit(root).path.rstrip('/')
+    pool = []
+    for title, url in re.findall(r'\[([^\]]+)\]\((https?://[^)\s]+)\)', page.text)[:5000]:
+        url = normalize_url(re.sub(r'\.md$', '', url))
+        if _same_site(url, root) and _is_article(url, root) and \
+                (not root_path or urlsplit(url).path.startswith(root_path)):
+            pool.append((url, title))
+    return pool
+
+
+def sitemap_pool(root: str, fetch: Fetch) -> List[Tuple[str, str]]:
+    """(url, title from its slug) from the centre's sitemap, for centres
+    whose pages are built in the browser."""
     host = host_of(root)
     sitemaps = []
     robots = fetch(f'https://{host}/robots.txt')
     if robots and robots.status == 200:
         sitemaps = re.findall(r'(?im)^\s*sitemap:\s*(\S+)', robots.text)
     sitemaps = [s for s in sitemaps if host_of(s) == host] or [f'https://{host}/sitemap.xml']
-    # Prefer the root's own language: /en/sitemap.xml over /sitemap.xml
     root_path = urlsplit(root).path.rstrip('/')
     sitemaps.sort(key=lambda s: 0 if root_path and root_path in s else 1)
-
-    urls, opened = [], 0
-    queue = list(sitemaps)
+    english = re.compile(r'(^|[/_-])en([/_.-]|$)')
+    urls, opened, queue = [], 0, list(sitemaps)
     while queue and opened < 3:
         page = fetch(queue.pop(0))
         opened += 1
@@ -572,62 +498,95 @@ def sitemap_candidates(root: str, fetch: Fetch, app_tokens: List[str]) -> List[C
             continue
         pages, children = sitemap_locs(page.text)
         urls.extend(pages)
-        queue = [c for c in children if re.search(r'(^|[/_-])en([/_.-]|$)', c)] + \
-            [c for c in children if not re.search(r'(^|[/_-])en([/_.-]|$)', c)] + queue
-    cands = []
+        queue = [c for c in children if english.search(c)] + \
+            [c for c in children if not english.search(c)] + queue
+    pool = []
     for url in urls[:20000]:
         url = normalize_url(url)
-        if not _same_site(url, root) or not _is_article(url, root):
-            continue
-        if root_path and not urlsplit(url).path.startswith(root_path):
-            continue  # another language
-        score, why = score_link('', url, app_tokens)
-        if score > 0:
+        if _same_site(url, root) and _is_article(url, root) and \
+                (not root_path or urlsplit(url).path.startswith(root_path)):
             slug = urlsplit(url).path.rstrip('/').split('/')[-1]
-            title = re.sub(r'^\d+-', '', slug).replace('-', ' ').strip().capitalize()
-            cands.append(Candidate(url, title, score, why))
-    return cands
+            pool.append((url, re.sub(r'^\d+-', '', slug).replace('-', ' ').strip().capitalize()))
+    return pool
+
+
+# ---------- picking ----------
+
+def pick(pool: List[Tuple[str, str]], ranked: List[Tuple[Topic, int]],
+         limit: int = DEFAULT_LIMIT) -> List[Candidate]:
+    """The best article for each topic in turn, best topic first, then a
+    second round, until `limit`. One per URL and per title."""
+    best_by_topic = []
+    for topic, mentioned in ranked[:TOPICS_TRIED]:
+        cands = []
+        for i, (url, title) in enumerate(pool):
+            score = score_article(title, url, topic)
+            if score >= 3:
+                why = f'{topic.name}' + (' (the Yotpo guide or partner pages mention it)'
+                                         if mentioned else '')
+                cands.append((score, i, Candidate(url, title, score, why, topic.name)))
+        cands.sort(key=lambda c: (-c[0], c[1]))
+        best_by_topic.append([c for _, _, c in cands])
+    seen, out = set(), []
+    for round_ in range(limit):
+        for cands in best_by_topic:
+            for c in cands[round_:]:
+                key_title = re.sub(r'\s+', ' ', c.title or '').strip().lower()
+                if c.url in seen or key_title in seen or key_title in _GENERIC_TITLES:
+                    continue
+                seen.update((c.url, key_title))
+                out.append(c)
+                break
+            if len(out) >= limit:
+                return out
+    return out
 
 
 def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: Iterable[str],
-             fetch: Fetch, override: Optional[str] = None, limit: int = DEFAULT_LIMIT) -> Overview:
-    """Up to `limit` general articles about the app, from its own help centre."""
+             fetch: Fetch, categories: Iterable[str] = (), platform_type: Optional[str] = None,
+             context: str = '', override: Optional[str] = None,
+             limit: int = DEFAULT_LIMIT) -> Mechanics:
+    """Up to `limit` articles on how the partner's side of the integration
+    works, from its own help centre."""
     catalog_links, guide_links = list(catalog_links), list(guide_links)
     tokens = name_tokens(*app_names)
-    result = Overview()
+    ranked = rank_topics(topics_for(categories, platform_type), context)
+    result = Mechanics(topics=[t.name for t, _ in ranked[:TOPICS_TRIED]])
     root, via, problem = find_help_centre(tokens, catalog_links, guide_links, override, fetch)
     if not root:
         result.problem = problem
         return result
     result.help_centre, result.found_via = root, via
+    top = [t for t, _ in ranked[:TOPICS_TRIED]]
 
-    cands, methods = [], []
     home = None
     if _zendesk_locale(root) is None:
         home = fetch(root)
         if home and home.status == 200 and home.url and not _same_site(home.url, root) \
                 and host_matches_app(host_of(home.url), tokens):
-            # support.judge.me -> judge.me/help/en: the centre moved
+            root = help_centre_root(home.url)  # support.judge.me -> judge.me/help/en
+            result.help_centre = root
+        if home and home.status == 200 and _zendesk_locale(home.url) is not None:
             root = help_centre_root(home.url)
             result.help_centre = root
-    if _zendesk_locale(root) is not None or (home and _zendesk_locale(home.url) is not None):
-        root = root if _zendesk_locale(root) is not None else help_centre_root(home.url)
-        cands += zendesk_candidates(root, fetch, tokens)
-        methods.append('zendesk-api')
-    if len(_pick(cands, limit)) < limit and home and home.status == 200:
-        cands += page_candidates(root, home, fetch, tokens)
-        methods.append('pages')
-    # Top up from the next source while too few were found
-    for name, source in (('llms.txt', llms_candidates), ('sitemap', sitemap_candidates)):
-        if len(_pick(cands, limit)) >= limit:
+
+    pool, methods = [], []
+    sources = []
+    if _zendesk_locale(root) is not None:
+        sources.append(('zendesk-search', lambda: zendesk_pool(root, fetch, top)))
+    if home and home.status == 200:
+        sources.append(('pages', lambda: pages_pool(root, home, fetch, top)))
+    sources += [('llms.txt', lambda: llms_pool(root, fetch)), ('sitemap', lambda: sitemap_pool(root, fetch))]
+    for name, source in sources:
+        if len(pick(pool, ranked, limit)) >= limit:
             break
-        found = source(root, fetch, tokens)
+        found = source()
         if found:
-            cands += found
+            pool += found
             methods.append(name)
     result.method = ' + '.join(methods) or None
-    result.candidates = _pick(cands, limit)
+    result.candidates = pick(pool, ranked, limit)
     if not result.candidates:
-        result.problem = (f'help centre {root} found, but none of its pages, llms.txt or sitemap '
-                          f'offered an overview-like article; pick some by hand')
+        result.problem = (f'help centre {root} found, but no article on '
+                          f'{", ".join(result.topics[:3])}; pick some by hand')
     return result

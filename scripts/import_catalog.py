@@ -12,8 +12,8 @@ Turn yotpo.com/integrations into integrations and document proposals.
 Options:
     --html FILE         parse a saved catalog page instead of fetching it
     --cache DIR         keep every fetched page in DIR; a re-run reads from it
-    --no-overview       skip the partners' own help-centre articles
-    --overview-limit N  general articles per integration (default 3)
+    --no-mechanics      skip the partners' own help-centre articles
+    --mechanics-limit N partner articles per integration (default 3)
     --only a,b          only these integrations (esps.name), for trying things
 
 What it proposes, per integration (ALL_INTEGRATIONS_UPDATE.md §4.3):
@@ -22,10 +22,12 @@ What it proposes, per integration (ALL_INTEGRATIONS_UPDATE.md §4.3):
   - a guide that 404s, re-found in the help centre's sitemap under a renamed
     slug (note "renamed from …"); one with no match is reported as gone;
   - each documentation-like partner page the detail page links (`catalog`);
-  - up to N of the partner's own general articles: what the app is and how
-    it works (source `overview`, label pre-filled `shared`), found by
-    backend/app_overview.py. Added 2026-10-14 at Leo's request: a Yotpo guide
-    explains the integration, not the app.
+  - up to N of the partner's own articles on the features the integration
+    plugs into, e.g. Klaviyo flows and triggers, Recharge discount codes on
+    subscriptions (source `mechanics`, label pre-filled `shared`), found by
+    backend/app_mechanics.py from the topics in backend/mechanics_topics.py.
+    Added 2026-10-14 at Leo's request: a Yotpo guide explains how to connect
+    the integration, not how the partner's side behaves.
 Every proposal waits for an admin. Nothing is crawled or labelled here.
 
 --apply writes the saved plan, never a fresh fetch, so what is written is what
@@ -60,7 +62,7 @@ sys.path.insert(0, os.path.join(BASE, 'backend'))
 from dotenv import load_dotenv  # noqa: E402
 load_dotenv(os.path.join(BASE, '.env'))
 
-import app_overview  # noqa: E402
+import app_mechanics  # noqa: E402
 import catalog_import as ci  # noqa: E402
 import doc_header  # noqa: E402
 
@@ -92,7 +94,7 @@ class Fetcher:
     def _cache_path(self, url):
         return os.path.join(self.cache_dir, hashlib.sha1(url.encode()).hexdigest() + '.json')
 
-    def _get(self, url: str) -> app_overview.Page:
+    def _get(self, url: str) -> app_mechanics.Page:
         """One GET, at most MAX_BYTES and MAX_SECONDS in all: a server that
         sends a byte at a time never trips the per-read timeout."""
         started = time.time()
@@ -103,12 +105,12 @@ class Fetcher:
                 if len(body) > MAX_BYTES or time.time() - started > MAX_SECONDS:
                     raise TimeoutError(f'gave up after {MAX_SECONDS}s or {MAX_BYTES} bytes')
             r._content = body
-            return app_overview.Page(r.status_code, r.url, r.text, r.headers.get('content-type', ''))
+            return app_mechanics.Page(r.status_code, r.url, r.text, r.headers.get('content-type', ''))
 
-    def __call__(self, url: str) -> Optional[app_overview.Page]:
+    def __call__(self, url: str) -> Optional[app_mechanics.Page]:
         if self.cache_dir and os.path.exists(self._cache_path(url)):
             with open(self._cache_path(url)) as f:
-                page = app_overview.Page(**json.load(f))
+                page = app_mechanics.Page(**json.load(f))
             return page if page.status else None  # 0: unreachable when cached
         page = None
         for attempt in range(2):
@@ -125,7 +127,7 @@ class Fetcher:
                 print(f'  [fetch] {url}: {type(e).__name__}', file=sys.stderr)
         if self.cache_dir:
             with open(self._cache_path(url), 'w') as f:
-                json.dump(asdict(page or app_overview.Page(0, url, '')), f)
+                json.dump(asdict(page or app_mechanics.Page(0, url, '')), f)
         return page
 
 
@@ -209,8 +211,8 @@ def _overrides() -> Dict[str, Optional[str]]:
 
 # ---------- planning ----------
 
-def build_plan(html: str, store_view: Dict, fetch, overview: bool = True,
-               overview_limit: int = app_overview.DEFAULT_LIMIT,
+def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
+               mechanics_limit: int = app_mechanics.DEFAULT_LIMIT,
                only: Optional[List[str]] = None, overrides: Optional[Dict] = None,
                log=print) -> Dict:
     """Everything the import would do, as plain data. Reads the network
@@ -221,7 +223,7 @@ def build_plan(html: str, store_view: Dict, fetch, overview: bool = True,
             'create': [], 'update': [], 'proposals': [], 'clashes': [], 'removed_cards': [],
             'gone': [], 'ambiguous_renames': [], 'nothing': [], 'no_help_centre': [],
             'already_documents': [], 'already_proposed': [], 'duplicates': [], 'unreachable': [],
-            'overview': {}, 'integrations': 0, 'only': only}
+            'mechanics': {}, 'integrations': 0, 'only': only}
     if problem:
         return plan
     existing = store_view['integrations']
@@ -277,10 +279,14 @@ def build_plan(html: str, store_view: Dict, fetch, overview: bool = True,
                 mine += [u for u in theirs if u not in mine]
 
         outbound = []
+        # What this integration is about, for ranking the partner topics:
+        # the catalog text, the Yotpo guides and the partner pages' addresses
+        context = [integ.description] + links.partner_docs
         for url in links.yotpo:
             page = fetch(url)
             if page and page.status == 200:
                 text = _guide_text(url, page)
+                context.append(text)
                 label = doc_header.suggested_label(text)
                 final = ci.clean_link(page.url or url)
                 if final != url and ci.is_yotpo_doc(final):
@@ -290,7 +296,7 @@ def build_plan(html: str, store_view: Dict, fetch, overview: bool = True,
                     propose(integ.name, url, 'catalog', label, 'Yotpo guide linked from the catalog')
                 outbound += [u for u in ci.guide_outbound_links(page.text) if u not in outbound]
             elif page and page.status in (404, 410):
-                matches = ci.find_renamed(url, sitemap, app_overview.name_tokens(
+                matches = ci.find_renamed(url, sitemap, app_mechanics.name_tokens(
                     integ.display_name, integ.name, *integ.slugs))
                 if len(matches) == 1:
                     page2 = fetch(matches[0])
@@ -311,24 +317,25 @@ def build_plan(html: str, store_view: Dict, fetch, overview: bool = True,
         if not links.yotpo and not links.partner_docs:
             plan['nothing'].append(integ.name)
 
-        if overview and integ.name in overrides and overrides[integ.name] is None:
-            plan['overview'][integ.name] = {'help_centre': None, 'found_via': 'override', 'method': None,
-                                            'problem': 'skipped in scripts/help_centres.json',
-                                            'picked': []}
-        elif overview:
-            found = app_overview.discover(
+        if mechanics and integ.name in overrides and overrides[integ.name] is None:
+            plan['mechanics'][integ.name] = {'help_centre': None, 'found_via': 'override', 'method': None,
+                                             'topics': [], 'picked': [],
+                                             'problem': 'skipped in scripts/help_centres.json'}
+        elif mechanics:
+            found = app_mechanics.discover(
                 [integ.display_name, integ.name] + integ.slugs,
                 links.partner_docs + links.partner_other, outbound, fetch,
-                override=overrides.get(integ.name), limit=overview_limit)
-            plan['overview'][integ.name] = {
+                categories=integ.categories, platform_type=integ.platform_type,
+                context='\n'.join(context), override=overrides.get(integ.name),
+                limit=mechanics_limit)
+            plan['mechanics'][integ.name] = {
                 'help_centre': found.help_centre, 'found_via': found.found_via,
-                'method': found.method, 'problem': found.problem,
+                'method': found.method, 'topics': found.topics, 'problem': found.problem,
                 'picked': [asdict(c) for c in found.candidates]}
             if found.help_centre is None:
                 plan['no_help_centre'].append({'esp': integ.name, 'why': found.problem})
             for c in found.candidates:
-                propose(integ.name, c.url, 'overview', 'shared',
-                        f'about the app: "{c.title}" ({c.reason})')
+                propose(integ.name, c.url, 'mechanics', 'shared', f'"{c.title}": {c.reason}')
     return plan
 
 
@@ -465,7 +472,7 @@ def render_report(plan: Dict) -> str:
                      ('proposals: Yotpo guides', len(yotpo)),
                      ('  of which renamed guides', len(renamed)),
                      ('proposals: partner pages from the catalog', len(partner)),
-                     ('proposals: partner app overviews (new)', len(by_source.get('overview', []))),
+                     ('proposals: partner mechanics articles (new)', len(by_source.get('mechanics', []))),
                      ('guides gone (404, no renamed match)', len(plan['gone'])),
                      ('detail pages with nothing documentary', len(plan['nothing'])),
                      ('integrations with no help centre found', len(plan['no_help_centre'])),
@@ -503,21 +510,25 @@ def render_report(plan: Dict) -> str:
 
     w('## Proposals\n')
     w('Labels: Yotpo guides are pre-filled from their own header when it names one product '
-      '(empty when it names both, or none). Partner pages are left empty. App overviews are '
-      'pre-filled `shared`: they describe the app, not a Yotpo product. An admin confirms every label.\n')
+      '(empty when it names both, or none). Partner pages are left empty. Mechanics articles are '
+      'pre-filled `shared`: they explain the partner\'s features, not a Yotpo product. An admin '
+      'confirms every label.\n')
     for title, rows in (('Yotpo guides', yotpo), ('Partner pages from the catalog', partner),
-                        ('Partner app overviews', by_source.get('overview', []))):
+                        ('Partner mechanics articles', by_source.get('mechanics', []))):
         w(f'### {title} ({len(rows)})\n')
         w('| integration | link | label | note |\n|---|---|---|---|')
         for p in sorted(rows, key=lambda p: (p['esp'], p['url'])):
             w(f"| `{p['esp']}` | {p['url']} | {p['suggested_label'] or '—'} | {_cell(p['note'])} |")
         w('')
 
-    w('## How each app overview was found\n')
-    w('| integration | help centre | found via | method | picked |\n|---|---|---|---|---:|')
-    for name, o in sorted(plan['overview'].items()):
-        w(f"| `{name}` | {o['help_centre'] or '—'} | {o['found_via'] or '—'} | {o['method'] or '—'} | "
-          f"{len(o['picked'])} |")
+    w('## How each integration\'s mechanics articles were found\n')
+    w('Topics: what was searched for, best first (ranked by what the Yotpo guide and partner pages '
+      'talk about; the lists are in `backend/mechanics_topics.py`).\n')
+    w('| integration | topics searched | help centre | found via | method | picked |\n'
+      '|---|---|---|---|---|---:|')
+    for name, o in sorted(plan['mechanics'].items()):
+        w(f"| `{name}` | {'; '.join(o['topics'][:3]) or '—'} | {o['help_centre'] or '—'} | "
+          f"{o['found_via'] or '—'} | {o['method'] or '—'} | {len(o['picked'])} |")
     w('')
     if plan['no_help_centre']:
         w(f"### No help centre found ({len(plan['no_help_centre'])})\n")
@@ -526,7 +537,7 @@ def render_report(plan: Dict) -> str:
         for r in sorted(plan['no_help_centre'], key=lambda r: r['esp']):
             w(f"- `{r['esp']}`: {r['why']}")
         w('')
-    found_empty = [(n, o) for n, o in plan['overview'].items() if o['help_centre'] and not o['picked']]
+    found_empty = [(n, o) for n, o in plan['mechanics'].items() if o['help_centre'] and not o['picked']]
     if found_empty:
         w(f'### Help centre found, nothing picked ({len(found_empty)})\n')
         for n, o in sorted(found_empty):
@@ -573,8 +584,8 @@ def main(argv=None):
     ap.add_argument('--report')
     ap.add_argument('--html')
     ap.add_argument('--cache')
-    ap.add_argument('--no-overview', action='store_true')
-    ap.add_argument('--overview-limit', type=int, default=app_overview.DEFAULT_LIMIT)
+    ap.add_argument('--no-mechanics', action='store_true')
+    ap.add_argument('--mechanics-limit', type=int, default=app_mechanics.DEFAULT_LIMIT)
     ap.add_argument('--only')
     args = ap.parse_args(argv)
 
@@ -607,8 +618,8 @@ def main(argv=None):
             return 2
         html = page.text
     only = [s.strip() for s in args.only.split(',')] if args.only else None
-    plan = build_plan(html, view, fetch, overview=not args.no_overview,
-                      overview_limit=args.overview_limit, only=only, overrides=_overrides(),
+    plan = build_plan(html, view, fetch, mechanics=not args.no_mechanics,
+                      mechanics_limit=args.mechanics_limit, only=only, overrides=_overrides(),
                       log=lambda m: print(m, file=sys.stderr))
     with open(args.plan, 'w') as f:
         json.dump(plan, f, indent=1)

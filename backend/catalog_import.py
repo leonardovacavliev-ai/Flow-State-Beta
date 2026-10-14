@@ -17,7 +17,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
-from app_overview import is_doc_like, is_partner_url
+from app_mechanics import is_doc_like, is_partner_url
 from integration_types import CATEGORY_DEFAULT_TYPE, default_type
 from urls import normalize_url
 

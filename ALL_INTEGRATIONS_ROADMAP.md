@@ -172,7 +172,7 @@ Not part of the suite:
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
-| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | doing | branch `v2/c1-2-catalog-import`; adds partner app overviews (Leo, 2026-10-14); waiting for Leo to read `docs/integrations/catalog_dry_run.md` |
+| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | doing | branch `v2/c1-2-catalog-import`; adds partner mechanics articles (Leo, 2026-10-14); waiting for Leo to read `docs/integrations/catalog_dry_run.md` |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
@@ -622,14 +622,17 @@ human reads before anything is written.
       (rejections are remembered).
     - Store the snapshot.
     - Never delete anything.
-- [x] **Partner app overviews** (added 2026-10-14 at Leo's request; plan §4.3, decision log):
-  - `backend/app_overview.py`: find the partner's help centre (override file, catalog link, guide
+- [x] **Partner mechanics** (added 2026-10-14 at Leo's request; plan §4.3, decision log):
+  - `backend/mechanics_topics.py`: the features Yotpo touches, per catalog category (flows and
+    triggers, discount codes on subscriptions, customer sidebar…), ranked per integration by its
+    Yotpo guide and partner pages. Product knowledge: Leo edits it.
+  - `backend/app_mechanics.py`: find the partner's help centre (override file, catalog link, guide
     link, the partner homepage's help link, then `help.`/`support.`/`docs.`/`knowledge.` probes;
-    the host must carry the app's name), then pick up to 3 general articles (Zendesk API, home
-    page sections, `llms.txt`, sitemap).
-  - Proposals with source `overview`, label pre-filled `shared`, note = title and why picked.
+    the host must carry the app's name), then the best article per top topic (Zendesk search,
+    listed titles, `llms.txt`, sitemap).
+  - Proposals with source `mechanics`, label pre-filled `shared`, note = title and topic.
   - `scripts/help_centres.json`: admin overrides (`name: url`, or `null` to skip one).
-  - `--no-overview` and `--overview-limit N` on the script.
+  - `--no-mechanics` and `--mechanics-limit N` on the script.
 - [x] **`backend/test_catalog_import.py`:**
   - parsing the fixtures;
   - grouping;
@@ -656,8 +659,9 @@ report from the live catalog (read-only) attached to the PR.
 **Rollback:** nothing is written in this checkpoint.
 
 **Deviations (2026-10-14)**
-- **Partner app overviews added** (Leo, this session): see the task above. They add ~226
-  proposals and ~600–700 vectors if all were approved; an admin approves each one.
+- **Partner mechanics added** (Leo, this session): see the task above. 213 proposals in the dry
+  run; an admin approves each one. A first version picked general "Welcome to the app" articles;
+  Leo rejected that: the target is the features the integration uses, as in his email-platform picks.
 - **Live dry run** (`docs/integrations/catalog_dry_run.md`), against the live catalog and partner
   sites, with the knowledge-base rows read from a read-only copy of production
   (`eval/seed_local_db.py`), never production itself. Against the plan's figures:
@@ -665,10 +669,14 @@ report from the live catalog (read-only) attached to the PR.
   renamed 6 (6); gone 1, Yieldify (1); pages with nothing documentary 13 (14); partner pages 135
   (~58–83: this also counts partner pages on detail pages that have a Yotpo guide, and partner pages
   whose address names Yotpo); type conflicts 18 among the integrations to create (~25 in all).
-- **Overview quality, read by hand:** about half the picks are the app's own "welcome / getting
-  started / what is" articles, about a third are acceptable, the rest weak (Ometria's first pick
-  is "Coupon codes"). 37 integrations have no help centre found and 35 have one but nothing picked;
-  each is listed with the reason, for `scripts/help_centres.json` or a hand pick.
+- **Mechanics quality, read by hand:** most picks are about the feature the integration uses
+  (Klaviyo "Guide to Flow Triggers and Flow Filters", Recharge "Managing subscription discount
+  codes", Omnisend workflow events, Dixa sidebar and macros, Smile ways to redeem points). Weak
+  spots: apps the catalog files under an unexpected category (Searchspring is "eCommerce
+  platform"), very large help centres (Shopify Flow got Shopify's reports articles), and centres
+  in another language (Rule is in Swedish). 37 integrations have no help centre found and 39 have
+  one but no on-topic article; each is listed with the reason, for `scripts/help_centres.json`,
+  a topic edit or a hand pick.
 - **`--apply` writes a saved plan** (`--plan`), never a fresh fetch, so what Leo reads is what is
   written. A plan made with `--only` is refused.
 - **The Zendesk guide now names "Reviews"** in its header; the plan expected no product line. The
@@ -685,7 +693,7 @@ report from the live catalog (read-only) attached to the PR.
 - **Fixtures are trimmed:** scripts, styles, SVG and `data-*` attributes removed (1.4 MB → 50 KB a
   guide). `test_doc_header.py` checks that the crawler's text is unchanged by the trim.
 - **A link proposed for two integrations** stays with the first (the URL is unique in
-  `document_proposals`); the report lists the 12 cases (e.g. Shopify's intro articles for
+  `document_proposals`); the report lists the 7 cases (e.g. Shopify's intro articles for
   `shopify_flow`, `shopify_plus`).
 
 ### C1.3 Refresh pipeline
@@ -790,8 +798,8 @@ Management, whose N+1 fetch-and-render cannot scale.
   - [ ] `GET /api/admin/integrations/<name>/documents?page=`: paginated
     `crawl_queue.list_document_states`.
   - [ ] `GET /api/admin/proposals?esp=&source=&state=open&page=`. Sources are `catalog`,
-    `sitemap`, `manual` and `overview` (the partner's own general articles, C1.2); the inbox
-    shows `overview` proposals as "About the app", with their note (title and why picked).
+    `sitemap`, `manual` and `mechanics` (the partner's own articles on the features the integration
+    uses, C1.2); the inbox shows `mechanics` proposals with their note (title and topic).
   - [ ] `POST /api/admin/proposals/approve {items: [{id, product}]}`:
     - a product is required per item;
     - `add_document(…, product=…)` then `enqueue_crawl_job`;
@@ -1177,13 +1185,14 @@ Every wave runs these steps for its platform type.
 | W2 | dev → 🛑 | Claude drafts 10 trap cases from the type's documents (stored content, read-only), each built on a documented limitation where the obvious answer is wrong. Leo validates `expected` and `fails_if`. |
 | W3 | dev | `trap_eval.py run`. First make every `must_contain` pass: fix content or retrieval, not the prompt. Then `sheet`. |
 | W4 | 🛑 Leo | Score the sheet. If the rule fails, revise the prompt (W1) and re-run, up to 3 rounds; then stop and decide together. If a type keeps failing, try the other configured providers on the same 10 questions before rewriting more. |
-| W5 | 🛑 Leo | Content for the type: proposals approved and labelled (incl. the partner app overviews, source `overview`), blocked pages pasted, platform types confirmed. |
+| W5 | 🛑 Leo | Content for the type: proposals approved and labelled (incl. the partner mechanics articles, source `mechanics`), blocked pages pasted, platform types confirmed. |
 | W6 | dev → 🛑 | `scripts/activate_integrations.py --type <t>` (dry run lists Basic-tier integrations to activate, and the ones staying `listed` with the reason). Leo runs `--apply`. Created in C2.1; it also supports `--deactivate`. |
 | W7 | dev | One week later: errors (Sentry), thin answers per integration, thumbs (after C2.5). Write findings in this file; fix list as follow-up PRs. Update §2 and §10. |
 
-**Watch in W3:** the partner app overviews share Query A's 10 chunks with the Yotpo guide. If a
-trap case fails because overview chunks pushed the guide out, cap or order overview chunks in
-retrieval (a measured change, recorded here), rather than dropping the overviews.
+**Watch in W3:** the partner mechanics articles share Query A's 10 chunks with the Yotpo guide
+(Query B, today's mechanics query, is off for the new types). If a trap case fails because they
+pushed the guide out, turn Query B on for that type or cap them (a measured change, recorded
+here), rather than dropping them.
 
 **Gate to activate:**
 - the W4 rule passes and is recorded;
@@ -1382,7 +1391,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
-| Partner app overviews are proposed by the import (Leo, 2026-10-14) | a bounded exception to "no automated link-following": up to 3 general articles per integration from the partner's own help centre, source `overview`, label pre-filled `shared`, each approved per URL (C1.2; plan §4.3) |
+| Partner mechanics articles are proposed by the import (Leo, 2026-10-14) | a bounded exception to "no automated link-following": up to 3 articles per integration from the partner's own help centre on the features the integration uses (topics in `backend/mechanics_topics.py`), source `mechanics`, label pre-filled `shared`, each approved per URL (C1.2; plan §4.3) |
 
 ---
 
@@ -1402,4 +1411,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C1.1 | Schema, key validation, URL identity, chunk counts, both scripts, tests (PR #3); production URL check found 3 rows, fix script prepared | Claude Code |
 | 2026-10-13 | C1.1 | Merged and deployed (#3); Leo applied the URL fix and the key rename; live checks OK: done | Claude Code |
 | 2026-10-13 | — | NEXT_SESSION.md: hand-off agenda for the next session | Claude Code |
-| 2026-10-14 | C1.2 | Header parser, catalog import (dry run by default, `--apply` from a saved plan), partner app overviews (Leo's request), fixtures, tests, live dry-run report | Claude Code |
+| 2026-10-14 | C1.2 | Header parser, catalog import (dry run by default, `--apply` from a saved plan), partner mechanics articles (Leo's request), fixtures, tests, live dry-run report | Claude Code |

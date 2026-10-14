@@ -1,10 +1,11 @@
 """
-The catalog import (C1.2): backend/catalog_import.py, backend/app_overview.py
+The catalog import (C1.2): backend/catalog_import.py, backend/app_mechanics.py,
+backend/mechanics_topics.py
 and scripts/import_catalog.py.
 
     python3 backend/test_catalog_import.py     # or pytest
 
-No network: pages come from fixtures/catalog/ and fixtures/app_overview/
+No network: pages come from fixtures/catalog/ and fixtures/app_mechanics/
 (saved from the live sites on 2026-10-14) through a fake fetch. The --apply
 test writes to a throwaway SQLite database.
 """
@@ -21,11 +22,12 @@ os.environ['SQLITE_DB_PATH'] = os.path.join(TMP, 'test.db')
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'scripts'))
 
-import app_overview as ao  # noqa: E402
+import app_mechanics as am  # noqa: E402
+import mechanics_topics as mt  # noqa: E402
 import catalog_import as ci  # noqa: E402
 
 CATALOG = os.path.join(HERE, 'fixtures', 'catalog')
-OVERVIEW = os.path.join(HERE, 'fixtures', 'app_overview')
+MECHANICS = os.path.join(HERE, 'fixtures', 'app_mechanics')
 
 
 def _read(path):
@@ -37,15 +39,15 @@ def _cards():
     return ci.parse_catalog(_read(os.path.join(CATALOG, 'catalog.html')))
 
 
-def _overview_fetch():
+def _mechanics_fetch():
     """fetch() over the recorded help-centre pages; anything else is offline."""
-    manifest = json.loads(_read(os.path.join(OVERVIEW, 'manifest.json')))
+    manifest = json.loads(_read(os.path.join(MECHANICS, 'manifest.json')))
 
     def fetch(url):
         entry = manifest['pages'].get(url)
         if not entry:
             return None
-        return ao.Page(entry['status'], entry['url'], _read(os.path.join(OVERVIEW, entry['file'])),
+        return am.Page(entry['status'], entry['url'], _read(os.path.join(MECHANICS, entry['file'])),
                        entry['content_type'])
     return fetch, manifest['expected']
 
@@ -165,7 +167,7 @@ def test_renamed_guide_needs_the_partner_name():
     assert len(ci.find_renamed(dead, live)) == 2  # without the name: ambiguous
     assert ci.find_renamed(dead, live, ['optimove']) == [live[2]]
     assert ci.find_renamed('https://support.yotpo.com/docs/builder-integration-guide', live,
-                           ao.name_tokens('Builder.io', 'builder_io')) == [live[3]]
+                           am.name_tokens('Builder.io', 'builder_io')) == [live[3]]
 
 
 def test_partner_page_about_yotpo_is_documentation():
@@ -180,85 +182,94 @@ def test_help_centre_from_the_homepage():
     """Only the partner's homepage is known: its "Help Center" link says where."""
     home = ('<a href="/pricing">Pricing</a><a href="https://help.acme.io/en">Help Center</a>'
             '<a href="https://docs.other.com/">Docs</a>')
-    pages = {'https://www.acme.io/': ao.Page(200, 'https://www.acme.io/', home)}
-    root, via, _ = ao.find_help_centre(ao.name_tokens('Acme'), ['https://www.acme.io/yotpo-integration'], [],
+    pages = {'https://www.acme.io/': am.Page(200, 'https://www.acme.io/', home)}
+    root, via, _ = am.find_help_centre(am.name_tokens('Acme'), ['https://www.acme.io/yotpo-integration'], [],
                                        fetch=pages.get)
     assert (root, via) == ('https://help.acme.io/en', 'homepage')
 
 
-# ---------- partner app overviews ----------
+# ---------- partner mechanics ----------
 
-def test_overview_scoring():
-    assert ao.score_link('Getting started with Dixa', '', ['dixa'])[0] >= 5
-    assert ao.score_link('Team overview', '', ['dixa'])[0] == 3
-    assert ao.score_link('Yotpo integration overview', '', ['dixa'])[0] < 0
-    assert ao.score_link('API overview', '', [])[0] < 0
-    assert ao.score_link('Create a segment', '', [])[0] == 0
-    assert ao.score_link('', 'https://x.help/en/articles/12-getting-started-with-x', ['x'])[0] > 0
+def test_topics_follow_the_category_and_the_guide():
+    """Recharge's guide is about coupon codes on subscriptions: that topic first."""
+    topics = mt.topics_for(['subscription-recurring-billing'])
+    ranked = mt.rank_topics(topics, 'Yotpo Loyalty generates coupon codes that can be applied to '
+                                    'ongoing Recharge subscriptions.')
+    assert ranked[0][0].name == 'discount codes on subscriptions' and ranked[0][1] > 0
+    # An email platform with nothing in its guide keeps the default order: flows first
+    assert mt.rank_topics(mt.topics_for(['email-marketing']), '')[0][0].name == 'flows and their triggers'
+    # No known category: the platform type's topics
+    assert mt.topics_for([], 'service')[0].name == 'customer profile in the sidebar'
+    assert mt.topics_for(['email-marketing', 'sms-marketing']) == list(mt.MESSAGING)
+
+
+def test_score_article():
+    flows, discounts = mt.MESSAGING[0], mt.SUBSCRIPTIONS[0]
+    assert am.score_article('Guide to Flow Triggers and Flow Filters', '', flows) >= 5
+    assert am.score_article('Managing subscription discount codes', '', discounts) >= 4
+    # Not about the topic, or not an explanation of it
+    assert am.score_article('Welcome to Recharge', '', discounts) == 0
+    assert am.score_article('Code freeze for BFCM', '', discounts) <= 0
+    assert am.score_article('Discount code field is not available at checkout', '', discounts) < 3
+    assert am.score_article('Yotpo discount codes', '', discounts) < 0
+    assert am.score_article('Announcing new flow triggers', '', flows) < 0
+    # The address counts against: a developer page about webhooks
+    assert am.score_article('Flow triggers', 'https://x.com/developer/flows', flows) < 3
 
 
 def test_help_centre_root():
-    assert ao.help_centre_root('https://x.zendesk.com/hc/en-us/articles/1-a') == 'https://x.zendesk.com/hc/en-us'
-    assert ao.help_centre_root('https://help.x.com/en/articles/2-b') == 'https://help.x.com/en'
-    assert ao.help_centre_root('https://docs.gorgias.com/en-US/foo-1') == 'https://docs.gorgias.com/en-US'
-    assert ao.help_centre_root('https://mailchimp.com/help/connect-disconnect-yotpo') == 'https://mailchimp.com/help'
-    assert ao.help_centre_root('https://www.braze.com/docs/partners/x/yotpo') == 'https://www.braze.com/docs'
+    assert am.help_centre_root('https://x.zendesk.com/hc/en-us/articles/1-a') == 'https://x.zendesk.com/hc/en-us'
+    assert am.help_centre_root('https://help.x.com/en/articles/2-b') == 'https://help.x.com/en'
+    assert am.help_centre_root('https://docs.gorgias.com/en-US/foo-1') == 'https://docs.gorgias.com/en-US'
+    assert am.help_centre_root('https://mailchimp.com/help/connect-disconnect-yotpo') == 'https://mailchimp.com/help'
+    assert am.help_centre_root('https://www.braze.com/docs/partners/x/yotpo') == 'https://www.braze.com/docs'
 
 
 def test_help_centre_must_carry_the_apps_name():
     """A Shopify link inside the Gorgias guide is not Gorgias's help centre."""
-    tokens = ao.name_tokens('Gorgias', 'gorgias')
-    root, via, _ = ao.find_help_centre(tokens, [], ['https://help.shopify.com/en/manual/apps'])
+    tokens = am.name_tokens('Gorgias', 'gorgias')
+    root, via, _ = am.find_help_centre(tokens, [], ['https://help.shopify.com/en/manual/apps'])
     assert root is None
-    root, via, _ = ao.find_help_centre(tokens, [], ['https://help.shopify.com/en/manual/apps',
+    root, via, _ = am.find_help_centre(tokens, [], ['https://help.shopify.com/en/manual/apps',
                                                     'https://docs.gorgias.com/en-US/some-guide-1'])
     assert (root, via) == ('https://docs.gorgias.com/en-US', 'guide')
     # An admin override wins
-    root, via, _ = ao.find_help_centre(tokens, ['https://docs.gorgias.com/en-US/x-1'], [],
+    root, via, _ = am.find_help_centre(tokens, ['https://docs.gorgias.com/en-US/x-1'], [],
                                        override='https://help.example.com')
     assert (root, via) == ('https://help.example.com', 'override')
 
 
 def test_no_link_no_guess():
     """Names are never turned into domains: 'Target' would find target.com."""
-    root, via, problem = ao.find_help_centre(ao.name_tokens('Target'), [], [], fetch=lambda u: None)
+    root, via, problem = am.find_help_centre(am.name_tokens('Target'), [], [], fetch=lambda u: None)
     assert root is None and 'help_centres.json' in problem
 
 
-def test_overview_discovery_on_saved_help_centres():
-    fetch, expected = _overview_fetch()
-    cases = {
-        'gorgias': (['Gorgias', 'gorgias'], [], ['https://docs.gorgias.com/en-US/articles/some-guide-123']),
-        'attentive': (['Attentive', 'attentive'],
-                      ['https://help.attentivemobile.com/hc/en-us/articles/41245602462740-Yotpo-Reviews'], []),
-        'rebuy': (['Rebuy', 'rebuy'],
-                  ['https://help.rebuyengine.com/en/articles/6399623-adding-yotpo-product-reviews-to-rebuy-widgets'], []),
-        'dixa': (['Dixa', 'dixa'], ['https://support.dixa.help/en/articles/1879-yotpo-integration'], []),
-    }
-    for name, (names, catalog_links, guide_links) in cases.items():
-        o = ao.discover(names, catalog_links, guide_links, fetch, limit=3)
-        assert o.help_centre == expected[name]['help_centre'], name
-        assert o.method == expected[name]['method'], name
-        assert [c.url for c in o.candidates] == expected[name]['picked'], name
-    # And what they are, read by a human on 2026-10-14
-    o = ao.discover(*cases['gorgias'][:3], fetch, limit=3)
-    assert o.method == 'pages'  # a home page section opened, its articles taken
-    assert o.candidates[0].url == 'https://docs.gorgias.com/en-US/how-to-use-gorgias-a-quick-start-guide-5705504'
-    o = ao.discover(*cases['attentive'][:3], fetch, limit=3)
-    assert o.method == 'zendesk-api'
-    assert o.candidates[0].title == '(1/8) Welcome to Attentive'
-    # The API answered from help.attentive.com: links stay on the real host
-    assert all(c.url.startswith('https://help.attentive.com/hc/en-us/articles/') for c in o.candidates)
-    o = ao.discover(*cases['dixa'][:3], fetch, limit=3)
-    assert 'sitemap' in o.method  # its pages are built in the browser
-    assert o.candidates[0].title.lower() == 'an introduction to dixa messenger'
-
-
-def test_overview_never_proposes_the_yotpo_article():
-    fetch, _ = _overview_fetch()
-    o = ao.discover(['Dixa', 'dixa'], ['https://support.dixa.help/en/articles/1879-yotpo-integration'], [],
-                    fetch, limit=10)
-    assert all('yotpo' not in c.url for c in o.candidates)
+def test_mechanics_on_saved_help_centres():
+    fetch, expected = _mechanics_fetch()
+    cases = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))
+    found = {}
+    for name, c in cases.items():
+        m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch,
+                        categories=c['categories'], platform_type=c['platform_type'],
+                        context=c['context'], limit=3)
+        assert m.help_centre == expected[name]['help_centre'], name
+        assert m.method == expected[name]['method'], name
+        assert [x.url for x in m.candidates] == expected[name]['picked'], name
+        found[name] = m
+    # What they are, read by a human on 2026-10-14
+    recharge = [c.url for c in found['recharge'].candidates]
+    assert 'https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes' \
+        in recharge  # Leo's example
+    assert found['recharge'].candidates[0].topic == 'discount codes on subscriptions'
+    assert found['klaviyo'].candidates[0].title == 'Guide to Flow Triggers and Flow Filters'
+    assert found['dixa'].method == 'sitemap'  # its pages are built in the browser
+    assert {c.topic for c in found['dixa'].candidates} == {
+        'customer profile in the sidebar', 'macros and replies', 'rules and automations'}
+    assert 'llms.txt' in found['smile_io'].method
+    for m in found.values():
+        assert all('yotpo' not in c.url.lower() for c in m.candidates)
+        assert all(c.topic and c.reason for c in m.candidates)
 
 
 # ---------- the plan and --apply ----------
@@ -267,19 +278,19 @@ def _detail_fetch():
     """Detail pages from fixtures; Yotpo guides from fixtures/document360."""
     d360 = os.path.join(HERE, 'fixtures', 'document360')
     sitemap = _read(os.path.join(CATALOG, 'sitemap-en.xml'))
-    overview_fetch, _ = _overview_fetch()
+    mechanics_fetch, _ = _mechanics_fetch()
 
     def fetch(url):
         if url == 'https://support.yotpo.com/sitemap-en.xml':
-            return ao.Page(200, url, sitemap, 'application/xml')
+            return am.Page(200, url, sitemap, 'application/xml')
         if url.startswith('https://www.yotpo.com/integrations/'):
             slug = url.rstrip('/').split('/')[-1]
             path = os.path.join(CATALOG, f'detail-{slug}.html')
-            return ao.Page(200, url, _read(path), 'text/html') if os.path.exists(path) else ao.Page(404, url, '')
+            return am.Page(200, url, _read(path), 'text/html') if os.path.exists(path) else am.Page(404, url, '')
         if url.startswith('https://support.yotpo.com/docs/'):
             path = os.path.join(d360, url.rsplit('/', 1)[-1] + '.html')
-            return ao.Page(200, url, _read(path), 'text/html') if os.path.exists(path) else ao.Page(404, url, '')
-        return overview_fetch(url)
+            return am.Page(200, url, _read(path), 'text/html') if os.path.exists(path) else am.Page(404, url, '')
+        return mechanics_fetch(url)
     return fetch
 
 
@@ -312,8 +323,9 @@ def test_plan_and_apply_is_idempotent():
     guide = props['https://support.yotpo.com/docs/recharge-integration-guide-for-yotpo-loyalty-referrals']
     assert guide['source'] == 'catalog' and guide['suggested_label'] == 'loyalty'
     assert props['https://support.dixa.help/en/articles/1879-yotpo-integration']['suggested_label'] is None
-    overviews = [p for p in plan['proposals'] if p['source'] == 'overview']
-    assert overviews and all(p['esp'] == 'dixa' and p['suggested_label'] == 'shared' for p in overviews)
+    mechanics = [p for p in plan['proposals'] if p['source'] == 'mechanics']
+    assert mechanics and all(p['suggested_label'] == 'shared' for p in mechanics)
+    assert any(p['esp'] == 'dixa' and 'sidebar' in p['note'].lower() for p in mechanics)
     assert 'bazaarvoice' in plan['nothing']
     assert ic.render_report(plan).startswith('# Catalog import: dry run')
 

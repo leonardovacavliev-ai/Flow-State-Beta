@@ -13,11 +13,11 @@
 | proposals: Yotpo guides | 88 |
 |   of which renamed guides | 6 |
 | proposals: partner pages from the catalog | 135 |
-| proposals: partner app overviews (new) | 226 |
+| proposals: partner mechanics articles (new) | 213 |
 | guides gone (404, no renamed match) | 1 |
 | detail pages with nothing documentary | 13 |
 | integrations with no help centre found | 37 |
-| links already in the knowledge base (skipped) | 15 |
+| links already in the knowledge base (skipped) | 16 |
 | links already proposed (skipped) | 0 |
 | cards removed since the last import | 0 |
 | name clashes | 0 |
@@ -73,7 +73,7 @@ Categories of more than one type. The default is the first of messaging → serv
 
 ## Proposals
 
-Labels: Yotpo guides are pre-filled from their own header when it names one product (empty when it names both, or none). Partner pages are left empty. App overviews are pre-filled `shared`: they describe the app, not a Yotpo product. An admin confirms every label.
+Labels: Yotpo guides are pre-filled from their own header when it names one product (empty when it names both, or none). Partner pages are left empty. Mechanics articles are pre-filled `shared`: they explain the partner's features, not a Yotpo product. An admin confirms every label.
 
 ### Yotpo guides (88)
 
@@ -308,395 +308,384 @@ Labels: Yotpo guides are pre-filled from their own header when it names one prod
 | `wonderment` | https://docs.wonderment.com/article/6604v1nyzh-yotpo-integration-for-delivery-timing | — | partner page linked from the catalog |
 | `woocommerce` | https://woocommerce.com/products/yotpo-social-reviews | — | partner page linked from the catalog |
 
-### Partner app overviews (226)
+### Partner mechanics articles (213)
 
 | integration | link | label | note |
 |---|---|---|---|
-| `adobe_commerce_magento` | https://experienceleague.adobe.com/en/docs/commerce-on-cloud/user-guide/overview | shared | about the app: "Adobe Commerce on Cloud" (overview, names the app) |
-| `adobe_commerce_magento` | https://experienceleague.adobe.com/en/docs/commerce/cloud-service/overview | shared | about the app: "Adobe Commerce as a Cloud Service" (overview, names the app) |
-| `adobe_commerce_magento` | https://experienceleague.adobe.com/en/docs/commerce/optimizer/overview | shared | about the app: "Adobe Commerce Optimizer" (overview, names the app) |
-| `aftership` | https://support.aftership.com/en/feed/articles/15325933-get-started-with-aftership-feed-for-tiktok-shop | shared | about the app: "Get started with aftership feed for tiktok shop" (get started, names the app) |
-| `aftership` | https://support.aftership.com/en/shipping/articles/15380523-what-is-aftership-shipping | shared | about the app: "What is aftership shipping" (what is, names the app) |
-| `aftership` | https://support.aftership.com/en/shipping/articles/15380859-how-to-use-aftership-shipping-s-new-checkout-options | shared | about the app: "How to use aftership shipping s new checkout options" (how to use, names the app) |
-| `aftership_personalization` | https://support.aftership.com/en/returns | shared | about the app: "AfterShip Returns" (in "Getting started") |
-| `aftership_personalization` | https://support.aftership.com/en/shipping | shared | about the app: "AfterShip Shipping" (in "Getting started") |
-| `aftership_personalization` | https://support.aftership.com/en/tracking | shared | about the app: "AfterShip Tracking" (in "Getting started") |
-| `akeneo` | https://help.akeneo.com/en_US/serenity-your-first-steps-with-akeneo/1-serenity-discover-the-dashboard-in-details | shared | about the app: "Serenity discover the dashboard in details" (first steps, dashboard, names the app) |
-| `akeneo` | https://help.akeneo.com/en_US/serenity-your-first-steps-with-akeneo/serenity-what-about-assets | shared | about the app: "Serenity what about assets" (first steps, about, names the app) |
-| `akeneo` | https://help.akeneo.com/en_US/serenity-your-first-steps-with-akeneo/serenity-what-about-products-with-variants | shared | about the app: "Serenity what about products with variants" (first steps, about, names the app) |
-| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/get-started | shared | about the app: "Get started" (get started, names the app) |
-| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/introduction | shared | about the app: "Introduction" (introduction, names the app) |
-| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/what-is-operations-automation | shared | about the app: "What is operations automation" (what is, names the app) |
-| `ampifyme` | https://help.ampifyme.com/article/4-what-is-amp | shared | about the app: "What is AMP or Accelerated Mobile Pages?" (in "Getting Started"; what is) |
-| `ampifyme` | https://help.ampifyme.com/article/89-general-information | shared | about the app: "Getting Started: Onboarding Guide for PWA – Mobile App Builder" (in "Getting Started"; onboarding) |
-| `ampifyme` | https://help.ampifyme.com/collection/1-the-amp-app-by-ampify | shared | about the app: "The AMP App by Ampify" (in "Getting Started") |
-| `attentive` | https://help.attentive.com/hc/en-us/articles/35985714775572--1-8-Welcome-to-Attentive | shared | about the app: "(1/8) Welcome to Attentive" (in "Quick start › Onboarding"; welcome to, names the app) |
-| `attentive` | https://help.attentive.com/hc/en-us/articles/36062062955668--3-8-3-steps-to-getting-started-with-SMS | shared | about the app: "(3/8) 3 steps to getting started with SMS" (in "Quick start › Onboarding"; getting started) |
-| `attentive` | https://help.attentive.com/hc/en-us/articles/36168088263316--8-8-That-s-it-for-onboarding | shared | about the app: "(8/8) That’s it for onboarding!" (in "Quick start › Onboarding") |
-| `bazaarvoice` | https://docs.bazaarvoice.com/articles/portal-basics | shared | about the app: "Portal Basics" (basics) |
-| `bazaarvoice` | https://docs.bazaarvoice.com/articles/portal-basics/bazaarvoice-use-of-ai | shared | about the app: "Bazaarvoice use of AI" (basics, names the app) |
-| `bazaarvoice` | https://docs.bazaarvoice.com/articles/portal-basics/distribute-only | shared | about the app: "Distribute-only syndication" (basics) |
-| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/28800081470228-How-do-I-setup-a-PIN-number-for-the-MasterCard-prepaid-reward-for-my-Mobile-Wallet | shared | about the app: "How do I setup a PIN number for the MasterCard prepaid reward for my Mobile Wallet?" (first section of the help centre, "Registering & Redeeming") |
-| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/4402669938964-Why-do-I-need-to-verify-my-identity-to-redeem-my-prepaid-Card-VISA-and-MasterCard | shared | about the app: "Why do I need to verify my identity to redeem my prepaid Card VISA and MasterCard?" (first section of the help centre, "Registering & Redeeming") |
-| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/4403555039636-Why-am-I-getting-Gift-is-no-longer-available-message-when-claiming-my-reward | shared | about the app: "Why am I getting "Gift is no longer available" message when claiming my reward?" (first section of the help centre, "Registering & Redeeming") |
-| `blueconic` | https://support-experiences.blueconic.com/en/articles/246839-style-guide-overview | shared | about the app: "Style Guide overview" (in "Getting Started Explore the fundamentals to create your first experience"; overview) |
-| `blueconic` | https://support-experiences.blueconic.com/en/articles/372610-ai-building-agent-overview | shared | about the app: "AI Building Agent Overview" (in "Getting Started Explore the fundamentals to create your first experience"; overview) |
-| `blueconic` | https://support-experiences.blueconic.com/en/articles/662511-onboarding-knowledge-hub | shared | about the app: "Onboarding Knowledge Hub" (in "Getting Started Explore the fundamentals to create your first experience"; onboarding) |
-| `boostcommerce` | https://support.boostcommerce.net/en/articles/10367810-boost-personalization-overview | shared | about the app: "Boost Personalization overview" (overview, names the app) |
-| `boostcommerce` | https://support.boostcommerce.net/en/articles/12981159-translation-overview-boost-turbo | shared | about the app: "Translation Overview \(Boost Turbo\)" (overview, names the app) |
-| `boostcommerce` | https://support.boostcommerce.net/en/articles/9362430-introduction-to-boost-templates-widgets | shared | about the app: "Introduction to Boost Templates & Widgets" (introduction, names the app) |
-| `braze` | https://www.braze.com/docs/user_guide/brazeai | shared | about the app: "BrazeAI overview" (overview) |
-| `brevo_pushowl` | http://docs.pushowl.com/en/articles/15589860-toll-free-number-tfn-verification-complete-guide | shared | about the app: "Toll-Free Number (TFN) Verification - Complete Guide Everything you need to verify a toll-free number for SMS to the US and Canada: required informati" (in "Getting Started Get started with web push notifications and PushOwl 3 authors") |
-| `brevo_pushowl` | http://docs.pushowl.com/en/articles/2317637-what-are-web-push-notifications | shared | about the app: "What are Web Push Notifications? Discovering a new way of marketing" (in "Getting Started Get started with web push notifications and PushOwl 3 authors") |
-| `brevo_pushowl` | http://docs.pushowl.com/en/articles/3421426-pushowl-101 | shared | about the app: "PushOwl 101 Understand what web push notifications are and what PushOwl does" (in "Getting Started Get started with web push notifications and PushOwl 3 authors"; 101, names the app) |
-| `builder_io` | https://www.builder.io/c/docs/get-started-fusion | shared | about the app: "Code Docs" (get started) |
-| `builder_io` | https://www.builder.io/c/docs/get-started-publish | shared | about the app: "Content Docs" (get started) |
-| `cordial` | https://support.cordial.com/hc/en-us/articles/360000304831-Cordial-glossary | shared | about the app: "Cordial glossary" (in "Get started with Cordial › Cordial basics"; glossary, names the app) |
-| `cordial` | https://support.cordial.com/hc/en-us/articles/360001880452-Welcome-to-Cordial | shared | about the app: "Welcome to Cordial" (in "Get started with Cordial › Cordial basics"; welcome to, names the app) |
-| `cordial` | https://support.cordial.com/hc/en-us/articles/360002050511-Get-started-for-marketers | shared | about the app: "Get started: for marketers" (in "Get started with Cordial › Cordial basics") |
-| `daasity` | https://help.daasity.com/core-concepts/audiences-reverse-elt/audiences-overview | shared | about the app: "Create Your First Audience →" (overview, concepts) |
-| `daasity` | https://help.daasity.com/core-concepts/data-models/unified-schemas/unified-schema-introduction | shared | about the app: "unified models" (introduction, concepts) |
-| `daasity` | https://help.daasity.com/getting-started/quickstart-guides/homepage-kpi-dashboard | shared | about the app: "Learn about Home Dashboard →" (getting started, dashboard) |
-| `datagrail` | https://docs.datagrail.io/docs/overview/user-management/managing-users | shared | about the app: "Platform Overview" (overview) |
-| `datagrail` | https://docs.datagrail.io/docs/request-manager/getting-started | shared | about the app: "Request Manager" (getting started) |
-| `datagrail` | https://docs.datagrail.io/docs/vera/overview | shared | about the app: "Vera" (overview) |
-| `dixa` | https://support.dixa.help/en/articles/2161-queue-settings-overview | shared | about the app: "Queue settings overview" (overview) |
-| `dixa` | https://support.dixa.help/en/articles/252-team-overview | shared | about the app: "Team overview" (overview) |
-| `dixa` | https://support.dixa.help/en/articles/604-an-introduction-to-dixa-messenger | shared | about the app: "An introduction to dixa messenger" (introduction, names the app) |
-| `dondy` | https://help.dondy.net/start-here/8tTwAB5stRvombapghAKji/choose-your-whatsapp-setup/8rDHseRyfXNZK7ZLvCVmnk | shared | about the app: "Choose your WhatsApp Setup" (in "Start Here"; start here) |
-| `dondy` | https://help.dondy.net/start-here/8tTwAB5stRvombapghAKji/install-dondy-on-shopify/8qiPY281VFmM6phwA7YGCz | shared | about the app: "Install Dondy on Shopify" (in "Start Here"; start here, names the app) |
-| `dondy` | https://help.dondy.net/start-here/8tTwAB5stRvombapghAKji/what-dondy-does-for-your-shopify-store-/8qiPY281VEvnJqfzsTnazZ | shared | about the app: "What Dondy does for your Shopify store" (in "Start Here"; start here, names the app) |
-| `dotdigital` | https://marketing.help.dotdigital.com/en/articles/8198705-welcome-to-dotdigital-marketing | shared | about the app: "Welcome to Dotdigital Marketing" (in "Get started Get to grips with the fundamentals of Dotdigital Marketing. 2 authors"; welcome to, names the app) |
-| `dotdigital` | https://marketing.help.dotdigital.com/en/articles/8198706-get-started-with-contacts | shared | about the app: "Get started with contacts" (in "Get started Get to grips with the fundamentals of Dotdigital Marketing. 2 authors"; get started) |
-| `dotdigital` | https://marketing.help.dotdigital.com/en/articles/8198713-get-started-with-analytics | shared | about the app: "Get started with analytics" (in "Get started Get to grips with the fundamentals of Dotdigital Marketing. 2 authors"; get started) |
-| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/8518834-dotdigital-personalization-system-overview | shared | about the app: "Dotdigital Personalization system overview" (in "Get started Get to grips with the fundamentals of Dotdigital Personalization."; overview, names the app) |
-| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/8523242-introduction-to-trigger-programs | shared | about the app: "Introduction to trigger programs" (in "Get started Get to grips with the fundamentals of Dotdigital Personalization."; introduction) |
-| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/8937229-basic-account-configuration | shared | about the app: "Basic account configuration" (in "Get started Get to grips with the fundamentals of Dotdigital Personalization.") |
-| `ecomposer` | https://help.ecomposer.io/docs/ecomposer-editor/section | shared | about the app: "Section Overview" (overview, names the app) |
-| `ecomposer` | https://help.ecomposer.io/docs/ecomposer-shopline/quick-start | shared | about the app: "Quick start" (quick start, names the app) |
-| `ecomposer` | https://help.ecomposer.io/docs/getting-started/dashboard-settings | shared | about the app: "EComposer App Dashboard Settings" (getting started, dashboard, names the app) |
-| `gempages` | https://help.gempages.net/articles/introduction-to-gempages | shared | about the app: "Introduction to gempages" (introduction, names the app) |
-| `gempages` | https://help.gempages.net/articles/overview-gempages-dashboard | shared | about the app: "Overview gempages dashboard" (overview, dashboard, names the app) |
-| `gempages` | https://help.gempages.net/articles/overview-gempages-editor | shared | about the app: "Overview gempages editor" (overview, names the app) |
-| `gladly` | https://help.gladly.com/docs/agents | shared | about the app: "How to use Gladly as an Agent" (how to use, names the app) |
-| `gladly` | https://help.gladly.com/docs/new-to-gladly-ai-start-here | shared | about the app: "New to Gladly (AI)? Start Here" (start here, names the app) |
-| `gladly` | https://help.gladly.com/docs/what-is-gladly-ai | shared | about the app: "What is Gladly AI" (what is, names the app) |
-| `glew` | https://www.glew.io/articles/3-easy-steps-to-get-started-with-predictive-marketing | shared | about the app: "Easy steps to get started with predictive marketing" (get started) |
-| `glew` | https://www.glew.io/articles/basics-ecommerce-inventory-depletion-know-right-time-reorder | shared | about the app: "Basics ecommerce inventory depletion know right time reorder" (basics) |
-| `glew` | https://www.glew.io/articles/creating-an-annual-report-how-to-use-ecommerce-data-to-gain-insights-for-next-year | shared | about the app: "Creating an annual report how to use ecommerce data to gain insights for next year" (how to use) |
-| `gogenerosity` | https://help.gogenerosity.com/what-is-a-corporate-donation-2 | shared | about the app: "What is a corporate donation 2" (what is) |
-| `gogenerosity` | https://help.gogenerosity.com/what-is-gogenerositys-social-media-support-and-whats-the-point | shared | about the app: "What is gogenerositys social media support and whats the point" (what is) |
-| `gogenerosity` | https://help.gogenerosity.com/what-is-my-pay-it-forward-balance-1 | shared | about the app: "What is my pay it forward balance 1" (what is) |
-| `gorgias` | https://docs.gorgias.com/en-US/articles/getting-started-with-ai-agent-294725 | shared | about the app: "Getting Started with AI Agent" (in "AI Agent & automation features"; getting started) |
-| `gorgias` | https://docs.gorgias.com/en-US/getting-started-for-new-Gorgias-users-7524978 | shared | about the app: "Getting started for new Gorgias users" (in "Get started"; getting started, names the app) |
-| `gorgias` | https://docs.gorgias.com/en-US/how-to-use-gorgias-a-quick-start-guide-5705504 | shared | about the app: "How to use Gorgias: a quick start guide" (in "Get started"; quick start, names the app) |
-| `heartland_retail_by_hyperspace` | https://support.hyperspacehq.com/hc/en-us/articles/360009221153-Shopify-Integration-Getting-Started | shared | about the app: "Shopify Integration: Getting Started" (search "getting started with heartlandretailbyhyperspace"; getting started) |
-| `heartland_retail_by_hyperspace` | https://support.hyperspacehq.com/hc/en-us/articles/360009238013-Salesforce-Integration-Getting-Started | shared | about the app: "Salesforce Integration: Getting Started" (search "getting started with heartlandretailbyhyperspace"; getting started) |
-| `heartland_retail_by_hyperspace` | https://support.hyperspacehq.com/hc/en-us/articles/42430249949723-DoorDash-Getting-Started | shared | about the app: "DoorDash - Getting Started" (search "getting started with heartlandretailbyhyperspace"; getting started) |
-| `hubspot` | https://knowledge.hubspot.com/da/get-started/hubspot-glossary | shared | about the app: "Hubspot glossary" (get started, glossary, names the app) |
-| `hubspot` | https://knowledge.hubspot.com/es/account-management/understand-how-to-use-hubspot-credits | shared | about the app: "Understand how to use hubspot credits" (how to use, names the app) |
-| `hubspot` | https://knowledge.hubspot.com/it/account/get-started-with-hubspot-crm | shared | about the app: "Get started with hubspot crm" (get started, names the app) |
-| `insider` | https://academy.insiderone.com/v1/docs/introduction-to-architect | shared | about the app: "Architect" (introduction) |
-| `insider` | https://academy.insiderone.com/v1/docs/shopping-agent-overview | shared | about the app: "Shopping Agent" (overview) |
-| `insider` | https://academy.insiderone.com/v1/docs/support-agent-overview | shared | about the app: "Support Agent" (overview) |
-| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/115005076767-Getting-started-with-Klaviyo-onsite-tracking | shared | about the app: "Getting started with Klaviyo onsite tracking" (search "getting started with klaviyo"; getting started, names the app) |
-| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/15937542819355-Getting-started-with-Klaviyo-Reviews | shared | about the app: "Getting started with Klaviyo Reviews" (search "getting started with klaviyo"; getting started, names the app) |
-| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/360045726811-Getting-started-with-Klaviyo-APIs | shared | about the app: "Getting started with Klaviyo APIs" (search "getting started with klaviyo"; getting started, names the app) |
-| `klaviyo_customer_hub` | https://help.klaviyo.com/hc/en-us/articles/13267004984859-How-to-build-an-analytics-or-overview-dashboard | shared | about the app: "How to build an analytics or overview dashboard" (search "klaviyocustomerhub overview"; overview, dashboard) |
-| `klaviyo_customer_hub` | https://help.klaviyo.com/hc/en-us/articles/28474458127899-How-to-use-the-conversion-overview-dashboard | shared | about the app: "How to use the conversion overview dashboard" (search "klaviyocustomerhub overview"; overview, dashboard) |
-| `klevu` | https://support.klevu.com/hc/en-us/articles/39396917109147-Integrating-Klevu-on-a-New-Store | shared | about the app: "Integrating Klevu on a New Store" (in "Get Started › Smart Search") |
-| `klevu` | https://support.klevu.com/hc/en-us/articles/39396934251035-Getting-started-with-Visual-Category-Merchandising | shared | about the app: "Getting started with Visual Category Merchandising" (in "Get Started › Smart Category Merchandising"; getting started) |
-| `klevu` | https://support.klevu.com/hc/en-us/articles/39396953321627-Getting-Started | shared | about the app: "Getting Started" (in "Get Started › Smart Recommendations"; getting started) |
-| `knocommerce` | https://docs.knocommerce.com/en/articles/12844246-registering-multiple-stores-on-shopify | shared | about the app: "Registering Multiple Stores on Shopify" (in "Getting Started Set up your account and launch your first survey in minutes.") |
-| `knocommerce` | https://docs.knocommerce.com/en/articles/5555408-creating-your-first-survey | shared | about the app: "Creating your First Survey" (in "Getting Started Set up your account and launch your first survey in minutes.") |
-| `knocommerce` | https://docs.knocommerce.com/en/articles/8677976-register-a-knocommerce-account | shared | about the app: "Register a KnoCommerce Account" (in "Getting Started Set up your account and launch your first survey in minutes.") |
-| `later` | https://help.later.com/hc/en-us/articles/1500010572781-Schedule-Copy-Posts-With-Later-on-the-Web | shared | about the app: "Schedule & Copy Posts With Later on the Web" (in "Getting Started › Getting Started Guides") |
-| `later` | https://help.later.com/hc/en-us/articles/360042771474-Access-Organize-Your-Media-Library | shared | about the app: "Access & Organize Your Media Library" (in "Getting Started › Getting Started Guides") |
-| `later` | https://help.later.com/hc/en-us/articles/360043246993-Getting-Started-With-Later-Social | shared | about the app: "Getting Started With Later Social" (in "Getting Started › Getting Started Guides"; getting started, names the app) |
-| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124140-what-is-lateshipment-com-s-delivery-experience-management- | shared | about the app: "What is lateshipment com s delivery experience management" (what is, names the app) |
-| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124170-what-is-lateshipment-com-oneprotect- | shared | about the app: "What is lateshipment com oneprotect" (what is, names the app) |
-| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124207-what-is-lateshipment-com- | shared | about the app: "What is lateshipment com" (what is, names the app) |
-| `lexer` | https://learn.lexer.io/docs/activity-overview | shared | about the app: "Activity overview" (overview) |
-| `lexer` | https://learn.lexer.io/docs/lexer-javascript-tag-basics | shared | about the app: "Lexer javascript tag basics" (basics, names the app) |
-| `lexer` | https://learn.lexer.io/docs/welcome-to-lexer | shared | about the app: "Welcome to lexer" (welcome to, names the app) |
-| `limespot` | https://support.limespot.com/en/articles/8751529-getting-started-with-product-bundles-discounts | shared | about the app: "Getting started with Product Bundles Discounts" (in "Personalized Discounts Learn how to use personalized discounts per product bundle and audience segment"; getting started) |
-| `limespot` | https://support.limespot.com/en/articles/8851929-add-your-bundle-discounts-to-the-designer-and-publish | shared | about the app: "Add your bundle discounts to the Designer and publish" (in "Personalized Discounts Learn how to use personalized discounts per product bundle and audience segment") |
-| `limespot` | https://support.limespot.com/en/articles/8852240-how-to-create-product-bundles | shared | about the app: "How to create product bundles" (in "Personalized Discounts Learn how to use personalized discounts per product bundle and audience segment") |
-| `listrak` | https://help.listrak.com/en/articles/12159434-getting-started-with-listrak-s-client-support-portal | shared | about the app: "Getting Started with Listrak's Client Support Portal Learn how to setup your account and submit a support request in Listrak's Client Support portal" (in "Getting Started with Listrak Learn the basics of the Listrak Application such as: adjusting account settings, branding your account, creating lists, b"; getting started, names the app) |
-| `listrak` | https://help.listrak.com/en/articles/7039189-listrak-solution-glossary | shared | about the app: "Listrak Solution Glossary" (in "Getting Started with Listrak Learn the basics of the Listrak Application such as: adjusting account settings, branding your account, creating lists, b"; glossary, names the app) |
-| `listrak` | https://help.listrak.com/en/articles/9261024-mobile-app-push-enablement-guide | shared | about the app: "Mobile App Push Enablement Guide Learn what is required to begin sending mobile app push messages from within the platform." (in "Mobile App Push Notifications Learn the basics of Mobile App Push Notifications setting up your mobile app, sending an app notification, reporting das"; what is) |
-| `loop_subscriptions` | https://help.loopwork.co/en/articles/12657742-subscription-overview | shared | about the app: "Subscription overview Learn how to create and manage different subscription types in Loop to drive recurring revenue and enhance customer retention." (in "Getting started"; overview, names the app) |
-| `loop_subscriptions` | https://help.loopwork.co/en/articles/12703816-getting-started-with-loop | shared | about the app: "Getting started with Loop Learn how to set up, grow, and manage subscriptions with Loop while reducing churn and integrating essential apps." (in "Getting started"; getting started, names the app) |
-| `loop_subscriptions` | https://help.loopwork.co/en/articles/15477016-getting-started-with-loop-loyalty | shared | about the app: "Getting started with Loop Loyalty" (getting started, names the app) |
-| `loyaltylion` | https://help.loyaltylion.com/en/articles/4771488-welcome-to-loyaltylion | shared | about the app: "Welcome to LoyaltyLion! 🦁 What to set up first, how your customers use the program, and where to find everything" (in "Getting Started Set up your loyalty program, bring your existing data across, and get it live. F By Jason and 1 other 2 authors"; welcome to, names the app) |
-| `loyaltylion` | https://help.loyaltylion.com/en/articles/8102858-small-business-plan-overview | shared | about the app: "Small Business plan overview What your Small Business plan includes, and the features you can add to it" (in "Getting Started Set up your loyalty program, bring your existing data across, and get it live. F By Jason and 1 other 2 authors"; overview, features) |
-| `loyaltylion` | https://help.loyaltylion.com/en/articles/8102883-classic-advanced-plus-plans-overview | shared | about the app: "Classic, Advanced & Plus plans overview What your Classic, Advanced or Plus plan includes, and where to find each part of it" (in "Getting Started Set up your loyalty program, bring your existing data across, and get it live. F By Jason and 1 other 2 authors"; overview) |
-| `mailchimp` | https://mailchimp.com/help/about-sms-marketing | shared | about the app: "About SMS Marketing with Mailchimp" (about, names the app) |
-| `mailchimp` | https://mailchimp.com/help/getting-started | shared | about the app: "Getting Started" (getting started) |
-| `mailchimp` | https://mailchimp.com/help/getting-started-tags | shared | about the app: "Getting Started with Tags" (getting started) |
-| `mesa` | https://docs.getmesa.com/readme | shared | about the app: "Welcome to MESA" (welcome to, names the app) |
-| `mesa` | https://docs.getmesa.com/readme/core-concepts | shared | about the app: "Core Concepts" (concepts) |
-| `mesa` | https://docs.getmesa.com/readme/dashboard | shared | about the app: "Dashboard" (dashboard) |
-| `nosto` | https://help.nosto.com/en/articles/1616950-asynchronous-script-loading | shared | about the app: "Asynchronous Script Loading" (in "Get Started Introduce yourself how to get started with Nosto today! By Dan and 1 other 2 authors") |
-| `nosto` | https://help.nosto.com/en/articles/617973-introduction-to-nosto | shared | about the app: "Introduction To Nosto" (in "Get Started Introduce yourself how to get started with Nosto today! By Dan and 1 other 2 authors"; introduction, names the app) |
-| `nosto` | https://help.nosto.com/en/articles/617994-adding-embed-script | shared | about the app: "Adding Embed Script" (in "Get Started Introduce yourself how to get started with Nosto today! By Dan and 1 other 2 authors") |
-| `ometria` | https://support.ometria.com/hc/en-gb/articles/12052983276445-Coupon-codes | shared | about the app: "Coupon codes" (in "Setting up campaigns › Coupon pools") |
-| `ometria` | https://support.ometria.com/hc/en-gb/articles/12053068297885-Fixed-coupon-codes | shared | about the app: "Fixed coupon codes" (in "Setting up campaigns › Coupon pools") |
-| `ometria` | https://support.ometria.com/hc/en-gb/articles/12053451731613-CSV-coupon-codes | shared | about the app: "CSV coupon codes" (in "Setting up campaigns › Coupon pools") |
-| `omnisend` | https://support.omnisend.com/en/articles/1279355-omnisend-setup-what-to-do-before-you-begin | shared | about the app: "Omnisend Setup: What to Do Before You Begin" (in "Onboarding: Omnisend Basics Learn how to get started with Omnisend 2 authors") |
-| `omnisend` | https://support.omnisend.com/en/articles/1279394-email-campaign-quick-start-guide | shared | about the app: "Email Campaign: Quick Start Guide" (in "Onboarding: Omnisend Basics Learn how to get started with Omnisend 2 authors"; quick start) |
-| `omnisend` | https://support.omnisend.com/en/articles/8172193-get-started-with-omnisend | shared | about the app: "Get Started with Omnisend" (in "Onboarding: Omnisend Basics Learn how to get started with Omnisend 2 authors"; get started, names the app) |
-| `optimizely` | https://support.optimizely.com/hc/en-us/articles/115002944183-What-is-a-product-feed | shared | about the app: "What is a product feed" (what is) |
-| `optimizely` | https://support.optimizely.com/hc/en-us/articles/115002944523-What-is-your-QA-Quality-Assurance-process | shared | about the app: "What is your qa quality assurance process" (what is) |
-| `optimizely` | https://support.optimizely.com/hc/en-us/articles/5186619622285-Overview-of-Content-Indexing | shared | about the app: "Overview of Content Indexing" (search "optimizelyzaius overview"; overview) |
-| `order_desk` | https://help.orderdesk.com/start-here/getting-started-series | shared | about the app: "Getting Started Series" (getting started) |
-| `order_desk` | https://help.orderdesk.com/start-here/getting-started-video-series | shared | about the app: "Getting Started Video Series" (getting started) |
-| `order_desk` | https://help.orderdesk.com/start-here/learn-the-basics | shared | about the app: "Learn the basics" (start here) |
-| `ordergroove` | https://docs.ordergroove.com/getting-started/app-embed | shared | about the app: "Installing Ordergroove with App Embed" (getting started, names the app) |
-| `ordergroove` | https://docs.ordergroove.com/getting-started/os2-theme | shared | about the app: "Install Ordergroove on an Online Store 2.0 Theme" (getting started, names the app) |
-| `ordergroove` | https://docs.ordergroove.com/getting-started/sandbox-store | shared | about the app: "Setting up a Sandbox Store" (getting started, setting up) |
-| `pagefly` | https://help.pagefly.io/getting-started/getting-started | shared | about the app: "Overview" (getting started) |
-| `pagefly` | https://help.pagefly.io/getting-started/quick-start | shared | about the app: "Quick start" (getting started) |
-| `pagefly` | https://help.pagefly.io/pagefly-affiliate-program/affiliate-dos-and-donts | shared | about the app: "Affiliate Success: Dos & Don'ts - Everything to Know about Becoming a Successful PageFly Affiliate" (about, names the app) |
-| `postpilot` | https://help.postpilot.com/knowledge/how-to-use-sitematch-anonymous-site-visitor | shared | about the app: "How to use sitematch anonymous site visitor" (how to use) |
-| `postpilot` | https://help.postpilot.com/knowledge/setting-up-mailmatch-segments | shared | about the app: "Setting up mailmatch segments" (setting up) |
-| `postpilot` | https://help.postpilot.com/knowledge/using-in-app-dashboard | shared | about the app: "Using in app dashboard" (dashboard) |
-| `productsup` | https://www.productsup.com/de/guides/guide-to-seller-and-vendor-onboarding | shared | about the app: "Guide to seller and vendor onboarding" (onboarding) |
-| `productsup` | https://www.productsup.com/guides/supplier-onboarding-guide | shared | about the app: "Supplier onboarding guide" (onboarding) |
-| `productsup` | https://www.productsup.com/guides/thank-you-supplier-onboarding-guide | shared | about the app: "Thank you supplier onboarding guide" (onboarding) |
-| `reamaze` | https://support.reamaze.com/kb/automation/getting-started-with-re-amaze-chatbots | shared | about the app: "Getting Started with Re:amaze Chatbots" (getting started, names the app) |
-| `reamaze` | https://support.reamaze.com/kb/getting-started/what-is-re-amaze-and-is-right-for-me | shared | about the app: "What Is Re:amaze and Is It Right for Me?" (getting started, names the app) |
-| `reamaze` | https://support.reamaze.com/kb/using-the-ai-agent/how-to-use-the-re-amaze-ai-agent | shared | about the app: "AI Agent: Overview and Setup" (overview, names the app) |
-| `rebuy` | https://help.rebuyengine.com/en/articles/10552414-rebuy-merchant-success-program-overview | shared | about the app: "Rebuy Merchant Success Program Overview" (overview, names the app) |
-| `rebuy` | https://help.rebuyengine.com/en/articles/10592445-getting-started-with-rebuy-s-bundle-builder-overview-benefits | shared | about the app: "Getting Started with Rebuy’s Bundle Builder: Overview & Benefits" (getting started, names the app) |
-| `rebuy` | https://help.rebuyengine.com/en/articles/11698129-rebuy-premium-support-overview | shared | about the app: "Rebuy Premium Support Overview" (overview, names the app) |
-| `recharge` | https://support.getrecharge.com/hc/en-us/articles/25275129376535-Getting-started-with-Recharge-pre-built-flows-in-Klaviyo | shared | about the app: "Getting started with recharge pre built flows in klaviyo" (getting started, names the app) |
-| `recharge` | https://support.getrecharge.com/hc/en-us/articles/25276191673751-How-to-use-Recharge-pre-built-flows-in-Klaviyo | shared | about the app: "How to use recharge pre built flows in klaviyo" (how to use, names the app) |
-| `recharge` | https://support.getrecharge.com/hc/en-us/articles/360056632214-Getting-started-with-Recharge | shared | about the app: "Getting started with recharge" (getting started, names the app) |
-| `refersion` | http://support.refersion.com/en/articles/1064046-how-to-use-the-affiliate-portal | shared | about the app: "How To Use The Affiliate Portal" (in "For Affiliates How to get started with Refersion as an Affiliate, plus answers to your top questions about connecting with merchants, getting paid, an"; how to use) |
-| `refersion` | http://support.refersion.com/en/articles/2806309-about-the-refersion-marketplace-dashboard | shared | about the app: "About the Refersion Marketplace Dashboard" (in "For Affiliates How to get started with Refersion as an Affiliate, plus answers to your top questions about connecting with merchants, getting paid, an"; dashboard, names the app) |
-| `refersion` | http://support.refersion.com/en/articles/5819978-getting-started-with-unified-payments-affiliates | shared | about the app: "Getting Started with Unified Payments (Affiliates)" (in "For Affiliates How to get started with Refersion as an Affiliate, plus answers to your top questions about connecting with merchants, getting paid, an"; getting started) |
-| `remarkety` | https://support.remarkety.com/hc/en-us/articles/217945663-Introduction-guide-to-Remarkety | shared | about the app: "Introduction guide to Remarkety" (search "remarkety overview"; introduction, names the app) |
-| `remarkety` | https://support.remarkety.com/hc/en-us/articles/23698399807124-How-to-Use-the-Email-and-SMS-Subscription-Popup-Form | shared | about the app: "How to Use the Email and SMS Subscription Popup Form" (search "getting started with remarkety"; how to use) |
-| `remarkety` | https://support.remarkety.com/hc/en-us/articles/360053912632-Getting-Started-with-Remarkety-Overview | shared | about the app: "Getting Started with Remarkety Overview" (search "getting started with remarkety"; getting started, names the app) |
-| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/115008521628-Getting-Started-Guide | shared | about the app: "Getting Started Guide" (in "Getting Started                                                                        › Start Here"; getting started) |
-| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/360001867334-JavaScript-overview | shared | about the app: "JavaScript overview" (in "Onboarding Resources › JavaScript Setup"; overview) |
-| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/360001874554-User-interaction-events-101 | shared | about the app: "User interaction events 101" (in "Onboarding Resources › JavaScript Setup"; 101) |
-| `rise_ai` | http://help.rise.ai/en/articles/2233671-rise-features-and-their-benefits | shared | about the app: "Rise Features and Their Benefits" (features, names the app) |
-| `rise_ai` | http://help.rise.ai/en/articles/5682663-how-to-use-the-bulk-loyalty-card-tool | shared | about the app: "How to Use the Bulk Loyalty Card Tool" (how to use) |
-| `rise_ai` | http://help.rise.ai/en/articles/5682749-how-to-use-the-bulk-gift-card-tool | shared | about the app: "How to Use the Bulk Gift Card Tool" (how to use) |
-| `rush` | https://support.rush.app/getting-started-with-rush.html | shared | about the app: "Getting Started With Rush" (getting started, names the app) |
-| `rush` | https://support.rush.app/shipments/about/general.html | shared | about the app: "Shipments" (about) |
-| `rush` | https://support.rush.app/tracking-page/general/about.html | shared | about the app: "Tracking Page" (about) |
-| `searchanise` | https://docs.searchanise.io/quick-start-shopify | shared | about the app: "Quick Start on Shopify" (quick start) |
-| `searchanise` | https://docs.searchanise.io/set-up-filters-based-on-product-options-tag-prefixes-metafields | shared | about the app: "Setting up filters based on variant options, tag prefixes, and metafields on Shopify" (setting up) |
-| `searchanise` | https://docs.searchanise.io/set-up-filters-on-collections | shared | about the app: "Setting up Filters on collections" (setting up) |
-| `searchspring` | https://help.searchspring.net/hc/en-us/articles/115003179283-Introduction-to-Searchspring | shared | about the app: "Introduction to Searchspring" (search "getting started with searchspring"; introduction, names the app) |
-| `searchspring` | https://help.searchspring.net/hc/en-us/articles/115003610063-Management-Console-Overview | shared | about the app: "Management Console Overview" (search "getting started with searchspring"; overview) |
-| `searchspring` | https://help.searchspring.net/hc/en-us/articles/36052809596187-Implementations-What-We-Needed-To-Get-Started | shared | about the app: "Implementations: What We Needed To Get Started" (search "getting started with searchspring"; get started) |
-| `shopify` | https://help.shopify.com/en/manual/intro-to-shopify | shared | about the app: "Intro to Shopify" (intro to, names the app) |
-| `shopify` | https://help.shopify.com/en/manual/intro-to-shopify/initial-setup | shared | about the app: "Getting set up to start selling" (intro to, names the app) |
-| `shopify` | https://help.shopify.com/en/manual/intro-to-shopify/initial-setup/new-to-shopify-checklists/general-checklist | shared | about the app: "Checklist for starting a store" (intro to, names the app) |
-| `smile_io` | https://help.smile.io/en/articles/4036257-customer-email-overview | shared | about the app: "Understand customer emails" (overview) |
-| `social_nature` | https://socialnaturehelp.zendesk.com/hc/en-us/articles/360022527254-Is-Social-Nature-free-to-join | shared | about the app: "Is Social Nature free to join?" (first section of the help centre, "How to become a Social Nature Member") |
-| `social_nature` | https://socialnaturehelp.zendesk.com/hc/en-us/articles/360022706053-What-s-Social-Nature | shared | about the app: "What’s Social Nature?" (first section of the help centre, "How to become a Social Nature Member") |
-| `social_nature` | https://socialnaturehelp.zendesk.com/hc/en-us/articles/9171398180123-How-can-I-refer-friends-or-family-to-Social-Nature | shared | about the app: "How can I refer friends or family to Social Nature?" (first section of the help centre, "How to become a Social Nature Member") |
-| `sopost` | http://help.sopost.com/en/articles/12099184-about-sopost-licence-tiers | shared | about the app: "About SoPost licence tiers" (in "Getting started The SoPost basics By David 1 author"; about, names the app) |
-| `sopost` | http://help.sopost.com/en/articles/8011063-example-custom-questions | shared | about the app: "Example Custom Questions" (in "Onboarding Documents to guide campaign set up M By Megan 1 author") |
-| `stitch` | https://www.stitchdata.com/docs/getting-started/basic-concepts-system-overview | shared | about the app: "Basic concepts & system overview" (getting started, concepts) |
-| `stitch` | https://www.stitchdata.com/docs/getting-started/set-up-stitch-data-pipeline | shared | about the app: "Set up your Stitch data pipeline" (getting started, set up your, names the app) |
-| `stitch` | https://www.stitchdata.com/docs/getting-started/understanding-stitch-usage | shared | about the app: "Understand your Stitch row usage" (getting started, names the app) |
-| `subtotal` | https://subtotal.com/docs/concepts | shared | about the app: "Concepts" (concepts) |
-| `subtotal` | https://subtotal.com/docs/guides/getting-started | shared | about the app: "Getting Started" (getting started) |
-| `subtotal` | https://subtotal.com/docs/subtotal-dashboard | shared | about the app: "Subtotal Dashboard" (dashboard, names the app) |
-| `talkable` | https://docs.talkable.com/advanced_features/customer_service_portal/overview | shared | about the app: "Overview" (overview, features) |
-| `talkable` | https://docs.talkable.com/campaigns/campaign_placements/loyalty_dashboard | shared | about the app: "Loyalty Dashboard Placement" (dashboard) |
-| `talkable` | https://docs.talkable.com/mcp_server/getting_started | shared | about the app: "Getting Started" (getting started) |
-| `tapcart` | https://help.tapcart.com/en/articles/11120041-welcome-to-tapcart | shared | about the app: "Welcome to Tapcart!" (welcome to, names the app) |
-| `tray_io` | https://tray.ai/guides/it-onboarding-automation | shared | about the app: "It onboarding automation" (onboarding) |
-| `treet` | https://treetbrandsuccess.zendesk.com/hc/en-us/articles/14616466177687-Fulfilling-Treet-Orders-from-your-Shopify-Fulfillment-Dashboard | shared | about the app: "Fulfilling treet orders from your shopify fulfillment dashboard" (dashboard, names the app) |
-| `treet` | https://treetbrandsuccess.zendesk.com/hc/en-us/articles/17852766699799-Payouts-and-Accounting-Overview | shared | about the app: "Payouts and Accounting Overview" (search "treet overview"; overview) |
-| `treet` | https://treetbrandsuccess.zendesk.com/hc/en-us/articles/43511282618519-Bloomreach-Customer-Segmentation-Setup-Guide | shared | about the app: "Bloomreach Customer Segmentation Setup Guide" (search "getting started with treet"; setup guide) |
-| `triple_whale` | https://kb.triplewhale.com/en/articles/11013303-what-is-the-triple-pixel | shared | about the app: "What is the Triple Pixel?" (what is, names the app) |
-| `triple_whale` | https://kb.triplewhale.com/en/articles/13174572-what-is-triple-whale-labs | shared | about the app: "What is Triple Whale Labs?" (what is, names the app) |
-| `triple_whale` | https://kb.triplewhale.com/en/articles/13430726-how-to-use-ai-visibility-in-triple-whale | shared | about the app: "How to Use AI Visibility in Triple Whale" (how to use, names the app) |
-| `vajro` | https://docs.vajro.com/en/articles/15616365-how-to-hide-vendor-and-brand-names-from-customers-on-the-app | shared | about the app: "How to Hide Vendor and Brand Names from Customers on the App" (in "Product Queries Step-by-step guides and how-tos for configuring, customizing, and managing all product-related features and settings across your app. ") |
-| `vajro` | https://docs.vajro.com/en/articles/5106321-acquiring-your-storefront-access-token | shared | about the app: "Acquiring Your Storefront Access Token" (in "App Building 101 An in-depth glance at customizing and personalizing your mobile app with Vajro By Niwin 1 author") |
-| `vajro` | https://docs.vajro.com/en/articles/7007893-what-is-the-mobile-app-sales-milestone | shared | about the app: "What is the mobile app sales milestone?" (what is) |
-| `viralsweep` | https://support.viralsweep.com/en/articles/9272571-white-label-branding | shared | about the app: "White Label Branding" (in "Features") |
-| `viralsweep` | https://support.viralsweep.com/en/articles/9272661-video-urls | shared | about the app: "Video URLs" (in "Features") |
-| `viralsweep` | https://support.viralsweep.com/en/articles/9272676-auto-submit-forms | shared | about the app: "Auto Submit Forms" (in "Features") |
-| `virtue` | https://help.virtueimpact.com/en/articles/11652774-onboarding-for-ecommerce-donors-virtue-for-partners | shared | about the app: "Onboarding for eCommerce Donors - Virtue for Partners" (onboarding, names the app) |
-| `virtue` | https://help.virtueimpact.com/en/articles/11660804-onboarding-for-smb-donors-virtue-for-partners | shared | about the app: "Onboarding for SMB Donors - Virtue for Partners" (onboarding, names the app) |
-| `virtue` | https://help.virtueimpact.com/en/articles/8310622-dashboard-overview | shared | about the app: "Dashboard Overview" (overview, dashboard) |
-| `weglot` | https://support.weglot.com/article/274-how-do-i-set-up-my-dns | shared | about the app: "How do I set up my DNS?" (in "Setup") |
-| `weglot` | https://support.weglot.com/article/384-how-to-use-weglot-with-shopify-markets | shared | about the app: "How to use Weglot with Shopify Markets?" (in "Setup"; how to use, names the app) |
-| `weglot` | https://support.weglot.com/article/408-how-to-switch-from-subdomains-to-subdirectories | shared | about the app: "How to switch from subdomains to subdirectories?" (in "Setup") |
-| `yieldify` | http://support.yieldify.com/en/articles/10542287-feature-breakdown | shared | about the app: "Feature Breakdown Explore all the features Epsilon Accelerate has to offer." (in "Campaign Formats and Components All you need to know about campaign building By Sadhika and 3 others 4 authors"; features) |
-| `yieldify` | http://support.yieldify.com/en/articles/13016967-epsilon-tag-features | shared | about the app: "Epsilon Tag Features Learn what features you unlock when you upgrade to the Epsilon tag." (in "Implementation Getting Started with Yieldify Technology By Sadhika and 1 other 2 authors"; features) |
-| `yieldify` | http://support.yieldify.com/en/articles/5350250-campaign-scheduling | shared | about the app: "Campaign Scheduling Setting campaign start and end times" (in "Campaign Formats and Components All you need to know about campaign building By Sadhika and 3 others 4 authors") |
-| `zendesk` | https://support.zendesk.com/hc/en-us/articles/10018448457498-Overview-of-Zendesk-AI-offerings | shared | about the app: "Overview of Zendesk AI offerings" (in "Getting started › Getting started with Zendesk Copilot"; overview, names the app) |
-| `zendesk` | https://support.zendesk.com/hc/en-us/articles/5524125586330-About-Zendesk-Copilot | shared | about the app: "About Zendesk Copilot" (in "Getting started › Getting started with Zendesk Copilot"; about, names the app) |
-| `zendesk` | https://support.zendesk.com/hc/en-us/articles/5608652527386-Getting-started-with-AI-features-in-the-Zendesk-Copilot-add-on | shared | about the app: "Getting started with AI features in the Zendesk Copilot add-on" (in "Getting started › Getting started with Zendesk Copilot"; getting started, features, names the app) |
+| `aftership` | https://support.aftership.com/en/returns | shared | "AfterShip Returns": returns, exchanges and store credit |
+| `aftership` | https://support.aftership.com/en/tracking | shared | "AfterShip Tracking": tracking and notifications (the Yotpo guide or partner pages mention it) |
+| `aftership` | https://support.aftership.com/en/tracking/articles/15441801-connect-shopify-with-aftership-tracking | shared | "Connect Shopify With AfterShip Tracking": tracking and notifications (the Yotpo guide or partner pages mention it) |
+| `aftership_personalization` | https://support.aftership.com/en/personalization/articles/15322506-how-to-add-trust-badges-to-the-checkout-page | shared | "How to Add Trust Badges to the Checkout Page Add trust badges to checkout in AfterShip Personalization: configure badge display, build customer trust,": results, badges and merchandising (the Yotpo guide or partner pages mention it) |
+| `aftership_personalization` | https://support.aftership.com/en/personalization/articles/15322510-display-product-recommendations-on-thank-you-page | shared | "Display Product Recommendations on Thank You Page Customize and add a cross-sell widget on the Thank You page in Shopify to boost sales with AfterShip": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `aftership_personalization` | https://support.aftership.com/en/personalization/articles/15322515-how-to-embed-smart-upsell-widgets-in-your-shopify-store-theme-1-0 | shared | "How to Embed Smart Upsell Widgets in Your Shopify Store Theme 1.0 Embed Smart Upsell Widgets in Your Shopify Store Theme 1.0 in AfterShip Personalizat": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `akeneo` | https://help.akeneo.com/en_US/serenity-manage-your-reference-entities/20-serenity-import-and-export-your-reference-entity-records | shared | "Serenity import and export your reference entity records": data sync and connectors |
+| `akeneo` | https://help.akeneo.com/en_US/serenity-permissions/serenity-manage-the-interface-and-actions-accesses | shared | "Serenity manage the interface and actions accesses": workflows: triggers and actions |
+| `akeneo` | https://help.akeneo.com/en_US/serenity-your-first-steps-with-akeneo/1-serenity-discover-the-dashboard-in-details | shared | "Serenity discover the dashboard in details": dashboards and reports |
+| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/logistics-warehouse-automation | shared | "Logistics warehouse automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/shipping-fulfillment-automation | shared | "Shipping fulfillment automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `alloy_automation` | https://runalloy.com/guides/ecommerce-operations-automation/what-is-operations-automation | shared | "What is operations automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `ampifyme` | https://help.ampifyme.com/article/22-how-to-customize-the-language-section | shared | "How to customize the language section": blocks and components |
+| `ampifyme` | https://help.ampifyme.com/article/79-how-do-i-get-people-to-subscribe-to-push-notifications-how-do-i-configure-the-prompt | shared | "How do I get people to subscribe to push notifications? How do I configure the prompt?": push notifications |
+| `ampifyme` | https://help.ampifyme.com/article/88-how-to-configure-push-notifications-and-run-campaigns | shared | "How to Configure Push Notifications and Run Campaigns on Your Store": push notifications |
+| `attentive` | https://help.attentive.com/hc/en-us/articles/360052420472-Create-Shopify-segments | shared | "Create Shopify segments": segments and lists (the Yotpo guide or partner pages mention it) |
+| `attentive` | https://help.attentive.com/hc/en-us/articles/360056415972-Add-steps-to-a-journey | shared | "Add steps to a journey": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `attentive` | https://help.attentive.com/hc/en-us/articles/6355344582804-Create-a-segment-from-a-custom-attribute | shared | "Create a segment from a custom attribute": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `bazaarvoice` | https://docs.bazaarvoice.com/articles/portal-basics/content-collection-partner | shared | "Partner Program": content, rights and galleries (the Yotpo guide or partner pages mention it) |
+| `bazaarvoice` | https://docs.bazaarvoice.com/articles/ratings-reviews/content-display-style-guide | shared | "Content display style guide": content, rights and galleries (the Yotpo guide or partner pages mention it) |
+| `bazaarvoice` | https://docs.bazaarvoice.com/articles/ratings-reviews/syndication | shared | "Syndication": product catalog and feeds |
+| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/360016516051-How-can-I-check-Target-gift-cards-balance-inquiry | shared | "How can I check Target gift cards balance inquiry?": gift cards and store credit (the Yotpo guide or partner pages mention it) |
+| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/360017431912-Can-I-request-incentive-plastic-cards-instead-of-E-Gift-from-BHN-Rewards | shared | "Can I request incentive plastic cards instead of E-Gift from BHN Rewards?": rewards and incentives (the Yotpo guide or partner pages mention it) |
+| `bhn_rewards` | https://help.rybbon.net/hc/en-us/articles/360061371492-How-to-use-your-prepaid-reward-card | shared | "How to use your prepaid reward card": rewards and incentives (the Yotpo guide or partner pages mention it) |
+| `bold_commerce` | https://support.boldcommerce.com/en/articles/15847457-create-a-discount-with-bold-discounts | shared | "Create a Discount with Bold Discounts": discount codes |
+| `bold_commerce` | https://support.boldcommerce.com/en/articles/15847482-does-bold-discounts-create-discount-codes | shared | "Does Bold Discounts Create Discount Codes?": discount codes |
+| `bold_commerce` | https://support.boldcommerce.com/en/articles/15847510-how-are-discounts-applied-when-a-product-is-in-multiple-discount-groups | shared | "How are discounts applied when a product is in multiple discount groups?": discount codes |
+| `boostcommerce` | https://support.boostcommerce.net/en/articles/9355408-set-up-boost-ai-search-discovery | shared | "Set up Boost AI Search & Discovery": results, badges and merchandising (the Yotpo guide or partner pages mention it) |
+| `boostcommerce` | https://support.boostcommerce.net/en/articles/9355713-create-effective-filter-trees-best-practices | shared | "Create effective filter trees \(best practices\)": filters and facets |
+| `boostcommerce` | https://support.boostcommerce.net/en/articles/9400263-basic-flow-to-set-up-a-boost-recommendation-widget | shared | "Basic flow to set up a Boost Recommendation widget": recommendation widgets |
+| `braze` | https://www.braze.com/docs/user_guide/brazeai/decisioning_studio_go/composing_with_canvas | shared | "Composing with Canvas": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `braze` | https://www.braze.com/docs/user_guide/channels/whatsapp/use_cases/opt_in_flows | shared | "Opt-in flows": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `brevo_pushowl` | http://docs.pushowl.com/en/articles/11477693-how-to-create-sms-automations-for-order-updates-with-shopify-flow-pushowl | shared | "How to Create SMS Automations for order updates with Shopify Flow & PushOwl You can now build fully automated SMS workflows using Shopify’s Flow app t": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `brevo_pushowl` | http://docs.pushowl.com/en/articles/11561839-how-to-create-sms-automations-for-abandoned-checkout-with-shopify-flow-pushowl | shared | "How to Create SMS Automations for abandoned checkout with Shopify Flow & PushOwl You can now build fully automated SMS workflows using Shopify’s Flow ": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `brevo_pushowl` | http://docs.pushowl.com/en/articles/4113148-segmentation-builder | shared | "Segmentation Builder Learn how to build an audience segment and the different conditions available to help you create highly specific segments.": segments and lists (the Yotpo guide or partner pages mention it) |
+| `cordial` | https://support.cordial.com/hc/en-us/articles/115005528508-Events | shared | "Events": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `cordial` | https://support.cordial.com/hc/en-us/articles/360006891372-Create-an-internal-suppression-list | shared | "Create an internal suppression list": segments and lists (the Yotpo guide or partner pages mention it) |
+| `cordial` | https://support.cordial.com/hc/en-us/articles/360024573532-Create-a-pop-up-triggered-by-a-click-on-the-navigation-menu-in-mobile-and-desktop-devices | shared | "Create a pop-up triggered by a click on the navigation menu in mobile and desktop devices": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `daasity` | https://help.daasity.com/core-concepts/dashboards | shared | "Dashboards": dashboards and reports (the Yotpo guide or partner pages mention it) |
+| `daasity` | https://help.daasity.com/getting-started/quickstart-guides/homepage-kpi-dashboard | shared | "Learn about Home Dashboard →": dashboards and reports (the Yotpo guide or partner pages mention it) |
+| `daasity` | https://help.daasity.com/technical-docs/workflows-and-scheduling | shared | "Workflows & Scheduling": workflows: triggers and actions |
+| `datagrail` | https://docs.datagrail.io/docs/request-manager/getting-started | shared | "Request Manager": data subject requests (the Yotpo guide or partner pages mention it) |
+| `datagrail` | https://docs.datagrail.io/docs/request-manager/request-processing/privacy-right/access-categories | shared | "Access Categories Request Lifecycle": data subject requests (the Yotpo guide or partner pages mention it) |
+| `datagrail` | https://docs.datagrail.io/docs/request-manager/request-processing/privacy-right/deletion | shared | "Deletion Request Lifecycle": data subject requests (the Yotpo guide or partner pages mention it) |
+| `dixa` | https://support.dixa.help/en/articles/1895-auto-adding-conversation-contacts-attributes-through-automations | shared | "Auto adding conversation contacts attributes through automations": rules and automations |
+| `dixa` | https://support.dixa.help/en/articles/2001-how-to-create-and-use-macros | shared | "How to create and use macros": macros and replies |
+| `dixa` | https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar | shared | "Configurable conversation sidebar": customer profile in the sidebar |
+| `dondy` | https://help.dondy.net/message-customers/8tTwAB5stPocKLWpoeG7Uj/create-pause-clone-or-delete-an-automation/8rDHseRyg4rfX9KinRBs2L | shared | "Create, pause, clone, or delete an automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `dondy` | https://help.dondy.net/message-customers/8tTwAB5stPocKLWpoeG7Uj/create-your-first-whatsapp-automation/8rDHseRyg48xDwNqX73RF8 | shared | "Create your first WhatsApp automation": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `dondy` | https://help.dondy.net/message-customers/8tTwAB5stPocKLWpoeG7Uj/what-automations-can-you-build-with-dondy/8rDHseRyg1Pidpt8gA3kDo | shared | "What automations can you build with Dondy?": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `dotdigital` | https://marketing.help.dotdigital.com/en/articles/8198958-add-contacts-to-lists-and-programs | shared | "Add contacts to lists and programs": segments and lists (the Yotpo guide or partner pages mention it) |
+| `dotdigital` | https://marketing.help.dotdigital.com/en/articles/8199074-use-personalisation-in-a-transactional-email | shared | "Use personalisation in a transactional email": personalisation in messages (the Yotpo guide or partner pages mention it) |
+| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/8523249-control-triggers-using-javascript | shared | "Control triggers using JavaScript": targeting and display rules |
+| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/8561045-test-trigger-programs | shared | "Test Trigger Programs": targeting and display rules |
+| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en/articles/9123274-data-for-use-in-trigger-scripts | shared | "Data for use in trigger scripts": targeting and display rules |
+| `ecomposer` | https://help.ecomposer.io/docs/ai-features/ai-product-page-generator | shared | "AI Product Page Generator": product pages |
+| `ecomposer` | https://help.ecomposer.io/docs/ecomposer-editor/section | shared | "Section Overview": blocks and components (the Yotpo guide or partner pages mention it) |
+| `ecomposer` | https://help.ecomposer.io/docs/theme-sections/section-builder | shared | "Theme Sections": blocks and components (the Yotpo guide or partner pages mention it) |
+| `gempages` | https://help.gempages.net/articles/add-blog-review-section-to-blog-post-page | shared | "Add blog review section to blog post page": blocks and components (the Yotpo guide or partner pages mention it) |
+| `gempages` | https://help.gempages.net/articles/add-firepush-sms-email-web-push | shared | "Add firepush sms email web push": push notifications |
+| `gempages` | https://help.gempages.net/articles/update-all-product-pages-using-product-page-template | shared | "Update all product pages using product page template": product pages |
+| `gladly` | https://help.gladly.com/docs/author-actions | shared | "Add an Action to Guide Sections": AI agent knowledge and actions |
+| `gladly` | https://help.gladly.com/docs/customer-profile-and-my-customers-list-interface-overview | shared | "Customer Profile and My Customers List Interface Overview": customer profile in the sidebar |
+| `gladly` | https://help.gladly.com/docs/workflows-and-guides | shared | "Workflow Triggers": rules and automations |
+| `glew` | https://www.glew.io/articles/3-easy-steps-to-get-started-with-predictive-marketing | shared | "Easy steps to get started with predictive marketing": workflows: triggers and actions |
+| `glew` | https://www.glew.io/articles/creating-an-annual-report-how-to-use-ecommerce-data-to-gain-insights-for-next-year | shared | "Creating an annual report how to use ecommerce data to gain insights for next year": dashboards and reports (the Yotpo guide or partner pages mention it) |
+| `glew` | https://www.glew.io/articles/introducing-customer-export-and-advanced-filters-in-glew | shared | "Introducing customer export and advanced filters in glew": data sync and connectors (the Yotpo guide or partner pages mention it) |
+| `gorgias` | https://docs.gorgias.com/en-US/articles/automations-279714 | shared | "Automation features (Flows & Order Management)": rules and automations (the Yotpo guide or partner pages mention it) |
+| `gorgias` | https://docs.gorgias.com/en-US/articles/getting-started-with-ai-agent-294725 | shared | "Getting Started with AI Agent": AI agent knowledge and actions (the Yotpo guide or partner pages mention it) |
+| `gorgias` | https://docs.gorgias.com/en-US/create-guidance-for-ai-agent-1362592 | shared | "Create guidance to give AI Agent knowledge about your business": AI agent knowledge and actions (the Yotpo guide or partner pages mention it) |
+| `heartland_retail_by_hyperspace` | https://support.hyperspacehq.com/hc/en-us/articles/360005491253-How-do-sales-sync-for-guest-customers | shared | "How do sales sync for guest customers?": customers at the point of sale |
+| `heartland_retail_by_hyperspace` | https://support.hyperspacehq.com/hc/en-us/articles/4412386320155-How-do-I-disable-E-Invoices-from-sending-automatically-to-my-customer-s-email-address | shared | "How do I disable E-Invoices from sending automatically to my customer's email address?": customers at the point of sale |
+| `hubspot` | https://knowledge.hubspot.com/automation | shared | "Automation": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `hubspot` | https://knowledge.hubspot.com/properties/hubspots-default-contact-properties | shared | "HubSpot's default contact properties": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `hubspot` | https://knowledge.hubspot.com/workflows/choose-your-workflow-actions | shared | "Choose your workflow actions": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `insider` | https://academy.insiderone.com/docs/adding-advanced-filters-to-email-contacts | shared | "Adding Advanced Filters to Email Contacts": delays, filters and re-entry |
+| `insider` | https://academy.insiderone.com/docs/create-double-opt-in-flow | shared | "Create a Double Opt-In Flow": flows and their triggers |
+| `insider` | https://academy.insiderone.com/docs/personalize-emails-with-dynamic-content | shared | "Personalize emails with dynamic content": personalisation in messages (the Yotpo guide or partner pages mention it) |
+| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/115000250912-Understanding-custom-profile-properties | shared | "Understanding custom profile properties": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/115002774952-Guide-to-Flow-Triggers-and-Flow-Filters | shared | "Guide to Flow Triggers and Flow Filters": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `klaviyo` | https://help.klaviyo.com/hc/en-us/articles/360003040052-How-to-create-a-segment-or-list-triggered-flow | shared | "How to create a segment- or list-triggered flow": segments and lists (the Yotpo guide or partner pages mention it) |
+| `klaviyo_customer_hub` | https://help.klaviyo.com/hc/en-us/articles/360003057151-How-to-create-a-metric-triggered-flow | shared | "How to create a metric-triggered flow": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `knocommerce` | https://docs.knocommerce.com/en/articles/7039009-target-survey-by-customer-language | shared | "Target Survey by Customer Language": targeting and display rules |
+| `knocommerce` | https://docs.knocommerce.com/en/articles/9252122-layering-targeting-filtering-audiences | shared | "Layering Targeting & Filtering Audiences": targeting and display rules |
+| `knocommerce` | https://docs.knocommerce.com/en/articles/9252329-targeting-audiences | shared | "Targeting Audiences": targeting and display rules |
+| `later` | https://help.later.com/hc/en-us/articles/27127077380375-Access-Manage-Campaigns | shared | "Access & Manage Campaigns": campaigns |
+| `later` | https://help.later.com/hc/en-us/articles/34506757229591-Using-Post-Campaign-Tagging-to-Organize-and-Report-on-Content | shared | "Using Post & Campaign Tagging to Organize and Report on Content": content, rights and galleries (the Yotpo guide or partner pages mention it) |
+| `later` | https://help.later.com/hc/en-us/articles/42727688274455-Add-Later-Creator-Affiliate-Links-to-Link-in-Bio | shared | "Add Later Creator Affiliate Links to Link in Bio": creators and affiliates (the Yotpo guide or partner pages mention it) |
+| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124129-configuring-return-methods | shared | "Configuring return methods": returns, exchanges and store credit |
+| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124131-how-to-initiate-and-manage-a-return | shared | "How to initiate and manage a return": returns, exchanges and store credit |
+| `lateshipment_com` | https://support.lateshipment.com/support/solutions/articles/1070000124223-getting-started-with-sms-notifications | shared | "Getting started with SMS notifications Modified on Wed, 20 Aug, 2025 at 10:19 AM": tracking and notifications |
+| `lexer` | https://learn.lexer.io/docs/automation-rules | shared | "Automation rules": workflows: triggers and actions |
+| `lexer` | https://learn.lexer.io/docs/cases-report | shared | "Cases report": dashboards and reports |
+| `lexer` | https://learn.lexer.io/docs/guide-to-using-schedule | shared | "Guide to using schedule": data sync and connectors (the Yotpo guide or partner pages mention it) |
+| `limespot` | https://support.limespot.com/en/articles/4753828-how-to-view-audience-segment-analytics | shared | "How to view Audience Segment analytics": targeting and display rules |
+| `limespot` | https://support.limespot.com/en/articles/5392396-using-audience-segmentation-custom-events | shared | "Using audience segmentation custom events?": custom data and code (the Yotpo guide or partner pages mention it) |
+| `limespot` | https://support.limespot.com/en/articles/9160423-how-to-sync-limespot-audience-segments-with-google-ads | shared | "How to sync LimeSpot audience segments with Google Ads": targeting and display rules |
+| `listrak` | https://help.listrak.com/en/articles/3544105-creating-a-welcome-series-in-journey-hub | shared | "Creating a Welcome Series in Journey Hub Learn how to create a journey using the List Subscription event in Journey Hub.": segments and lists (the Yotpo guide or partner pages mention it) |
+| `listrak` | https://help.listrak.com/en/articles/5195951-testing-journeys-in-journey-hub | shared | "Testing Journeys in Journey Hub Learn how to use the Test feature to test your journeys prior to activating them for contacts.": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `listrak` | https://help.listrak.com/en/articles/5472394-custom-events-in-journey-hub | shared | "Custom Events in Journey Hub Learn how to trigger a journey based on an event you determine.": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `loop_subscriptions` | https://help.loopwork.co/en/articles/12707618-customer-portal | shared | "Customer portal": customer portal |
+| `loop_subscriptions` | https://help.loopwork.co/en/articles/15588270-handling-subscription-renewals-that-require-3d-secure-3ds-verification | shared | "Handling subscription renewals that require 3D Secure \(3DS\) verification": recurring orders and renewals |
+| `loop_subscriptions` | https://help.loopwork.co/en/articles/15920328-volume-discounts-overview | shared | "Volume discounts overview": discount codes on subscriptions |
+| `loyaltylion` | https://help.loyaltylion.com/en/articles/1965846-building-tiers-how-they-work | shared | "Building tiers & how they work Build your tier structure, choose how customers qualify and how long a tier lasts, and launch your tiers.": referrals and VIP tiers |
+| `loyaltylion` | https://help.loyaltylion.com/en/articles/6601715-magento-adding-voucher-codes-to-your-rewards | shared | "Magento: Adding voucher codes to your rewards Let LoyaltyLion create your Magento voucher codes automatically, or generate them in Magento and import ": importing customers and balances |
+| `loyaltylion` | https://help.loyaltylion.com/en/articles/7135405-shopify-plus-reward-redeem-points-at-checkout | shared | "[Shopify Plus] Reward: Redeem points at checkout How to let customers spend points for money off inside the Shopify checkout.": points and rewards |
+| `mailchimp` | https://mailchimp.com/help/audiences | shared | "Audiences": segments and lists (the Yotpo guide or partner pages mention it) |
+| `mailchimp` | https://mailchimp.com/help/automation | shared | "Automation": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `mailchimp` | https://mailchimp.com/help/requirements-best-practices-audiences | shared | "Requirements and Best Practices for Audiences": segments and lists (the Yotpo guide or partner pages mention it) |
+| `mesa` | https://docs.getmesa.com/readme/dashboard | shared | "Dashboard": dashboards and reports |
+| `mesa` | https://docs.getmesa.com/workflow-activity | shared | "Workflow Activity": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `mesa` | https://docs.getmesa.com/workflow-builder | shared | "Workflow Builder": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `nosto` | https://help.nosto.com/en/articles/2753511-how-to-easily-create-blocks-for-content-personalization | shared | "How to easily create blocks for content personalization?": widgets and templates |
+| `nosto` | https://help.nosto.com/en/articles/2933545-how-to-validate-if-customers-are-correctly-added-to-nosto-javascript-based-segments | shared | "How to validate if customers are correctly added to Nosto JavaScript based segments": custom data and code (the Yotpo guide or partner pages mention it) |
+| `nosto` | https://help.nosto.com/en/articles/3018841-how-to-export-segments | shared | "How to export segments": targeting and display rules |
+| `novel` | https://support.novel.com/start-guide/app-setup.md | shared | "Markdown": apps on the point of sale (the Yotpo guide or partner pages mention it) |
+| `novel` | https://support.novel.com/start-guide/create-your-pass | shared | "Create your pass": passes and their fields (the Yotpo guide or partner pages mention it) |
+| `novel` | https://support.novel.com/start-guide/customer-tags | shared | "Customer Tags": customers at the point of sale (the Yotpo guide or partner pages mention it) |
+| `ometria` | https://support.ometria.com/hc/en-gb/articles/360014165237-How-to-use-CSV-upload-as-an-automation-trigger | shared | "How to use CSV upload as an automation trigger": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `ometria` | https://support.ometria.com/hc/en-gb/articles/7867040007581-Using-custom-fields-with-decimals-in-merge-tags | shared | "Using custom fields with decimals in merge tags": personalisation in messages (the Yotpo guide or partner pages mention it) |
+| `ometria` | https://support.ometria.com/hc/en-gb/articles/8594792408733-Properties-in-custom-events | shared | "Properties in custom events": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `omnisend` | https://support.omnisend.com/en/articles/12569070-understand-omnisend-segment-filters | shared | "Understand Omnisend Segment Filters": segments and lists (the Yotpo guide or partner pages mention it) |
+| `omnisend` | https://support.omnisend.com/en/articles/3954813-set-up-automation-workflow-settings | shared | "Set Up Automation Workflow Settings": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `omnisend` | https://support.omnisend.com/en/articles/4298431-understand-event-data-in-automation-workflows | shared | "Understand Event Data in Automation Workflows": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `optimizely` | https://support.optimizely.com/hc/en-us/articles/115002521171-How-to-prevent-unwanted-sync-changes-in-9-2-upgrade | shared | "How to prevent unwanted sync changes in 9.2 upgrade": data sync and connectors |
+| `optimizely` | https://support.optimizely.com/hc/en-us/articles/115002944983-Episerver-Reach-Triggers-user-guide | shared | "Episerver Reach: Triggers user guide": workflows: triggers and actions |
+| `optimizely` | https://support.optimizely.com/hc/en-us/articles/35923618827277-SA1639326-Inconsistent-sales-amounts-between-Abandoned-Cart-and-Online-Orders-dashboards | shared | "SA1639326 - Inconsistent sales amounts between Abandoned Cart and Online Orders dashboards": dashboards and reports |
+| `order_desk` | https://help.orderdesk.com/guided-walkthroughs/products-and-inventory/how-to-sync-inventory-between-order-desk-stores | shared | "How to Sync Inventory Between Order Desk Stores": data sync and connectors (the Yotpo guide or partner pages mention it) |
+| `order_desk` | https://help.orderdesk.com/guided-walkthroughs/rules-and-automations | shared | "Rules and Automations": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `order_desk` | https://help.orderdesk.com/guided-walkthroughs/rules-and-automations/how-to-create-your-first-automation | shared | "How to create Your First Automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `ordergroove` | https://docs.ordergroove.com/advanced/prepaid-renewal | shared | "Managing Prepaid Renewal Behaviors": recurring orders and renewals (the Yotpo guide or partner pages mention it) |
+| `ordergroove` | https://docs.ordergroove.com/graphql/graphql-definitions/objects/discount-incentive-type | shared | "DiscountIncentiveType": discount codes on subscriptions (the Yotpo guide or partner pages mention it) |
+| `ordergroove` | https://docs.ordergroove.com/lifecycle/enrollment/affiliate-codes | shared | "Tracking Affiliate Codes on Recurring Orders": recurring orders and renewals (the Yotpo guide or partner pages mention it) |
+| `pagefly` | https://help.pagefly.io/page-structure-and-elements/main-use-case/direct-to-a-link-a-section-a-pop-up-an-email-address-or-a-phone-number-by-click-action | shared | "Direct to Links, Sections, Pop-ups": blocks and components (the Yotpo guide or partner pages mention it) |
+| `pagefly` | https://help.pagefly.io/page-structure-and-elements/shopify-elements/custom-content/how-to-use-shopify-app-block-element-with-pagefly-section | shared | "App blocks": blocks and components (the Yotpo guide or partner pages mention it) |
+| `pagefly` | https://help.pagefly.io/pages-and-sections-creation/pages/add-more-content-to-my-shopify-product-page | shared | "How to create a Product page with PageFly": product pages |
+| `postpilot` | https://help.postpilot.com/knowledge/flow-triggers | shared | "Flow triggers": workflows: triggers and actions |
+| `postpilot` | https://help.postpilot.com/knowledge/how-to-reactivate-and-re-sync-a-disconnected-klaviyo-segment | shared | "How to reactivate and re sync a disconnected klaviyo segment": data sync and connectors |
+| `postpilot` | https://help.postpilot.com/knowledge/using-in-app-dashboard | shared | "Using in app dashboard": dashboards and reports |
+| `productsup` | https://www.productsup.com/guides/business-growth-report | shared | "Business growth report": dashboards and reports |
+| `reamaze` | https://support.reamaze.com/kb/advanced-settings/creating-and-using-response-templates | shared | "Response Templates (Saved Replies, Canned Responses)": macros and replies |
+| `reamaze` | https://support.reamaze.com/kb/getting-started/step-4-creating-your-avatar | shared | "Step 4: Create Your Staff Profile": customer profile in the sidebar (the Yotpo guide or partner pages mention it) |
+| `reamaze` | https://support.reamaze.com/kb/using-the-ai-agent/understanding-where-your-ai-agent-gets-its-answers | shared | "AI Agent Knowledge Sources & AI Corrections": AI agent knowledge and actions (the Yotpo guide or partner pages mention it) |
+| `rebuy` | https://help.rebuyengine.com/en/articles/10491426-how-to-configure-customize-bundle-builder-installation-settings-guide | shared | "How to Configure & Customize Bundle Builder: Installation & Settings Guide Create unique experiences and boost AOV with Rebuy's Bundle Builder": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `rebuy` | https://help.rebuyengine.com/en/articles/14603677-bundle-builder-cart-transforms-and-items-grouping | shared | "Bundle Builder: Cart Transforms and Items Grouping Learn how Cart Transforms and Items Grouping display bundled products as grouped line items in the ": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `rebuy` | https://help.rebuyengine.com/en/articles/16152980-bundle-builder-filter-and-sorting-settings | shared | "Bundle Builder: Filter and Sorting Settings How to enable and configure product filtering and sorting in Rebuy's Bundle Builder — the available filter": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `recharge` | https://support.getrecharge.com/hc/en-us/articles/33693661450903-How-to-translate-your-selling-plans | shared | "How to translate your selling plans": subscription products and plans (the Yotpo guide or partner pages mention it) |
+| `recharge` | https://support.getrecharge.com/hc/en-us/articles/360008682094-Manually-process-a-recurring-order-immediately | shared | "Manually process a recurring order immediately": recurring orders and renewals (the Yotpo guide or partner pages mention it) |
+| `recharge` | https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes | shared | "Managing subscription discount codes": discount codes on subscriptions (the Yotpo guide or partner pages mention it) |
+| `refersion` | http://support.refersion.com/en/articles/4711307-how-to-create-an-effective-affiliate-registration-page | shared | "How to Create an Effective Affiliate Registration Page": creators and affiliates (the Yotpo guide or partner pages mention it) |
+| `refersion` | http://support.refersion.com/en/articles/4711449-how-to-grow-your-affiliate-network | shared | "How to Grow Your Affiliate Network?": creators and affiliates (the Yotpo guide or partner pages mention it) |
+| `refersion` | http://support.refersion.com/en/articles/7035709-how-to-get-the-most-out-of-your-affiliate-program | shared | "How to Get the Most Out of Your Affiliate Program": creators and affiliates (the Yotpo guide or partner pages mention it) |
+| `remarkety` | https://support.remarkety.com/hc/en-us/articles/360037988811-Segmenting-Customers-The-Complete-Filter-Guide | shared | "Segmenting Customers - The Complete Filter Guide": delays, filters and re-entry |
+| `remarkety` | https://support.remarkety.com/hc/en-us/articles/52109360156052-Create-Multiple-Choice-Custom-Fields-to-Capture-Preferences-and-Segment-Contacts | shared | "Create Multiple Choice Custom Fields to Capture Preferences and Segment Contacts": custom properties and events |
+| `remarkety` | https://support.remarkety.com/hc/en-us/articles/7427449223188-Getting-Started-with-Journeys | shared | "Getting Started with Journeys": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/204800567-Trigger-Happy-React-to-Every-Customer-Action | shared | "Trigger Happy - React to Every Customer Action": flows and their triggers |
+| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/222634968-Using-merge-tags-to-display-dynamic-product-recommendations-in-the-HTML-Editor | shared | "Using merge tags to display dynamic product recommendations in the HTML Editor": personalisation in messages (the Yotpo guide or partner pages mention it) |
+| `retention_science` | https://help.retentionscience.com/hc/en-us/articles/360010829294-How-to-handle-subscription-preferences-with-Custom-User-Attributes | shared | "How to handle subscription preferences with Custom User Attributes": custom properties and events (the Yotpo guide or partner pages mention it) |
+| `rise_ai` | http://help.rise.ai/en/articles/2396584-manage-your-gift-cards-and-store-credit | shared | "Manage your Gift Cards and Store Credit": gift cards and store credit (the Yotpo guide or partner pages mention it) |
+| `rise_ai` | http://help.rise.ai/en/articles/4020903-how-to-create-an-account-creation-reward | shared | "How to Create an Account Creation Reward": points and rewards |
+| `rise_ai` | http://help.rise.ai/en/articles/4020904-how-to-create-a-first-purchase-reward | shared | "How to Create a First Purchase Reward": rewards and incentives |
+| `rule` | https://help.rule.io/sv/articles/349420-journey-builder-introduktion | shared | "Journey Builder - Introduktion": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `rule` | https://help.rule.io/sv/articles/349422-journey-builder-kom-igang | shared | "Journey Builder – Kom igång": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `rule` | https://help.rule.io/sv/articles/349423-kom-igang-med-preferenser-i-journey-builder | shared | "Kom igång med preferenser i Journey Builder": flows and their triggers (the Yotpo guide or partner pages mention it) |
+| `rush` | https://support.rush.app/tracking-page/general/about.html | shared | "Tracking Page": tracking and notifications |
+| `searchanise` | https://docs.searchanise.io/article-categories/upsell-marketing | shared | "Upsell & Marketing": recommendation widgets (the Yotpo guide or partner pages mention it) |
+| `searchanise` | https://docs.searchanise.io/set-up-filters-based-on-product-options-tag-prefixes-metafields | shared | "Setting up filters based on variant options, tag prefixes, and metafields on Shopify": filters and facets |
+| `searchanise` | https://docs.searchanise.io/set-up-filters-on-collections | shared | "Setting up Filters on collections": filters and facets |
+| `searchspring` | https://help.searchspring.net/hc/en-us/articles/201185139-Installing-Recommendation-Widgets | shared | "Installing recommendation widgets": apps in the theme |
+| `searchspring` | https://help.searchspring.net/hc/en-us/articles/360031132951-Magento-2-Extension | shared | "Magento 2 Extension": apps in the theme |
+| `shopify` | https://help.shopify.com/en/manual/checkout-settings/checkout-blocks/custom-discounts/managing-custom-discounts | shared | "Managing custom discounts": discount codes |
+| `shopify` | https://help.shopify.com/en/manual/customers/customer-accounts/new-customer-accounts | shared | "Customer accounts": customer accounts (the Yotpo guide or partner pages mention it) |
+| `shopify` | https://help.shopify.com/en/manual/sell-in-person/getting-started/shopify-pos-from-admin/pos-ui-extensions | shared | "Pos ui extensions": apps in the theme (the Yotpo guide or partner pages mention it) |
+| `shopify_flow` | https://help.shopify.com/en/manual/reports-and-analytics | shared | "Reports and analytics": dashboards and reports |
+| `shopify_flow` | https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports | shared | "Shopify analytics": dashboards and reports |
+| `shopify_flow` | https://help.shopify.com/en/manual/reports-and-analytics/shopify-reports/report-types/custom-reports | shared | "Customizing and managing reports": dashboards and reports |
+| `shopify_point_of_sale` | https://help.shopify.com/en/manual/customers | shared | "Customers": customers at the point of sale (the Yotpo guide or partner pages mention it) |
+| `shopify_point_of_sale` | https://help.shopify.com/en/manual/customers/manage-customers | shared | "Managing customers": customers at the point of sale (the Yotpo guide or partner pages mention it) |
+| `shopify_point_of_sale` | https://help.shopify.com/en/manual/shopify-admin/shopify-app | shared | "Using the Shopify app": apps on the point of sale (the Yotpo guide or partner pages mention it) |
+| `smile_io` | https://help.smile.io/en/articles/4036271-configure-ways-to-redeem-points | shared | "Configure ways to redeem points": points and rewards (the Yotpo guide or partner pages mention it) |
+| `smile_io` | https://help.smile.io/en/articles/4036321-understand-vip-tier-milestones | shared | "Understand VIP tier milestones": referrals and VIP tiers |
+| `smile_io` | https://help.smile.io/en/articles/shopify-flow-adjust-points-balance | shared | "Use Shopify Flow to adjust a customer’s points balance": importing customers and balances |
+| `social_nature` | https://socialnaturehelp.zendesk.com/hc/en-us/articles/360022528374-Do-I-have-to-post-my-review-to-social-media | shared | "Do I have to post my review to social media?": content, rights and galleries (the Yotpo guide or partner pages mention it) |
+| `social_nature` | https://socialnaturehelp.zendesk.com/hc/en-us/articles/360022707353-How-do-I-share-my-review-on-social-media | shared | "How do I share my review on social media?": content, rights and galleries (the Yotpo guide or partner pages mention it) |
+| `sopost` | http://help.sopost.com/en/articles/12754273-comments-in-campaign-preview | shared | "Comments in campaign preview": campaigns (the Yotpo guide or partner pages mention it) |
+| `stitch` | https://www.stitchdata.com/docs/replication/syncing-historical-saas-data-resetting-replication-keys | shared | "Historical SaaS data": data sync and connectors (the Yotpo guide or partner pages mention it) |
+| `stitch` | https://www.stitchdata.com/docs/replication/syncing-new-additional-columns | shared | "Replicating new and additional columns": data sync and connectors (the Yotpo guide or partner pages mention it) |
+| `subtotal` | https://subtotal.com/docs/guides/ios-subtotal-link | shared | "Link accounts in your iOS App": apps on the point of sale |
+| `talkable` | https://docs.talkable.com/advanced_features/customer_service_portal/use_case_1 | shared | "Use case #1: Where do I find referrals?": referrals and VIP tiers (the Yotpo guide or partner pages mention it) |
+| `talkable` | https://docs.talkable.com/advanced_features/passing_custom_data | shared | "Pass Custom User Data": passes and their fields |
+| `talkable` | https://docs.talkable.com/campaigns/views/advocate_rewards_confirmation | shared | "Advocate Reward Confirmation Email": points and rewards |
+| `tray_io` | https://tray.ai/guides/it-onboarding-automation | shared | "It onboarding automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `tray_io` | https://tray.ai/guides/lead-lifecycle-automation | shared | "Lead lifecycle automation": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `tray_io` | https://tray.ai/guides/revops-automation-risk-assessment | shared | "Which of your automations breaks first?": workflows: triggers and actions (the Yotpo guide or partner pages mention it) |
+| `triple_whale` | https://kb.triplewhale.com/en/articles/12992669-create-and-schedule-email-campaigns-with-moby | shared | "Create and Schedule Email Campaigns with Moby": data sync and connectors |
+| `triple_whale` | https://kb.triplewhale.com/en/articles/13042041-create-a-gen-ui-report-from-your-dashboard | shared | "Create a Gen UI Report from Your Dashboard": dashboards and reports |
+| `triple_whale` | https://kb.triplewhale.com/en/articles/15458978-create-an-automation-with-moby-chat | shared | "Create an automation with Moby chat": workflows: triggers and actions |
+| `vajro` | https://docs.vajro.com/en/articles/4444206-a-simple-guide-to-superfans-push-notification-reports | shared | "A Simple Guide to Superfans Push Notification Reports": push notifications |
+| `vajro` | https://docs.vajro.com/en/articles/5106341-sending-out-automated-notifications | shared | "Sending Out Automated Notifications": push notifications |
+| `vajro` | https://docs.vajro.com/en/articles/5137360-scheduling-mobile-app-push-notifications | shared | "Scheduling Mobile App Push Notifications": push notifications |
+| `viralsweep` | https://support.viralsweep.com/en/articles/9272749-import-entries | shared | "Import Entries": importing customers and balances |
+| `virtue` | https://help.virtueimpact.com/en/articles/8264172-when-are-donations-sent-to-causes | shared | "When are donations sent to causes?": donations (the Yotpo guide or partner pages mention it) |
+| `virtue` | https://help.virtueimpact.com/en/articles/8266513-can-we-choose-when-donations-are-sent-to-the-charities | shared | "Can we choose when donations are sent to the Charities?": donations (the Yotpo guide or partner pages mention it) |
+| `virtue` | https://help.virtueimpact.com/en/articles/8310622-dashboard-overview | shared | "Dashboard Overview": dashboards and reports |
+| `weglot` | https://support.weglot.com/article/276-how-can-i-create-a-custom-language | shared | "How can i create a custom language": custom data and code |
+| `weglot` | https://support.weglot.com/article/75-wordpress-how-i-know-content-javascript-generated | shared | "Wordpress how i know content javascript generated": custom data and code |
+| `weglot` | https://support.weglot.com/article/95-how-to-exclude-urls-blocks-words-from-translation | shared | "How can I exclude URLs, blocks, or words from translation?": widgets and templates (the Yotpo guide or partner pages mention it) |
+| `yieldify` | http://support.yieldify.com/en/articles/5158193-targeting-triggering-user-groups | shared | "Targeting & Triggering User Groups Explaining how to make the most of targeting user groups": targeting and display rules |
+| `yieldify` | http://support.yieldify.com/en/articles/5221195-session-number-targeting | shared | "Session Number Targeting Using session count": targeting and display rules |
+| `yieldify` | http://support.yieldify.com/en/articles/8389561-audience-targeting | shared | "Audience Targeting Learn more about Yieldify Audiences.": targeting and display rules |
+| `zendesk` | https://support.zendesk.com/hc/en-us/articles/4408833443226-Understanding-placeholder-suppression-rules-in-ticket-triggers | shared | "Understanding placeholder suppression rules in ticket triggers": rules and automations |
+| `zendesk` | https://support.zendesk.com/hc/en-us/articles/4408835022490-Viewing-and-editing-your-user-profile-in-Zendesk-Support | shared | "Viewing and editing your user profile in Zendesk Support": customer profile in the sidebar |
+| `zendesk` | https://support.zendesk.com/hc/en-us/articles/4408884166554-Organizing-and-managing-your-macros | shared | "Organizing and managing your macros": macros and replies |
 
-## How each app overview was found
+## How each integration's mechanics articles were found
 
-| integration | help centre | found via | method | picked |
-|---|---|---|---|---:|
-| `addglow` | — | — | — | 0 |
-| `adobe_commerce_magento` | https://experienceleague.adobe.com/en/docs | guide | pages | 3 |
-| `adroll` | — | — | — | 0 |
-| `adscale` | https://help.adscale.com/en | catalog | — | 0 |
-| `aftership` | https://support.aftership.com/en | probe | pages + sitemap | 3 |
-| `aftership_personalization` | https://support.aftership.com/en | catalog | pages | 3 |
-| `akeneo` | https://help.akeneo.com/ | catalog | pages + sitemap | 3 |
-| `alloy_automation` | https://runalloy.com/ | homepage | pages + sitemap | 3 |
-| `amasty` | https://amasty.com/docs | guide | — | 0 |
-| `ampifyme` | https://help.ampifyme.com/ | probe | pages | 3 |
-| `antavo` | https://antavo.atlassian.net/ | homepage | — | 0 |
-| `appbrew` | — | — | — | 0 |
-| `attentive` | https://help.attentivemobile.com/hc/en-us | catalog | zendesk-api | 3 |
-| `bazaarvoice` | https://docs.bazaarvoice.com/home/en-us | override | pages | 3 |
-| `beautytap` | — | — | — | 0 |
-| `beeketing_boost_sales` | — | — | — | 0 |
-| `bhn_rewards` | https://help.rybbon.net/hc/en-us | catalog | zendesk-api | 3 |
-| `bigcommerce` | https://support.bigcommerce.com/ | guide | pages | 0 |
-| `blueconic` | https://support-experiences.blueconic.com/en | catalog | pages | 3 |
-| `bold_commerce` | https://support.boldcommerce.com/en | probe | pages | 0 |
-| `boostcommerce` | https://support.boostcommerce.net/en | catalog | pages + llms.txt | 3 |
-| `braze` | https://www.braze.com/docs | catalog | pages | 1 |
-| `brevo_pushowl` | https://docs.pushowl.com/en | catalog | pages | 3 |
-| `builder_io` | https://www.builder.io/ | homepage | pages | 2 |
-| `checkout` | — | — | — | 0 |
-| `checkout_plus` | — | — | — | 0 |
-| `chimeable` | — | — | — | 0 |
-| `cohley` | — | — | — | 0 |
-| `cordial` | https://support.cordial.com/hc/en-us | guide | zendesk-api | 3 |
-| `daasity` | https://help.daasity.com/ | catalog | pages | 3 |
-| `daitafix` | https://daitafix.com/ | homepage | pages | 0 |
-| `datagrail` | https://docs.datagrail.io/ | homepage | pages | 3 |
-| `dialogue` | https://help.nowdialogue.com/en | catalog | pages | 0 |
-| `digioh` | https://help.digioh.com/knowledgebase | catalog | — | 0 |
-| `dixa` | https://support.dixa.help/en | catalog | pages + sitemap | 3 |
-| `dondy` | https://help.dondy.net/ | probe | pages | 3 |
-| `dotdigital` | https://marketing.help.dotdigital.com/en | catalog | pages | 3 |
-| `dotdigital_personalization` | https://personalization.help.dotdigital.com/en | catalog | pages | 3 |
-| `drip` | https://www.drip.com/learn/docs | catalog | — | 0 |
-| `ecocart` | https://support.ecocart.io/knowledge | homepage | — | 0 |
-| `ecomposer` | https://help.ecomposer.io/docs | catalog | pages | 3 |
-| `emarsys` | https://help.emarsys.com/hc/en-us | guide | zendesk-api | 0 |
-| `expertvoice` | — | — | — | 0 |
-| `facebook` | — | — | — | 0 |
-| `fast_simon` | https://www.fastsimon.com/ | homepage | pages | 0 |
-| `findify` | https://developers.findify.io/docs | catalog | pages | 0 |
-| `flashchat` | — | — | — | 0 |
-| `fobi` | — | — | — | 0 |
-| `fomo` | https://fomo.family/ | homepage | pages | 0 |
-| `fuego` | — | — | — | 0 |
-| `fueled` | — | — | — | 0 |
-| `gempages` | https://help.gempages.net/ | catalog | pages + sitemap | 3 |
-| `gladly` | https://help.gladly.com/docs | catalog | pages | 3 |
-| `glew` | https://www.glew.io/ | homepage | pages + sitemap | 3 |
-| `gogenerosity` | https://help.gogenerosity.com/ | catalog | pages + sitemap | 3 |
-| `google` | — | — | — | 0 |
-| `gorgias` | https://docs.gorgias.com/en-US | guide | pages | 3 |
-| `harbor` | — | — | — | 0 |
-| `heartland_retail_by_hyperspace` | https://hyperspace.zendesk.com/hc/en-us | homepage | zendesk-api | 3 |
-| `hubspot` | https://knowledge.hubspot.com/ | override | pages + sitemap | 3 |
-| `insider` | https://academy.insiderone.com/docs | catalog | pages | 3 |
-| `instagram` | — | — | — | 0 |
-| `judge_me` | https://judge.me/help/en | catalog | pages | 0 |
-| `kimonix` | http://help.kimonix.com/ | catalog | — | 0 |
-| `klaviyo` | https://help.klaviyo.com/hc/en-us | guide | zendesk-api | 3 |
-| `klaviyo_customer_hub` | https://help.klaviyo.com/hc/en-us | catalog | zendesk-api | 3 |
-| `klevu` | https://help.klevu.com/support | catalog | zendesk-api | 3 |
-| `knocommerce` | https://docs.knocommerce.com/en | catalog | pages | 3 |
-| `later` | https://help.later.com/hc/en-us | homepage | zendesk-api | 3 |
-| `lateshipment_com` | https://support.lateshipment.com/ | homepage | pages + sitemap | 3 |
-| `lexer` | https://learn.lexer.io/docs | catalog | sitemap | 3 |
-| `limespot` | https://support.limespot.com/en | catalog | pages | 3 |
-| `listrak` | https://help.listrak.com/en | catalog | pages | 3 |
-| `loop_subscriptions` | https://help.loopwork.co/en | catalog | pages + llms.txt | 3 |
-| `loudcrowd` | https://help.loudcrowd.com/en | catalog | — | 0 |
-| `loyaltylion` | https://help.loyaltylion.com/en | override | pages | 3 |
-| `magenative` | https://www.magenative.com/ | homepage | pages | 0 |
-| `mailchimp` | https://mailchimp.com/help | catalog | pages | 3 |
-| `mesa` | https://docs.getmesa.com/ | catalog | pages + llms.txt | 3 |
-| `movable_ink` | https://support.movableink.com/hc/en-us | guide | zendesk-api | 0 |
-| `nosto` | https://help.nosto.com/en | homepage | pages | 3 |
-| `novel` | https://support.novel.com/ | catalog | pages | 0 |
-| `ometria` | https://support.ometria.com/hc/en-gb | catalog | zendesk-api | 3 |
-| `omnisend` | https://support.omnisend.com/en | catalog | pages | 3 |
-| `optimizely` | https://support.optimizely.com/ | homepage | zendesk-api + pages + sitemap | 3 |
-| `optimove` | https://academy.optimove.com/en | catalog | — | 0 |
-| `order_desk` | https://help.orderdesk.com/ | catalog | pages | 3 |
-| `ordergroove` | https://docs.ordergroove.com/ | probe | pages + llms.txt | 3 |
-| `pagefly` | https://help.pagefly.io/ | catalog | pages | 3 |
-| `pie_eye` | — | — | — | 0 |
-| `plobal_apps` | https://plobalapps.freshdesk.com/support | homepage | — | 0 |
-| `poq` | — | — | — | 0 |
-| `postpilot` | https://help.postpilot.com/knowledge | catalog | pages + sitemap | 3 |
-| `postscript` | https://help.postscript.io/hc/en-us | guide | zendesk-api | 0 |
-| `powerreviews` | https://www.powerreviews.com/ | probe | pages | 0 |
-| `productsup` | https://www.productsup.com/ | homepage | pages + sitemap | 3 |
-| `provesource` | — | — | — | 0 |
-| `reactiv` | https://support.reactivapp.com/en | catalog | — | 0 |
-| `reamaze` | https://support.reamaze.com/ | homepage | pages | 3 |
-| `rebuy` | https://help.rebuyengine.com/en | catalog | pages + llms.txt | 3 |
-| `recharge` | https://support.getrecharge.com/hc/en-us | guide | zendesk-api + sitemap | 3 |
-| `refersion` | https://support.refersion.com/en | catalog | pages | 3 |
-| `remarkety` | https://support.remarkety.com/hc/en-us | catalog | zendesk-api | 3 |
-| `rep_ai` | — | — | — | 0 |
-| `retention_science` | https://help.retentionscience.com/hc/en-us | guide | zendesk-api | 3 |
-| `rise_ai` | https://help.rise.ai/en | catalog | llms.txt | 3 |
-| `rule` | https://help.rule.io/sv | homepage | pages | 0 |
-| `rush` | https://support.rush.app/ | catalog | pages | 3 |
-| `sailthru` | — | — | — | 0 |
-| `salesforce_commerce_cloud` | https://help.salesforce.com/ | probe | pages | 0 |
-| `salesforce_marketing_cloud` | https://help.salesforce.com/ | guide | pages | 0 |
-| `searchanise` | https://docs.searchanise.io/ | probe | pages | 3 |
-| `searchspring` | https://help.searchspring.net/hc/en-us | catalog | zendesk-api | 3 |
-| `shoelace` | — | — | — | 0 |
-| `shogun` | https://getshogun.com/help/en | catalog | pages | 0 |
-| `shopeaks` | — | — | — | 0 |
-| `shopify` | https://help.shopify.com/en/manual | guide | pages | 3 |
-| `shopify_flow` | https://help.shopify.com/en/manual | guide | pages | 3 |
-| `shopify_plus` | https://help.shopify.com/en/manual | guide | pages | 3 |
-| `shopify_point_of_sale` | https://help.shopify.com/en/manual | guide | pages | 3 |
-| `shoppinggives` | https://faq.shoppinggives.com/hc/en-us | guide | zendesk-api | 0 |
-| `siena` | https://support.siena.cx/hc/en-us | catalog | zendesk-api | 0 |
-| `skeepers` | — | — | — | 0 |
-| `smile_io` | https://help.smile.io/en | catalog | pages + llms.txt + sitemap | 1 |
-| `social_nature` | https://socialnaturehelp.zendesk.com/ | homepage | zendesk-api | 3 |
-| `sopost` | https://help.sopost.com/en | homepage | pages | 2 |
-| `square_pos_by_defsys` | — | — | — | 0 |
-| `stellar_reviews` | — | — | — | 0 |
-| `stitch` | https://www.stitchdata.com/docs | catalog | pages | 3 |
-| `subtotal` | https://subtotal.com/docs | catalog | pages | 3 |
-| `swapt` | — | — | — | 0 |
-| `syncly` | — | — | — | 0 |
-| `talkable` | https://docs.talkable.com/ | catalog | pages | 3 |
-| `tapcart` | https://help.tapcart.com/en | catalog | pages | 1 |
-| `target` | — | — | — | 0 |
-| `teamwork_commerce` | https://www.teamworkcommerce.com/ | homepage | pages | 0 |
-| `tiktok_shop` | https://partner.tiktokshop.com/doc | guide | pages | 0 |
-| `tray_io` | https://tray.ai/ | homepage | pages + sitemap | 1 |
-| `treet` | https://treetbrandsuccess.zendesk.com/hc/en-us | catalog | zendesk-api + sitemap | 3 |
-| `trend` | — | — | — | 0 |
-| `triple_whale` | https://kb.triplewhale.com/en | catalog | llms.txt | 3 |
-| `try_review` | — | — | — | 0 |
-| `twitter` | — | — | — | 0 |
-| `vajro` | https://docs.vajro.com/en | probe | pages + llms.txt | 3 |
-| `viralsweep` | https://support.viralsweep.com/ | catalog | pages | 3 |
-| `virtue` | https://help.virtueimpact.com/en | catalog | pages + llms.txt | 3 |
-| `volusion` | — | — | — | 0 |
-| `weglot` | https://support.weglot.com/ | guide | pages | 3 |
-| `wonderment` | https://docs.wonderment.com/ | catalog | — | 0 |
-| `woocommerce` | https://woocommerce.com/ | homepage | pages | 0 |
-| `yieldify` | https://support.yieldify.com/en | probe | pages | 3 |
-| `zembula` | — | — | — | 0 |
-| `zendesk` | https://support.zendesk.com/hc/en-us | guide | zendesk-api | 3 |
-| `zinrelo` | — | — | — | 0 |
+Topics: what was searched for, best first (ranked by what the Yotpo guide and partner pages talk about; the lists are in `backend/mechanics_topics.py`).
+
+| integration | topics searched | help centre | found via | method | picked |
+|---|---|---|---|---|---:|
+| `addglow` | points and rewards; importing customers and balances; referrals and VIP tiers | — | — | — | 0 |
+| `adobe_commerce_magento` | apps in the theme; refunds and cancelled orders; discount codes | https://experienceleague.adobe.com/en/docs | guide | pages + llms.txt | 0 |
+| `adroll` | product feeds; campaigns; personalisation in messages | — | — | — | 0 |
+| `adscale` | audiences; product feeds; campaigns | https://help.adscale.com/en | catalog | — | 0 |
+| `aftership` | tracking and notifications; returns, exchanges and store credit | https://support.aftership.com/en | probe | pages | 3 |
+| `aftership_personalization` | results, badges and merchandising; recommendation widgets; filters and facets | https://support.aftership.com/en | catalog | pages | 3 |
+| `akeneo` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://help.akeneo.com/ | catalog | pages + sitemap | 3 |
+| `alloy_automation` | workflows: triggers and actions; dashboards and reports; data sync and connectors | https://runalloy.com/ | homepage | sitemap | 3 |
+| `amasty` | results, badges and merchandising; filters and facets; recommendation widgets | https://amasty.com/docs | guide | — | 0 |
+| `ampifyme` | blocks and components; product pages; customer accounts and login | https://help.ampifyme.com/ | probe | pages + sitemap | 3 |
+| `antavo` | points and rewards; referrals and VIP tiers; importing customers and balances | https://antavo.atlassian.net/ | homepage | — | 0 |
+| `appbrew` | blocks and components; product pages; customer accounts and login | — | — | — | 0 |
+| `attentive` | flows and their triggers; segments and lists; custom properties and events | https://help.attentivemobile.com/hc/en-us | catalog | zendesk-search | 3 |
+| `bazaarvoice` | content, rights and galleries; review collection and requests; campaigns | https://docs.bazaarvoice.com/home/en-us | override | pages | 3 |
+| `beautytap` | campaigns; product catalog and feeds; content, rights and galleries | — | — | — | 0 |
+| `beeketing_boost_sales` | widgets and templates; targeting and display rules; custom data and code | — | — | — | 0 |
+| `bhn_rewards` | rewards and incentives; gift cards and store credit | https://help.rybbon.net/hc/en-us | catalog | zendesk-search | 3 |
+| `bigcommerce` | apps in the theme; discount codes; customer accounts | https://support.bigcommerce.com/ | guide | — | 0 |
+| `blueconic` | widgets and templates; targeting and display rules; custom data and code | https://support-experiences.blueconic.com/en | catalog | — | 0 |
+| `bold_commerce` | discount codes; customer accounts; apps in the theme | https://support.boldcommerce.com/en | probe | pages | 3 |
+| `boostcommerce` | results, badges and merchandising; filters and facets; recommendation widgets | https://support.boostcommerce.net/en | catalog | llms.txt | 3 |
+| `braze` | custom properties and events; personalisation in messages; flows and their triggers | https://www.braze.com/docs | catalog | pages | 2 |
+| `brevo_pushowl` | flows and their triggers; custom properties and events; segments and lists | https://docs.pushowl.com/en | catalog | pages | 3 |
+| `builder_io` | blocks and components; product pages; customer accounts and login | https://www.builder.io/ | homepage | pages + sitemap | 0 |
+| `checkout` | checkout; discount codes; customer accounts | — | — | — | 0 |
+| `checkout_plus` | checkout; discount codes; customer accounts | — | — | — | 0 |
+| `chimeable` | content, rights and galleries; review collection and requests; campaigns | — | — | — | 0 |
+| `cohley` | content, rights and galleries; creators and affiliates; campaigns | — | — | — | 0 |
+| `cordial` | custom properties and events; flows and their triggers; segments and lists | https://support.cordial.com/hc/en-us | guide | zendesk-search | 3 |
+| `daasity` | data sync and connectors; dashboards and reports; workflows: triggers and actions | https://help.daasity.com/ | catalog | pages | 3 |
+| `daitafix` | data sync and connectors; workflows: triggers and actions; dashboards and reports | https://daitafix.com/ | homepage | — | 0 |
+| `datagrail` | data subject requests; workflows: triggers and actions; data sync and connectors | https://docs.datagrail.io/ | homepage | pages | 3 |
+| `dialogue` | results, badges and merchandising; recommendation widgets; widgets and templates | https://help.nowdialogue.com/en | catalog | — | 0 |
+| `digioh` | widgets and templates; targeting and display rules; custom data and code | https://help.digioh.com/knowledgebase | catalog | — | 0 |
+| `dixa` | customer profile in the sidebar; macros and replies; rules and automations | https://support.dixa.help/en | catalog | sitemap | 3 |
+| `dondy` | flows and their triggers; workflows: triggers and actions; data sync and connectors | https://help.dondy.net/ | probe | pages + llms.txt | 3 |
+| `dotdigital` | custom properties and events; personalisation in messages; flows and their triggers | https://marketing.help.dotdigital.com/en | catalog | pages | 3 |
+| `dotdigital_personalization` | widgets and templates; targeting and display rules; custom data and code | https://personalization.help.dotdigital.com/en | catalog | pages | 3 |
+| `drip` | segments and lists; workflows: triggers and actions; flows and their triggers | https://www.drip.com/learn/docs | catalog | — | 0 |
+| `ecocart` | donations | https://support.ecocart.io/knowledge | homepage | — | 0 |
+| `ecomposer` | blocks and components; product pages; customer accounts and login | https://help.ecomposer.io/docs | catalog | pages | 3 |
+| `emarsys` | flows and their triggers; custom properties and events; segments and lists | https://help.emarsys.com/hc/en-us | guide | — | 0 |
+| `expertvoice` | product catalog and feeds; review collection and requests; campaigns | — | — | — | 0 |
+| `facebook` | content, rights and galleries; product feeds; audiences | — | — | — | 0 |
+| `fast_simon` | results, badges and merchandising; filters and facets; recommendation widgets | https://www.fastsimon.com/ | homepage | — | 0 |
+| `findify` | discount codes; customer accounts; apps in the theme | https://developers.findify.io/docs | catalog | — | 0 |
+| `flashchat` | segments and lists; flows and their triggers; delays, filters and re-entry | — | — | — | 0 |
+| `fobi` | customers at the point of sale; passes and their fields; discounts at the point of sale | — | — | — | 0 |
+| `fomo` | targeting and display rules; custom data and code; widgets and templates | https://fomo.family/ | homepage | — | 0 |
+| `fuego` | blocks and components; product pages; customer accounts and login | — | — | — | 0 |
+| `fueled` | workflows: triggers and actions; data sync and connectors; dashboards and reports | — | — | — | 0 |
+| `gempages` | blocks and components; product pages; customer accounts and login | https://help.gempages.net/ | catalog | pages + sitemap | 3 |
+| `gladly` | customer profile in the sidebar; macros and replies; rules and automations | https://help.gladly.com/docs | catalog | pages + llms.txt | 3 |
+| `glew` | dashboards and reports; data sync and connectors; workflows: triggers and actions | https://www.glew.io/ | homepage | pages + sitemap | 3 |
+| `gogenerosity` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://help.gogenerosity.com/ | catalog | pages + sitemap | 0 |
+| `google` | product catalog and feeds; product feeds; review collection and requests | — | — | — | 0 |
+| `gorgias` | customer profile in the sidebar; rules and automations; AI agent knowledge and actions | https://docs.gorgias.com/en-US | guide | pages | 3 |
+| `harbor` | points and rewards; importing customers and balances; referrals and VIP tiers | — | — | — | 0 |
+| `heartland_retail_by_hyperspace` | discounts at the point of sale; customers at the point of sale; apps on the point of sale | https://hyperspace.zendesk.com/hc/en-us | homepage | zendesk-search | 2 |
+| `hubspot` | flows and their triggers; custom properties and events; segments and lists | https://knowledge.hubspot.com/ | override | pages | 3 |
+| `insider` | personalisation in messages; flows and their triggers; delays, filters and re-entry | https://academy.insiderone.com/docs | catalog | pages + llms.txt | 3 |
+| `instagram` | content, rights and galleries; audiences; product feeds | — | — | — | 0 |
+| `judge_me` | campaigns; content, rights and galleries; review collection and requests | https://judge.me/help/en | catalog | pages | 0 |
+| `kimonix` | widgets and templates; targeting and display rules; custom data and code | http://help.kimonix.com/ | catalog | — | 0 |
+| `klaviyo` | custom properties and events; segments and lists; flows and their triggers | https://help.klaviyo.com/hc/en-us | guide | zendesk-search | 3 |
+| `klaviyo_customer_hub` | flows and their triggers; custom properties and events; segments and lists | https://help.klaviyo.com/hc/en-us | catalog | zendesk-search | 3 |
+| `klevu` | results, badges and merchandising; filters and facets; recommendation widgets | https://help.klevu.com/support | catalog | — | 0 |
+| `knocommerce` | widgets and templates; targeting and display rules; custom data and code | https://docs.knocommerce.com/en | catalog | pages | 3 |
+| `later` | content, rights and galleries; creators and affiliates; review collection and requests | https://help.later.com/hc/en-us | homepage | zendesk-search | 3 |
+| `lateshipment_com` | returns, exchanges and store credit; tracking and notifications | https://support.lateshipment.com/ | homepage | pages + sitemap | 3 |
+| `lexer` | data sync and connectors; workflows: triggers and actions; dashboards and reports | https://learn.lexer.io/docs | catalog | sitemap | 3 |
+| `limespot` | custom data and code; widgets and templates; targeting and display rules | https://support.limespot.com/en | catalog | pages | 3 |
+| `listrak` | flows and their triggers; segments and lists; custom properties and events | https://help.listrak.com/en | catalog | pages | 3 |
+| `loop_subscriptions` | discount codes on subscriptions; recurring orders and renewals; customer portal | https://help.loopwork.co/en | catalog | llms.txt | 3 |
+| `loudcrowd` | content, rights and galleries; review collection and requests; campaigns | https://help.loudcrowd.com/en | catalog | — | 0 |
+| `loyaltylion` | points and rewards; importing customers and balances; referrals and VIP tiers | https://help.loyaltylion.com/en | override | pages | 3 |
+| `magenative` | blocks and components; product pages; customer accounts and login | https://www.magenative.com/ | homepage | — | 0 |
+| `mailchimp` | flows and their triggers; segments and lists; custom properties and events | https://mailchimp.com/help | catalog | pages | 3 |
+| `mesa` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://docs.getmesa.com/ | catalog | pages | 3 |
+| `movable_ink` | workflows: triggers and actions; data sync and connectors; personalisation in messages | https://support.movableink.com/hc/en-us | guide | — | 0 |
+| `nosto` | custom data and code; widgets and templates; targeting and display rules | https://help.nosto.com/en | homepage | pages | 3 |
+| `novel` | updating passes; customers at the point of sale; passes and their fields | https://support.novel.com/ | catalog | pages | 3 |
+| `ometria` | flows and their triggers; custom properties and events; personalisation in messages | https://support.ometria.com/hc/en-gb | catalog | zendesk-search | 3 |
+| `omnisend` | flows and their triggers; custom properties and events; segments and lists | https://support.omnisend.com/en | catalog | pages | 3 |
+| `optimizely` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://support.optimizely.com/hc/en-us | homepage | zendesk-search | 3 |
+| `optimove` | custom properties and events; segments and lists; workflows: triggers and actions | https://academy.optimove.com/en | catalog | — | 0 |
+| `order_desk` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://help.orderdesk.com/ | catalog | pages + llms.txt | 3 |
+| `ordergroove` | discount codes on subscriptions; subscription products and plans; recurring orders and renewals | https://docs.ordergroove.com/ | probe | pages + llms.txt | 3 |
+| `pagefly` | blocks and components; product pages; customer accounts and login | https://help.pagefly.io/ | catalog | pages + llms.txt | 3 |
+| `pie_eye` | data subject requests | — | — | — | 0 |
+| `plobal_apps` | product pages; blocks and components; customer accounts and login | https://plobalapps.freshdesk.com/support | homepage | — | 0 |
+| `poq` | blocks and components; product pages; customer accounts and login | — | — | — | 0 |
+| `postpilot` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://help.postpilot.com/knowledge | catalog | pages + sitemap | 3 |
+| `postscript` | flows and their triggers; custom properties and events; segments and lists | https://help.postscript.io/hc/en-us | guide | — | 0 |
+| `powerreviews` | content, rights and galleries; product catalog and feeds; review collection and requests | https://www.powerreviews.com/ | probe | — | 0 |
+| `productsup` | data sync and connectors; workflows: triggers and actions; dashboards and reports | https://www.productsup.com/ | homepage | sitemap | 1 |
+| `provesource` | widgets and templates; targeting and display rules; custom data and code | — | — | — | 0 |
+| `reactiv` | blocks and components; product pages; customer accounts and login | https://support.reactivapp.com/en | catalog | — | 0 |
+| `reamaze` | customer profile in the sidebar; AI agent knowledge and actions; macros and replies | https://support.reamaze.com/ | homepage | pages | 3 |
+| `rebuy` | targeting and display rules; recommendation widgets; widgets and templates | https://help.rebuyengine.com/en | catalog | pages | 3 |
+| `recharge` | recurring orders and renewals; discount codes on subscriptions; subscription products and plans | https://support.getrecharge.com/hc/en-us | guide | zendesk-search | 3 |
+| `refersion` | creators and affiliates; campaigns; review collection and requests | https://support.refersion.com/en | catalog | pages | 3 |
+| `remarkety` | flows and their triggers; delays, filters and re-entry; custom properties and events | https://support.remarkety.com/hc/en-us | catalog | zendesk-search | 3 |
+| `rep_ai` | customer profile in the sidebar; macros and replies; rules and automations | — | — | — | 0 |
+| `retention_science` | custom properties and events; personalisation in messages; flows and their triggers | https://help.retentionscience.com/hc/en-us | guide | zendesk-search | 3 |
+| `rise_ai` | gift cards and store credit; rewards and incentives; points and rewards | https://help.rise.ai/en | catalog | llms.txt | 3 |
+| `rule` | flows and their triggers; personalisation in messages; delays, filters and re-entry | https://help.rule.io/sv | homepage | pages | 3 |
+| `rush` | returns, exchanges and store credit; tracking and notifications | https://support.rush.app/ | catalog | pages | 1 |
+| `sailthru` | flows and their triggers; custom properties and events; segments and lists | — | — | — | 0 |
+| `salesforce_commerce_cloud` | apps in the theme; discount codes; customer accounts | https://help.salesforce.com/ | probe | — | 0 |
+| `salesforce_marketing_cloud` | flows and their triggers; custom properties and events; personalisation in messages | https://help.salesforce.com/ | guide | — | 0 |
+| `searchanise` | recommendation widgets; results, badges and merchandising; filters and facets | https://docs.searchanise.io/ | probe | pages | 3 |
+| `searchspring` | discount codes; customer accounts; apps in the theme | https://help.searchspring.net/hc/en-us | catalog | zendesk-search + sitemap | 2 |
+| `shoelace` | results, badges and merchandising; filters and facets; recommendation widgets | — | — | — | 0 |
+| `shogun` | blocks and components; product pages; customer accounts and login | https://getshogun.com/help/en | catalog | — | 0 |
+| `shopeaks` | product feeds; audiences; campaigns | — | — | — | 0 |
+| `shopify` | apps in the theme; customer accounts; discount codes | https://help.shopify.com/en/manual | guide | pages + sitemap | 3 |
+| `shopify_flow` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://help.shopify.com/en/manual | guide | pages | 3 |
+| `shopify_plus` | apps in the theme; customer accounts; discount codes | https://help.shopify.com/en/manual | guide | pages + sitemap | 3 |
+| `shopify_point_of_sale` | discounts at the point of sale; customers at the point of sale; apps on the point of sale | https://help.shopify.com/en/manual | guide | pages | 3 |
+| `shoppinggives` | donations | https://faq.shoppinggives.com/hc/en-us | guide | — | 0 |
+| `siena` | customer profile in the sidebar; macros and replies; rules and automations | https://support.siena.cx/hc/en-us | catalog | — | 0 |
+| `skeepers` | campaigns; content, rights and galleries; creators and affiliates | — | — | — | 0 |
+| `smile_io` | points and rewards; importing customers and balances; referrals and VIP tiers | https://help.smile.io/en | catalog | pages + llms.txt | 3 |
+| `social_nature` | content, rights and galleries; review collection and requests; campaigns | https://socialnaturehelp.zendesk.com/hc/en-us | homepage | zendesk-search + pages + sitemap | 2 |
+| `sopost` | campaigns; content, rights and galleries; review collection and requests | https://help.sopost.com/en | homepage | pages | 1 |
+| `square_pos_by_defsys` | discounts at the point of sale; customers at the point of sale; apps on the point of sale | — | — | — | 0 |
+| `stellar_reviews` | review collection and requests; campaigns; product catalog and feeds | — | — | — | 0 |
+| `stitch` | data sync and connectors; workflows: triggers and actions; dashboards and reports | https://www.stitchdata.com/docs | catalog | pages | 2 |
+| `subtotal` | discounts at the point of sale; customers at the point of sale; apps on the point of sale | https://subtotal.com/docs | catalog | pages | 1 |
+| `swapt` | customers at the point of sale; discounts at the point of sale; apps on the point of sale | — | — | — | 0 |
+| `syncly` | workflows: triggers and actions; data sync and connectors; dashboards and reports | — | — | — | 0 |
+| `talkable` | referrals and VIP tiers; points and rewards; importing customers and balances | https://docs.talkable.com/ | catalog | pages | 3 |
+| `tapcart` | blocks and components; push notifications; product pages | https://help.tapcart.com/en | catalog | pages | 0 |
+| `target` | product catalog and feeds; content, rights and galleries; review collection and requests | — | — | — | 0 |
+| `teamwork_commerce` | customers at the point of sale; discounts at the point of sale; apps on the point of sale | https://www.teamworkcommerce.com/ | homepage | — | 0 |
+| `tiktok_shop` | product catalog and feeds; content, rights and galleries; review collection and requests | https://partner.tiktokshop.com/doc | guide | — | 0 |
+| `tray_io` | data sync and connectors; workflows: triggers and actions; dashboards and reports | https://tray.ai/ | homepage | llms.txt + sitemap | 3 |
+| `treet` | donations | https://treetbrandsuccess.zendesk.com/hc/en-us | catalog | sitemap | 0 |
+| `trend` | content, rights and galleries; campaigns; creators and affiliates | — | — | — | 0 |
+| `triple_whale` | workflows: triggers and actions; data sync and connectors; dashboards and reports | https://kb.triplewhale.com/en | catalog | llms.txt | 3 |
+| `try_review` | content, rights and galleries; review collection and requests; campaigns | — | — | — | 0 |
+| `twitter` | product catalog and feeds; content, rights and galleries; review collection and requests | — | — | — | 0 |
+| `vajro` | blocks and components; product pages; customer accounts and login | https://docs.vajro.com/en | probe | pages | 3 |
+| `viralsweep` | points and rewards; importing customers and balances; referrals and VIP tiers | https://support.viralsweep.com/ | catalog | llms.txt + sitemap | 1 |
+| `virtue` | donations; workflows: triggers and actions; data sync and connectors | https://help.virtueimpact.com/en | catalog | pages | 3 |
+| `volusion` | apps in the theme; discount codes; customer accounts | — | — | — | 0 |
+| `weglot` | widgets and templates; targeting and display rules; custom data and code | https://support.weglot.com/ | guide | pages + sitemap | 3 |
+| `wonderment` | tracking and notifications; review collection and requests; campaigns | https://docs.wonderment.com/ | catalog | — | 0 |
+| `woocommerce` | apps in the theme; discount codes; customer accounts | https://woocommerce.com/ | homepage | — | 0 |
+| `yieldify` | widgets and templates; targeting and display rules; custom data and code | https://support.yieldify.com/en | probe | pages | 3 |
+| `zembula` | personalisation in messages; workflows: triggers and actions; data sync and connectors | — | — | — | 0 |
+| `zendesk` | customer profile in the sidebar; macros and replies; rules and automations | https://support.zendesk.com/hc/en-us | guide | zendesk-search | 3 |
+| `zinrelo` | points and rewards; importing customers and balances; referrals and VIP tiers | — | — | — | 0 |
 
 ### No help centre found (37)
 
@@ -740,43 +729,47 @@ Add a line to `scripts/help_centres.json` (`"name": "https://help.example.com"`)
 - `zembula`: no link to the app's own site on its catalog page or in its Yotpo guide; add its help centre to scripts/help_centres.json
 - `zinrelo`: no link to the app's own site on its catalog page or in its Yotpo guide; add its help centre to scripts/help_centres.json
 
-### Help centre found, nothing picked (35)
+### Help centre found, nothing picked (39)
 
-- `adscale`: help centre https://help.adscale.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `amasty`: help centre https://amasty.com/docs found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `antavo`: help centre https://antavo.atlassian.net/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `bigcommerce`: help centre https://support.bigcommerce.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `bold_commerce`: help centre https://support.boldcommerce.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `daitafix`: help centre https://daitafix.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `dialogue`: help centre https://help.nowdialogue.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `digioh`: help centre https://help.digioh.com/knowledgebase found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `drip`: help centre https://www.drip.com/learn/docs found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `ecocart`: help centre https://support.ecocart.io/knowledge found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `emarsys`: help centre https://help.emarsys.com/hc/en-us found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `fast_simon`: help centre https://www.fastsimon.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `findify`: help centre https://developers.findify.io/docs found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `fomo`: help centre https://fomo.family/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `judge_me`: help centre https://judge.me/help/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `kimonix`: help centre http://help.kimonix.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `loudcrowd`: help centre https://help.loudcrowd.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `magenative`: help centre https://www.magenative.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `movable_ink`: help centre https://support.movableink.com/hc/en-us found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `novel`: help centre https://support.novel.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `optimove`: help centre https://academy.optimove.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `plobal_apps`: help centre https://plobalapps.freshdesk.com/support found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `postscript`: help centre https://help.postscript.io/hc/en-us found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `powerreviews`: help centre https://www.powerreviews.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `reactiv`: help centre https://support.reactivapp.com/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `rule`: help centre https://help.rule.io/sv found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `salesforce_commerce_cloud`: help centre https://help.salesforce.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `salesforce_marketing_cloud`: help centre https://help.salesforce.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `shogun`: help centre https://getshogun.com/help/en found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `shoppinggives`: help centre https://faq.shoppinggives.com/hc/en-us found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `siena`: help centre https://support.siena.cx/hc/en-us found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `teamwork_commerce`: help centre https://www.teamworkcommerce.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `tiktok_shop`: help centre https://partner.tiktokshop.com/doc found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `wonderment`: help centre https://docs.wonderment.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
-- `woocommerce`: help centre https://woocommerce.com/ found, but none of its pages, llms.txt or sitemap offered an overview-like article; pick some by hand
+- `adobe_commerce_magento`: help centre https://experienceleague.adobe.com/en/docs found, but no article on apps in the theme, refunds and cancelled orders, discount codes; pick some by hand
+- `adscale`: help centre https://help.adscale.com/en found, but no article on audiences, product feeds, campaigns; pick some by hand
+- `amasty`: help centre https://amasty.com/docs found, but no article on results, badges and merchandising, filters and facets, recommendation widgets; pick some by hand
+- `antavo`: help centre https://antavo.atlassian.net/ found, but no article on points and rewards, referrals and VIP tiers, importing customers and balances; pick some by hand
+- `bigcommerce`: help centre https://support.bigcommerce.com/ found, but no article on apps in the theme, discount codes, customer accounts; pick some by hand
+- `blueconic`: help centre https://support-experiences.blueconic.com/en found, but no article on widgets and templates, targeting and display rules, custom data and code; pick some by hand
+- `builder_io`: help centre https://www.builder.io/ found, but no article on blocks and components, product pages, customer accounts and login; pick some by hand
+- `daitafix`: help centre https://daitafix.com/ found, but no article on data sync and connectors, workflows: triggers and actions, dashboards and reports; pick some by hand
+- `dialogue`: help centre https://help.nowdialogue.com/en found, but no article on results, badges and merchandising, recommendation widgets, widgets and templates; pick some by hand
+- `digioh`: help centre https://help.digioh.com/knowledgebase found, but no article on widgets and templates, targeting and display rules, custom data and code; pick some by hand
+- `drip`: help centre https://www.drip.com/learn/docs found, but no article on segments and lists, workflows: triggers and actions, flows and their triggers; pick some by hand
+- `ecocart`: help centre https://support.ecocart.io/knowledge found, but no article on donations; pick some by hand
+- `emarsys`: help centre https://help.emarsys.com/hc/en-us found, but no article on flows and their triggers, custom properties and events, segments and lists; pick some by hand
+- `fast_simon`: help centre https://www.fastsimon.com/ found, but no article on results, badges and merchandising, filters and facets, recommendation widgets; pick some by hand
+- `findify`: help centre https://developers.findify.io/docs found, but no article on discount codes, customer accounts, apps in the theme; pick some by hand
+- `fomo`: help centre https://fomo.family/ found, but no article on targeting and display rules, custom data and code, widgets and templates; pick some by hand
+- `gogenerosity`: help centre https://help.gogenerosity.com/ found, but no article on workflows: triggers and actions, data sync and connectors, dashboards and reports; pick some by hand
+- `judge_me`: help centre https://judge.me/help/en found, but no article on campaigns, content, rights and galleries, review collection and requests; pick some by hand
+- `kimonix`: help centre http://help.kimonix.com/ found, but no article on widgets and templates, targeting and display rules, custom data and code; pick some by hand
+- `klevu`: help centre https://help.klevu.com/support found, but no article on results, badges and merchandising, filters and facets, recommendation widgets; pick some by hand
+- `loudcrowd`: help centre https://help.loudcrowd.com/en found, but no article on content, rights and galleries, review collection and requests, campaigns; pick some by hand
+- `magenative`: help centre https://www.magenative.com/ found, but no article on blocks and components, product pages, customer accounts and login; pick some by hand
+- `movable_ink`: help centre https://support.movableink.com/hc/en-us found, but no article on workflows: triggers and actions, data sync and connectors, personalisation in messages; pick some by hand
+- `optimove`: help centre https://academy.optimove.com/en found, but no article on custom properties and events, segments and lists, workflows: triggers and actions; pick some by hand
+- `plobal_apps`: help centre https://plobalapps.freshdesk.com/support found, but no article on product pages, blocks and components, customer accounts and login; pick some by hand
+- `postscript`: help centre https://help.postscript.io/hc/en-us found, but no article on flows and their triggers, custom properties and events, segments and lists; pick some by hand
+- `powerreviews`: help centre https://www.powerreviews.com/ found, but no article on content, rights and galleries, product catalog and feeds, review collection and requests; pick some by hand
+- `reactiv`: help centre https://support.reactivapp.com/en found, but no article on blocks and components, product pages, customer accounts and login; pick some by hand
+- `salesforce_commerce_cloud`: help centre https://help.salesforce.com/ found, but no article on apps in the theme, discount codes, customer accounts; pick some by hand
+- `salesforce_marketing_cloud`: help centre https://help.salesforce.com/ found, but no article on flows and their triggers, custom properties and events, personalisation in messages; pick some by hand
+- `shogun`: help centre https://getshogun.com/help/en found, but no article on blocks and components, product pages, customer accounts and login; pick some by hand
+- `shoppinggives`: help centre https://faq.shoppinggives.com/hc/en-us found, but no article on donations; pick some by hand
+- `siena`: help centre https://support.siena.cx/hc/en-us found, but no article on customer profile in the sidebar, macros and replies, rules and automations; pick some by hand
+- `tapcart`: help centre https://help.tapcart.com/en found, but no article on blocks and components, push notifications, product pages; pick some by hand
+- `teamwork_commerce`: help centre https://www.teamworkcommerce.com/ found, but no article on customers at the point of sale, discounts at the point of sale, apps on the point of sale; pick some by hand
+- `tiktok_shop`: help centre https://partner.tiktokshop.com/doc found, but no article on product catalog and feeds, content, rights and galleries, review collection and requests; pick some by hand
+- `treet`: help centre https://treetbrandsuccess.zendesk.com/hc/en-us found, but no article on donations; pick some by hand
+- `wonderment`: help centre https://docs.wonderment.com/ found, but no article on tracking and notifications, review collection and requests, campaigns; pick some by hand
+- `woocommerce`: help centre https://woocommerce.com/ found, but no article on apps in the theme, discount codes, customer accounts; pick some by hand
 
 ## Guides that are gone (1)
 
@@ -798,27 +791,23 @@ Add a line to `scripts/help_centres.json` (`"name": "https://help.example.com"`)
 - `try_review`
 - `zinrelo`
 
-## Links proposed for two integrations (kept on the first) (12)
+## Links proposed for two integrations (kept on the first) (7)
 
-- https://help.klaviyo.com/hc/en-us/articles/15937542819355-Getting-started-with-Klaviyo-Reviews: `klaviyo`, also `klaviyo_customer_hub`
-- https://help.shopify.com/en/manual/intro-to-shopify: `shopify`, also `shopify_flow`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup: `shopify`, also `shopify_flow`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup/new-to-shopify-checklists/general-checklist: `shopify`, also `shopify_flow`
+- https://help.klaviyo.com/hc/en-us/articles/115002774952-Guide-to-Flow-Triggers-and-Flow-Filters: `klaviyo`, also `klaviyo_customer_hub`
+- https://help.klaviyo.com/hc/en-us/articles/360003040052-How-to-create-a-segment-or-list-triggered-flow: `klaviyo`, also `klaviyo_customer_hub`
 - https://support.yotpo.com/docs/setting-up-loyalty-referrals-on-shopify-online-store-20: `shopify`, also `shopify_plus`
-- https://help.shopify.com/en/manual/intro-to-shopify: `shopify`, also `shopify_plus`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup: `shopify`, also `shopify_plus`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup/new-to-shopify-checklists/general-checklist: `shopify`, also `shopify_plus`
-- https://help.shopify.com/en/manual/intro-to-shopify: `shopify`, also `shopify_point_of_sale`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup: `shopify`, also `shopify_point_of_sale`
-- https://help.shopify.com/en/manual/intro-to-shopify/initial-setup/new-to-shopify-checklists/general-checklist: `shopify`, also `shopify_point_of_sale`
+- https://help.shopify.com/en/manual/sell-in-person/getting-started/shopify-pos-from-admin/pos-ui-extensions: `shopify`, also `shopify_plus`
+- https://help.shopify.com/en/manual/customers/customer-accounts/new-customer-accounts: `shopify`, also `shopify_plus`
+- https://help.shopify.com/en/manual/checkout-settings/checkout-blocks/custom-discounts/managing-custom-discounts: `shopify`, also `shopify_plus`
 - https://support.yotpo.com/docs/social-push: `facebook`, also `twitter`
 
-## Already in the knowledge base (15)
+## Already in the knowledge base (16)
 
 - https://support.yotpo.com/docs/integrating-yotpo-reviews-with-attentive (in `attentive`)
 - https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-attentive (in `attentive`)
 - https://docs.pushowl.com/en/articles/14075206-yotpo-reviews-integration (in `brevo_pushowl`)
 - https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-dotdigital (in `dotdigital`)
+- https://marketing.help.dotdigital.com/en/articles/8198950-triggered-campaigns-overview (in `dotdigital`)
 - https://support.yotpo.com/docs/integrating-yotpo-loyalty-referrals-with-emarsys (in `emarsys`)
 - https://support.yotpo.com/docs/klaviyo-oauth-integration-yotpo-loyalty-referrals (in `klaviyo`)
 - https://support.yotpo.com/docs/loyalty-emails-setup-guide-for-klaviyo (in `klaviyo`)
