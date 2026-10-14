@@ -1,0 +1,217 @@
+<!--
+  _____   ____   _____ _    _ __  __ ______ _   _ _______ ____    __   ___  
+ |  __ \ / __ \ / ____| |  | |  \/  |  ____| \ | |__   __|___ \  / /  / _ \ 
+ | |  | | |  | | |    | |  | | \  / | |__  |  \| |  | |    __) |/ /_ | | | |
+ | |  | | |  | | |    | |  | | |\/| |  __| | . ` |  | |   |__ <| '_ \| | | |
+ | |__| | |__| | |____| |__| | |  | | |____| |\  |  | |   ___) | (_) | |_| |
+ |_____/ \____/ \_____|\____/|_|  |_|______|_| \_|  |_|  |____/ \___/ \___/ 
+                                                                            
+ This site is powered by Document360 (https://www.document360.com), a self-service knowledge base platform.--><!DOCTYPE html>
+<html dir="ltr" lang="en"><head>
+<meta charset="utf-8"/>
+<title>Zendesk - Integration Guide for Reviews</title>
+<base href="/"/>
+
+<meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport"/>
+<!--
+        IBM Plex Mono webfont for the API Docs v2 MFE's mono surfaces
+        (URL bar, code blocks, response headers table, schema property
+        names). Loaded from Google Fonts CDN with preconnect for
+        performance + display=swap to render fallback text immediately
+        and swap in IBM Plex Mono once loaded (avoids FOIT). Apache 2.0
+        license — free for commercial use.
+        Future improvement: mirror the .woff2 files onto KB Site v2's
+        own blob CDN under /fonts/google_fonts/IBM_Plex_Mono/ and add an
+        entry to FONTFILEMAP — matches how Inter is already hosted.
+      -->
+
+
+
+
+<!-- Turnstile script loaded inline to avoid SRI issues -->
+
+<!--
+        d360-article Custom Element host-config.
+        Set BEFORE the lazy stub so the CE bundle picks it up at bootstrap.
+        `mermaidWrapAsImage: true` makes mermaid diagrams render as
+        `<img data:image/svg+xml;…>` instead of inline `<svg>`. Site V2's
+        host directive `appImageViewer` (viewerjs) then treats the diagram
+        like an uploaded image — clicking opens the same lightbox.
+
+        `tableFilterSortEnabledCheck` gates the table sort/filter header
+        controls on the 'Table Sort & Filter' article setting. The CE reads
+        this config object once at bundle load — before project metadata is
+        available — so the closure reads the late-bound
+        `__D360_TABLE_FILTER_SORT_ENABLED__` global (set by ProjectService
+        from projectSetting.documentationSetting.articleContentSettings) at
+        article-render time instead of capturing a value here.
+      -->
+
+<!--
+        D360_ARTICLE_CDN_INJECT marker.
+        The Site V2 SSR pipeline (kb-site-angular-universal.module.ts)
+        string-replaces this exact marker with a <script> tag that sets
+        `window.__D360_ARTICLE_CDN__ = "${EDITOR360_URL}d360-article-element/main.js"`
+        BEFORE the page is sent to the browser. The lazy stub below then
+        picks up that global and fetches the CE bundle from the editor360
+        CDN (same-origin localhost:5001 in dev, cdn.<env>.document360.net
+        in qa/dev/staging/prod). If the marker is somehow not replaced
+        (e.g. development without SSR pre-processing), the lazy stub
+        falls back to the same-origin `/d360-article-ce/main.js` copied
+        in by the gulp `copy-d360-article-ce` task.
+      -->
+
+<!--
+        d360-article Custom Element lazy loader.
+        Watches the DOM for a <d360-article> element and fetches the CE
+        bundle on demand. Pages without an article (login, home, etc.)
+        pay zero bytes.
+
+        URL resolution (in priority order):
+          1. window.__D360_ARTICLE_CDN__ — runtime override; set this from
+             environment config (or any inline script BEFORE this stub) to
+             point at the versioned CDN URL.
+          2. Default `/d360-article-ce/main.js` — same-origin. The CE bundle
+             is copied into Site V2's served output by the gulp
+             `copy-d360-article-ce` task (see gulpfile.js + the
+             `build:env:step3` script in package.json), which runs for BOTH
+             local dev (`build:ssr-local`) and production (`build`). The
+             namespace prefix `/d360-article-ce/` avoids colliding with
+             Site V2's own root-level main.js / polyfills.js bundle names.
+
+        SSR-safe: this <script> is preserved verbatim in the SSR output;
+        Angular Universal does NOT execute inline scripts during render.
+        The CE upgrade only fires in the browser. Article HTML reaches the
+        CE via the `[attr.html]` attribute binding on <d360-article>
+        (Angular serialises it as a real `html="..."` HTML attribute in
+        the SSR output, which the CE wrapper's attributeChangedCallback
+        picks up on upgrade).
+      -->
+
+<!--
+        Cloudflare Turnstile script removed from the critical path. It is now
+        lazy-loaded on demand by `TurnstileScriptLoaderService` when AI search /
+        AI feedback is invoked, and self-loaded by `ngx-turnstile` when the
+        follow-modal opens. This saves a third-party origin round-trip on every
+        page load.
+      -->
+<meta content="" http-equiv="Content-Security-Policy"/><meta content="Zendesk - Integration Guide for Reviews" property="title"/><meta name="description"/><meta content="article" property="og:type"/><meta content="Zendesk - Integration Guide for Reviews" property="og:title"/><meta property="og:description"/><meta property="og:image"/><meta content="Zendesk - Integration Guide for Reviews" property="twitter:title"/><meta content="summary_large_image" property="twitter:card"/><meta property="twitter:description"/><meta property="twitter:image"/>
+
+</head>
+<body><!--nghm-->
+<blockquote aria-hidden="true" class="sr-only"><h2>Documentation Index</h2><p>Fetch the complete documentation index at: <a href="https://support.yotpo.com/llms.txt" tabindex="-1">https://support.yotpo.com/llms.txt</a></p><p>Use this file to discover all available pages before exploring further.</p></blockquote>
+<d360-ui-root class="center-layout" ng-server-context="ssr" ng-version="21.2.18" ngh="30"><d360-toast _nghost-serverapp-c1802441915="" ngskiphydration=""><div _ngcontent-serverapp-c1802441915="" class="toast-container position-fixed bottom-0 start-50 translate-middle-x p-3"><!-- --></div></d360-toast><d360-integrations-initializer ngh="0"></d360-integrations-initializer><!-- --><div aria-atomic="true" aria-live="polite" class="sr-only" role="status">
+</div><div class="router-container"><d360-cookie-consent _nghost-serverapp-c2327847879="" ngh="1"><!-- --></d360-cookie-consent><!-- --><router-outlet></router-outlet><site-document ngh="29"><site-page-loader _nghost-serverapp-c2523757156="" ngh="28"><div _ngcontent-serverapp-c2523757156="" class="page-eddy-grid"><div _ngcontent-serverapp-c2523757156="" class="page-eddy-grid__site"><header _ngcontent-serverapp-c2523757156=""><d360-sandbox-project-info _ngcontent-serverapp-c2523757156="" _nghost-serverapp-c3197693233="" ngh="2"><!-- --></d360-sandbox-project-info><!-- --><site-primary-header-section _ngcontent-serverapp-c2523757156="" _nghost-serverapp-c2729243474="" ngh="9"><div _ngcontent-serverapp-c2729243474="" class="primary-nav-bar-container"><site-desktop-primary-header _ngcontent-serverapp-c2729243474="" _nghost-serverapp-c333663058="" class="nav-bar primary-nav-bar primary-nav-bar--desktop" ngh="8"><d360-header-logo _ngcontent-serverapp-c333663058="" _nghost-serverapp-c1657386522="" ngh="3"><div _ngcontent-serverapp-c1657386522="" class="nav-bar-brand"><a _ngcontent-serverapp-c1657386522="" aria-label="Home" class="brand-logo" href=""><img _ngcontent-serverapp-c1657386522="" alt="" src="https://cdn.document360.io/logo/f3c2ab59-fe4c-4f93-9614-2872f40e8aa7/40ee6a4e2d954eea86a2f6d4388c2588-logo menu white.svg"/><!-- --><!-- --></a><div _ngcontent-serverapp-c1657386522="" class="skip-nav"><a _ngcontent-serverapp-c1657386522="" href="#main-content">Skip to main content</a></div></div></d360-header-logo><d360-workspace-dropdown _ngcontent-serverapp-c333663058="" _nghost-serverapp-c2578694413="" ngh="4"><!-- --></d360-workspace-dropdown><!-- --><!-- --><div _ngcontent-serverapp-c333663058="" class="flex-fill"></div><!-- --><!-- --><div _ngcontent-serverapp-c333663058="" class="flex-fill"></div><!-- --><div _ngcontent-serverapp-c333663058="" class="d-flex align-items-center"><d360-theme-mode _ngcontent-serverapp-c333663058="" _nghost-serverapp-c3695408052="" class="ms-3" ngh="5"><!-- --></d360-theme-mode><!-- --><d360-language-dropdown _ngcontent-serverapp-c333663058="" _nghost-serverapp-c2928016415="" ngh="6"><!-- --></d360-language-dropdown><!-- --></div><!-- --><!-- --><d360-header-profile _ngcontent-serverapp-c333663058="" _nghost-serverapp-c2314742477="" ngh="7"><div _ngcontent-serverapp-c2314742477="" class="nav-profile ms-3"><button _ngcontent-serverapp-c2314742477="" class="btn btn-link p-0"> Login </button></div><!-- --><!-- --></d360-header-profile><!-- --><!-- --></site-desktop-primary-header><!-- --><!-- --><!-- --></div><!-- --><!-- --><!-- --><!-- --></site-primary-header-section><site-secondary-header-section _ngcontent-serverapp-c2523757156="" _nghost-serverapp-c2964472904="" ngh="11"><div _ngcontent-serverapp-c2964472904="" class="secondary-nav-bar-container"><div _ngcontent-serverapp-c2964472904="" class="nav-bar secondary-nav-bar"><!-- --><div _ngcontent-serverapp-c2964472904="" class="scroll-by-button-container"><!-- --><!-- --><!-- --><d360-breadcrumb _ngcontent-serverapp-c2964472904="" _nghost-serverapp-c3785097220="" ngh="10"><!-- --><div _ngcontent-serverapp-c3785097220="" aria-label="Breadcrumb" class="breadcrumb-nav" role="navigation"><ul _ngcontent-serverapp-c3785097220="" class="secondaryUL"><li _ngcontent-serverapp-c3785097220="" class="home"><a _ngcontent-serverapp-c3785097220="" aria-label="Home" href="/"><i _ngcontent-serverapp-c3785097220="" aria-hidden="true" class="fa-regular fa-home"></i></a></li><!-- --><!-- --><li _ngcontent-serverapp-c3785097220="" class="no-arrow min-w-0"><!-- --></li><!-- --></ul></div></d360-breadcrumb><!-- --><!-- --></div><!-- --><div _ngcontent-serverapp-c2964472904="" class="secondary-nav-bar-r"><button _ngcontent-serverapp-c2964472904="" aria-describedby="searchShortcutHint" aria-label="Search" class="search-box" role="button" tabindex="0" type="button"><div _ngcontent-serverapp-c2964472904="" class="search-icon ms-1"><i _ngcontent-serverapp-c2964472904="" aria-hidden="true" class="fa-regular fa-search"></i><div _ngcontent-serverapp-c2964472904="" class="search-placeholder"> Search </div></div><d360-shortcut-key-helper _ngcontent-serverapp-c2964472904="" _nghost-serverapp-c4021204174="" aria-hidden="true" ngh="0"><div _ngcontent-serverapp-c4021204174="" class="shortcut-text"> CMD+K
+</div></d360-shortcut-key-helper><!-- --></button><span _ngcontent-serverapp-c2964472904="" class="sr-only" id="searchShortcutHint">Press CMD+K to open search</span><!-- --><!-- --><!-- --></div><!-- --><!-- --><!-- --></div></div><!-- --><!-- --><!-- --><!-- --></site-secondary-header-section><!-- --></header><!-- --><div _ngcontent-serverapp-c2523757156=""><site-docs-section _nghost-serverapp-c1583112785="" ngh="26"><div _ngcontent-serverapp-c1583112785="" applayoutelement="ContainerBlock" class="container-block"><div _ngcontent-serverapp-c1583112785="" class="documentation-main"><site-docs-left-panel-container _nghost-serverapp-c2501133156="" class="" ngh="13"><aside _ngcontent-serverapp-c2501133156="" aria-label="Article navigation" class="left-container left-container-border" id="left-panel"><div _ngcontent-serverapp-c2501133156="" class="pinned-section d-flex"><!-- --><!-- --><div _ngcontent-serverapp-c2501133156="" class="d-flex w-95 filter-container"><div _ngcontent-serverapp-c2501133156="" class="filter-column"><input _ngcontent-serverapp-c2501133156="" appautofocus="" aria-label="Filter by name" class="filter-input ng-untouched ng-pristine ng-valid" placeholder="Filter by name" type="text" value=""/><button _ngcontent-serverapp-c2501133156="" aria-label="Clear filter" class="btn-clear-filter" type="button"><i _ngcontent-serverapp-c2501133156="" aria-hidden="true" class="fas fa-times clear-icon"></i></button></div><!-- --></div><!-- --><!-- --></div><div _ngcontent-serverapp-c2501133156="" class="catergory-list"><!-- --><site-category-list-tree-view _ngcontent-serverapp-c2501133156="" _nghost-serverapp-c1124870424="" ngh="12"><div _ngcontent-serverapp-c1124870424="" class="categories-loading"><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div><div _ngcontent-serverapp-c1124870424="" class="line"></div></div><!-- --></site-category-list-tree-view></div><div _ngcontent-serverapp-c2501133156="" class="watermark-brand"><a _ngcontent-serverapp-c2501133156="" aria-label="Powered by Document360 - opens in a new tab" class="align-items-center" dir="ltr" href="//document360.com?utm_source=docs&amp;utm_medium=footer&amp;utm_campaign=poweredbylogo" target="_blank"><span _ngcontent-serverapp-c2501133156="">Powered by</span><img _ngcontent-serverapp-c2501133156="" alt="Document360" src="https://cdn.document360.io/static/images/document360-logo.svg"/></a></div><!-- --><div _ngcontent-serverapp-c2501133156="" class="d-flex"><!-- --></div><div _ngcontent-serverapp-c2501133156="" class="collapse-expand-left-btn"><button _ngcontent-serverapp-c2501133156="" aria-expanded="true" aria-label="Toggle navigation panel" class="btn btn-secondary expand-collapse-btn" type="button"><i _ngcontent-serverapp-c2501133156="" aria-hidden="true" class="fa-solid fa-caret-left icon-alignment"></i></button></div><!-- --></aside><!-- --><!-- --><!-- --><!-- --></site-docs-left-panel-container><!-- --><site-docs-content-panel-container _nghost-serverapp-c207065917="" class="" ngh="25"><div _ngcontent-serverapp-c207065917="" appmainelement="" class="main-content" id="main-content" role="main" tabindex="-1"><d360-article-header _nghost-serverapp-c3036776334="" ngh="17"><!-- --><!-- --><d360-smart-bar-initializer _ngcontent-serverapp-c3036776334="" ngh="14"><!-- --></d360-smart-bar-initializer><!-- --><div _ngcontent-serverapp-c3036776334="" class="d-flex justify-content-between align-items-center mb-2"><h1 _ngcontent-serverapp-c3036776334="" class="article-title"><!-- --> Zendesk - Integration Guide for Reviews <d360-copy-article-link _ngcontent-serverapp-c3036776334="" _nghost-serverapp-c3110432546="" ngh="15"><button _ngcontent-serverapp-c3110432546="" aria-label="Copy link of Zendesk - Integration Guide for Reviews" class="btn btn-secondary btn-icon copy-article"><i _ngcontent-serverapp-c3110432546="" class="fa-regular fa-link-horizontal"></i></button><!-- --><!-- --></d360-copy-article-link><!-- --></h1><!-- --></div><!-- --><div _ngcontent-serverapp-c3036776334="" class="article-info"><!-- --><!-- --><!-- --><div _ngcontent-serverapp-c3036776334="" class="article-info-bottom"><div _ngcontent-serverapp-c3036776334="" class="article-contributors"><!-- --></div><div _ngcontent-serverapp-c3036776334="" class="article-more-options"><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><d360-article-more-options _ngcontent-serverapp-c3036776334="" _nghost-serverapp-c3259583650="" ngh="16"><!-- --><div _ngcontent-serverapp-c3259583650="" autoclose="outside" class="d-inline-block" container="body" ngbdropdown="" placement="bottom-end bottom-start top-end top-start"><button _ngcontent-serverapp-c3259583650="" aria-expanded="false" aria-label="More options" class="dropdown-toggle btn btn-icon btn-secondary toggle-icon-none" id="9478341c-9be7-4ada-81c4-1fa2e125ede9" ngbdropdowntoggle="" type="button"><i _ngcontent-serverapp-c3259583650="" aria-hidden="true" class="fa-solid fa-ellipsis"></i></button><div _ngcontent-serverapp-c3259583650="" class="dropdown-menu article-actions-menu" ngbdropdownmenu=""><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><div _ngcontent-serverapp-c3259583650="" class="dropdown-divider"></div><button _ngcontent-serverapp-c3259583650="" class="dropdown-item article-actions-menu-ai-item" ngbdropdownitem="" tabindex="0"><i _ngcontent-serverapp-c3259583650="" aria-hidden="true" class="fa-regular fa-copy"></i><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__text"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__name">Copy page</span><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__desc">Copy as Markdown for LLMs</span></span></button><button _ngcontent-serverapp-c3259583650="" class="dropdown-item article-actions-menu-ai-item" ngbdropdownitem="" tabindex="0"><i _ngcontent-serverapp-c3259583650="" aria-hidden="true" class="fa-brands fa-markdown"></i><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__text"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__name">View as Markdown</span><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__desc">View the page as plain text</span></span></button><div _ngcontent-serverapp-c3259583650="" class="dropdown-divider"></div><button _ngcontent-serverapp-c3259583650="" class="dropdown-item article-actions-menu-ai-item" ngbdropdownitem="" tabindex="0"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__text"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__name">Open in ChatGPT</span><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__desc">Ask ChatGPT about this page</span></span></button><button _ngcontent-serverapp-c3259583650="" class="dropdown-item article-actions-menu-ai-item" ngbdropdownitem="" tabindex="0"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__text"><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__name">Open in Claude</span><span _ngcontent-serverapp-c3259583650="" class="article-actions-menu-ai-item__desc">Ask Claude about this page</span></span></button><!-- --><!-- --></div></div><!-- --><!-- --><!-- --><!-- --><!-- --></d360-article-more-options><!-- --><!-- --><!-- --></div></div><!-- --></div><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --></d360-article-header><!-- --><!-- --><d360-article-content _nghost-serverapp-c927955503="" ngskiphydration=""><!-- --><span _ngcontent-serverapp-c927955503="" class="non-visibility-content"><span _ngcontent-serverapp-c927955503=""><a _ngcontent-serverapp-c927955503="" href="/docs/reamaze-integration-guide-for-reviews-and-loyalty-referrals-1" title="Re:amaze - Integration Guide for Reviews and Loyalty &amp; Referrals"> Prev </a></span><!-- --><span _ngcontent-serverapp-c927955503=""><a _ngcontent-serverapp-c927955503="" href="/docs/influencer-and-sampling" title="Influencer and sampling"> Next </a></span><!-- --></span><!-- --><!-- --><!-- --><d360-article _ngcontent-serverapp-c927955503="" appfiledownload="" appfloikpreview="" appimageviewer="" class="editor360-published-content wysiwyg-article" defer-iframes="true" id="articleContent"><article _ngcontent-serverapp-c927955503="" class="editor360-preview-content"><div class="tab-container"><div class="tab-widget"><div class="tab"><p class="product-title">Products</p><div class="img-category"><div class="product-flex"><div class="reviews fr-fic fr-dii" id="defaultOpen"><br/></div><div class="hide-name">Reviews</div></div></div></div><div class="tabcontent" id="firsttab"><div class="content-left"><h6>Supported plans</h6><p>Premium, Enterprise</p></div><div class="content-right"><h6>eCommerce Platform</h6><p>Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, WooCommerce, Volusion, Salesforce Commerce Cloud, Custom</p></div></div></div></div><p>Yotpo's <a href="https://www.yotpo.com/integrations/zendesk/" rel="noopener" target="_blank">Zendesk integration</a> allows brands to generate reviews about their customer service by leveraging Yotpo’s Mail After Service solution. Once a support ticket is solved, a review request will be sent directly to your customer to collect feedback about their experience. Increase CVR on-site by publishing your reviews, and boost traffic by feeding them to Google so they appear in the search results of other shoppers online.</p><h2>About Zendesk</h2><p>Zendesk builds software for better customer relationships. Improve customer engagement and better understand your customers across every channel using Zendesk’s full suite of solutions. More than 101,000 paid customer accounts in over 160 countries and territories use Zendesk products.</p><h2>Integrating Yotpo and Zendesk</h2><p>Together, Zendesk and Yotpo help eCommerce sites improve customer experience by integrating user-generated content (UGC) and proactive support to lift consumer satisfaction and trust, in turn boosting sales and retention. Integrating Yotpo with Zendesk means you can <strong>request reviews for provided service</strong> after a ticket is solved. This is similar in principle to the <a href="/v1/docs/creating-a-review-request-premium-enterprise" rel="noopener noreferrer" target="_blank">Automatic Review Request</a> for products.</p><p>Emails are sent for solved tickets according to the Automatic Review Request settings. <strong>By default</strong>, they are sent two days after the ticket is solved.</p><section class="infoBox"><div class="title"><strong>Good to know:</strong></div><div class="content"><ul><li>Yotpo supports Zendesk Multibrand! If you're using Zendesk Multibrand with one or more Yotpo stores, you'll need to link each store to the relevant Zendesk subdomain.</li><li>If you have more than one Yotpo store and <strong>you're not</strong> using Zendesk Multibrand, you'll need to link each Yotpo store to a separate Zendesk account.</li></ul></div></section><p><strong>To connect Zendesk and Yotpo:</strong></p><ol start="1"><li>In your Yotpo Reviews main menu, go to<strong> </strong><a href="https://reviews.yotpo.com/#/integrations-center" rel="noopener" target="_blank"><strong>Integrations</strong></a>.</li><li>Choose the <strong>Zendesk </strong>card and follow the connection process.</li><li>Enter your Zendesk subdomain.<br/><meta charset="utf-8"/><img alt="" class="fr-fic fr-dii" src="https://cdn.document360.io/f3c2ab59-fe4c-4f93-9614-2872f40e8aa7/Images/Documentation/5e84f79a-2f87-4c20-be34-80a7539e8bd2.png?sv=2026-02-06&amp;spr=https&amp;st=2026-10-14T07%3A36%3A58Z&amp;se=2026-10-14T07%3A48%3A58Z&amp;sr=c&amp;sp=r&amp;sig=DVBTZYSoGElNbRA2m1T%2BceVvDgZOGe4K0y2GsaPloMk%3D"/><br/><section class="infoBox"><div class="title">Not sure what your Zendesk subdomain is?</div><div class="content">To learn what your subdomain is, click <a href="https://support.zendesk.com/hc/en-us/articles/4409381383578-Where-can-I-find-my-Zendesk-subdomain-" rel="noopener" target="_blank">here</a>.</div></section></li><li>Click <strong>Connect</strong>.</li></ol><section class="warningBox"><div class="title"><strong>Please note:</strong></div><div class="content"><ul><li>Once you integrate Yotpo with Zendesk, Yotpo will send out review requests for provided service to all the tickets that have been solved within the last 15 days.</li><li>If you try to install Zendesk on an account that already has this feature, you will get a message saying Zendesk is already installed.</li></ul></div></section><h2>Customizing the Email After Service</h2><p>You can customize some of the email settings in the Mail After Service email:</p><ul><li>Number of days after which the review request is sent</li><li>The email subject</li><li>The email body</li><li>The email signature</li></ul><h4>To customize the email:</h4><ol start="1"><li>In Yotpo Reviews, go to<strong> </strong><a href="https://reviews.yotpo.com/#/integrations-center" rel="noopener" target="_blank"><strong>Integrations</strong></a>.</li><li>Choose <strong>Zendesk</strong>.</li></ol><p><img alt="" class="fr-fic fr-dii" src="https://cdn.document360.io/f3c2ab59-fe4c-4f93-9614-2872f40e8aa7/Images/Documentation/cd3d2869-a1ad-4e79-a4dc-9ffaec17c4c2.png?sv=2026-02-06&amp;spr=https&amp;st=2026-10-14T07%3A36%3A58Z&amp;se=2026-10-14T07%3A48%3A58Z&amp;sr=c&amp;sp=r&amp;sig=DVBTZYSoGElNbRA2m1T%2BceVvDgZOGe4K0y2GsaPloMk%3D"/></p><ol start="3"><li>Customize the email according to your requirements<ul><li>The preview section changes according to your customization.</li></ul></li></ol><ul><li>There are two variables you can use that are substituted when the email is sent.</li></ul><table><thead><tr><th>Variable</th><th>Description</th></tr></thead><tbody><tr><td>{user}</td><td>The reviewer's name</td></tr><tr><td>{company_name}</td><td>Your company's name.</td></tr></tbody></table><p>4. Click the <strong>Save Changes </strong>button.</p><section class="infoBox"><div class="title">For customers using our Enterprise plan</div><div class="content">You can customize the template even further by using the site_review_after_service.liquid file in the <a href="/v1/docs/customizing-your-email" rel="noopener noreferrer" target="_blank">Email Template Editor</a>.</div></section><p> You can send a test email in order to see how the customers will see it:</p><ol start="1"><li>Click <strong>Send test</strong>.</li><li>Enter the recipient's email address.</li><li>Click <strong>Send</strong>.</li></ol><h2>Disconnecting Zendesk</h2><p>When you disconnect Zendesk, your data will no longer be synced with Zendesk, and all integration settings will be permanently deleted. To disconnect Zendesk:</p><ol start="1"><li>In Yotpo Reviews, go to<strong> </strong><a href="https://reviews.yotpo.com/#/integrations-center" rel="noopener" target="_blank"><strong>Integrations</strong></a>.</li><li>Choose <strong>Zendesk</strong>.</li><li>Click <strong>Disconnect</strong>, and <strong>Disconnect </strong>again to confirm.</li></ol></article></d360-article><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --></d360-article-content><!-- --><!-- --><!-- --><d360-article-feedback _nghost-serverapp-c2520006277="" ngh="18"><div _ngcontent-serverapp-c2520006277="" class="feedback-container"><p _ngcontent-serverapp-c2520006277="" class="text-center m-0 p-0"></p><div _ngcontent-serverapp-c2520006277="" class="article-feedback"><div _ngcontent-serverapp-c2520006277="" class="article-feedback-text" id="d360-feedback-question-257138"> Was this article helpful? </div><!-- --><!-- --><div _ngcontent-serverapp-c2520006277="" class="article-feedback-action"><span _ngcontent-serverapp-c2520006277="" class="feedback-action-tooltip" container="body"><button _ngcontent-serverapp-c2520006277="" aria-labelledby="d360-feedback-question-257138 d360-feedback-like-257138" class="btn btn-outline-secondary" id="d360-feedback-like-257138" triggers="manual"><i _ngcontent-serverapp-c2520006277="" aria-hidden="true" class="fa-thumbs-up fa-duotone"></i> Yes <!-- --><!-- --></button><!-- --></span><!-- --><span _ngcontent-serverapp-c2520006277="" class="feedback-action-tooltip" container="body"><button _ngcontent-serverapp-c2520006277="" aria-labelledby="d360-feedback-question-257138 d360-feedback-dislike-257138" class="btn btn-outline-secondary" id="d360-feedback-dislike-257138" triggers="manual"><i _ngcontent-serverapp-c2520006277="" aria-hidden="true" class="fa-thumbs-down fa-duotone"></i> No <!-- --><!-- --></button><!-- --></span><!-- --></div></div><!-- --></div><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --><!-- --></d360-article-feedback><!-- --><!-- --><!-- --><d360-related-articles _nghost-serverapp-c4131601050="" ngh="19"><!-- --><!-- --></d360-related-articles><!-- --><!-- --><!-- --><d360-smart-bar-initializer _ngcontent-serverapp-c207065917="" ngh="14"><!-- --></d360-smart-bar-initializer><!-- --><d360-inline-integrations _ngcontent-serverapp-c207065917="" ngh="0"></d360-inline-integrations><!-- --></div><!-- --><site-docs-right-panel-container _nghost-serverapp-c1806968745="" class="" ngh="24"><aside _ngcontent-serverapp-c1806968745="" class="additional-resources right-container-border" id="right-panel" tabindex="-1"><div _ngcontent-serverapp-c1806968745="" class="collapse-expand-right-btn collapse-expand-right-btn-isexpanded"><button _ngcontent-serverapp-c1806968745="" aria-label="Toggle content panel" class="btn btn-secondary right-expand-collapse-btn" tabindex="0" type="button"><i _ngcontent-serverapp-c1806968745="" aria-hidden="true" class="fa-solid fa-caret-right icon-alignment"></i></button></div><!-- --><!-- --><ng-scrollbar _ngcontent-serverapp-c1806968745="" _nghost-serverapp-c1581645311="" appearance="compact" class="right-panel-scrollbar ng-scroll-viewport ng-scrollbar" dir="ltr" disableinteraction="false" horizontalused="false" ishorizontallyscrollable="false" isverticallyscrollable="false" mobile="false" ngh="21" orientation="vertical" position="native" verticalused="false" visibility="hover"><ng-scroll-content _ngcontent-serverapp-c1581645311="" _nghost-serverapp-c2617948613="" class="ng-scroll-content" ngh="0"><div _ngcontent-serverapp-c1806968745="" class="right-panel-content"><d360-tags _nghost-serverapp-c2071883418="" ngh="22"><div _ngcontent-serverapp-c2071883418="" class="resources-section expanded"><div _ngcontent-serverapp-c2071883418="" class="section-title"> Tags </div><div _ngcontent-serverapp-c2071883418="" class="tags-list"><ul _ngcontent-serverapp-c2071883418=""><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/adobe commerce (magento)" tabindex="0">Adobe Commerce (Magento)</a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/bigcommerce" tabindex="0">BigCommerce</a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/reviews " tabindex="0">Reviews </a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/salesforce commerce cloud" tabindex="0">Salesforce Commerce Cloud</a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/shopify" tabindex="0">Shopify</a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/shopify plus" tabindex="0">Shopify Plus</a><!-- --><!-- --></li><li _ngcontent-serverapp-c2071883418=""><a _ngcontent-serverapp-c2071883418="" class="cursor-pointer" href="/docs/tags/woocommerce" tabindex="0">WooCommerce</a><!-- --><!-- --></li><!-- --></ul><!-- --></div></div><!-- --><!-- --></d360-tags><!-- --><!-- --><d360-table-of-content _nghost-serverapp-c524771689="" class="toc-expand-to-fill" ngh="23"><!-- --><!-- --></d360-table-of-content><!-- --><!-- --><!-- --></div><scrollbars _ngcontent-serverapp-c1581645311="" _nghost-serverapp-c4020475482="" ngh="20"><!-- --><!-- --></scrollbars></ng-scroll-content></ng-scrollbar><!-- --><!-- --><!-- --></aside><!-- --><!-- --><!-- --><!-- --></site-docs-right-panel-container><!-- --><!-- --></site-docs-content-panel-container><!-- --><!-- --></div></div></site-docs-section><!-- --><!-- --><!-- --><!-- --></div><footer _ngcontent-serverapp-c2523757156=""><!-- --><site-footer-section _ngcontent-serverapp-c2523757156="" ngh="27"><!-- --><site-custom-footer-section _nghost-serverapp-c3187277978="" ngh="0"><div _ngcontent-serverapp-c3187277978=""><div class="container">
+<div class="footer">
+<div class="footer-top">
+<div>
+<h4>PRODUCT</h4>
+<ul>
+<li><a href="https://www.yotpo.com/platform/?utm_source=helpcenter" target="_blank">Platform</a></li>
+<li><a href="https://www.yotpo.com/platform/sms-marketing/?utm_source=helpcenter" target="_blank">SMS</a></li>
+<li><a href="https://www.yotpo.com/platform/reviews/?utm_source=helpcenter" target="_blank">Reviews</a></li>
+<li><a href="https://www.yotpo.com/platform/loyalty/?utm_source=helpcenter" target="_blank">Loyalty &amp; Referrrals</a></li>
+<li><a href="https://www.yotpo.com/platform/subscriptions/?utm_source=helpcenter" target="_blank">Subscriptions</a></li>
+<li><a href="https://www.yotpo.com/platform/email-marketing/?utm_source=helpcenter" target="_blank">Email</a></li>
+<li><a href="https://www.yotpo.com/platform/visual-ugc/?utm_source=helpcenter" target="_blank">Visual UGC</a></li>
+<li><a href="https://www.yotpo.com/integrations/?utm_source=helpcenter" target="_blank">Integrations</a></li>
+<li><a href="https://www.yotpo.com/integrations/?utm_source=helpcenter" target="_blank">Supported eCommerce Platforms</a></li>
+<li><a href="https://www.yotpo.com/enterprise/?utm_source=helpcenter" target="_blank">Enterprise</a></li>
+<li><a href="https://www.yotpo.com/google-ecommerce-solution/?utm_source=helpcenter" target="_blank">Google Partnership</a></li>
+<li><a href="https://www.yotpo.com/pricing/?utm_source=helpcenter" target="_blank">Pricing</a></li>
+</ul>
+</div>
+<div>
+<h4>RESOURCES</h4>
+<ul>
+<li><a href="https://www.yotpo.com/resources/?utm_source=helpcenter" target="_blank">Retention Resources</a></li>
+<li><a href="https://www.yotpo.com/blog/?utm_source=helpcenter" target="_blank">Blog</a></li>
+<li><a href="https://www.yotpo.com/resources/type/videos-webinars/?utm_source=helpcenter" target="_blank">Videos &amp; webinars</a></li>
+<li><a href="https://www.yotpo.com/inspiration/?utm_source=helpcenter" target="_blank">Inspiration Gallery</a></li>
+<li><a href="https://www.yotpo.com/case-studies/?utm_source=helpcenter" target="_blank">Case Studies</a></li>
+<li><a href="https://www.yotpo.com/ecommerce-product-page-guide/?utm_source=helpcenter" target="_blank">Ultimate eCommerce Product Page Guide</a></li>
+<li><a href="https://www.yotpo.com/loyalty-roi-calculator/?utm_source=helpcenter" target="_blank">Loyalty ROI Calculator</a></li>
+<li><a href="https://www.yotpo.com/sms-marketing-examples/?utm_source=helpcenter" target="_blank">SMS Marketing Examples</a></li>
+<li><a href="https://www.yotpo.com/retention-course/?utm_source=helpcenter" target="_blank">eCommerce Retention Course</a></li>
+<li><a href="https://www.yotpo.com/google-shopping-guide/?utm_source=helpcenter" target="_blank">Google Shopping Guide</a></li>
+<li><a href="https://www.yotpo.com/fan-favorites/?utm_source=helpcenter" target="_blank">Fan Favorites</a></li>
+</ul>
+</div>
+<div>
+<h4>PARTNERSHIPS</h4>
+<ul>
+<li><a href="https://www.yotpo.com/partners/?utm_source=helpcenter" target="_blank">Become a Partner</a></li>
+<li><a href="https://www.yotpo.com/agencies/?utm_source=helpcenter" target="_blank">Connect with an Agency</a></li>
+<li><a href="https://partners.yotpo.com/s/login/?utm_source=helpcenter" target="_blank">Partner Portal</a></li>
+<li><a href="https://www.yotpo.com/program-guide-yotpo-service-partners/?utm_source=helpcenter" target="_blank">Agency Partner Program</a></li>
+<li><a href="https://www.yotpo.com/partner-awards-2023/?utm_source=helpcenter" target="_blank">Partner Awards</a></li>
+<li><a href="https://www.yotpo.com/program-guide-yotpo-managed-services/?utm_source=helpcenter" target="_blank">SMS Managed Services</a></li>
+<li><a href="https://www.yotpo.com/integration-partners/?utm_source=helpcenter" target="_blank">Integration Developer Terms</a></li>
+</ul>
+</div>
+<div>
+<h4>COMPANY</h4>
+<ul>
+<li><a href="https://www.yotpo.com/about/?utm_source=helpcenter" target="_blank">About Yotpo</a></li>
+<li><a href="https://www.yotpo.com/contact-us/?utm_source=helpcenter" target="_blank">Contact Us</a></li>
+<li><a href="https://www.yotpo.com/careers/?utm_source=helpcenter" target="_blank">Careers</a></li>
+<li><a href="https://www.yotpo.com/request-a-demo/?utm_source=helpcenter" target="_blank">Request a Demo</a></li>
+<li><a href="https://www.yotpo.com/customer-success/?utm_source=helpcenter" target="_blank">Customer Success</a></li>
+<li><a href="https://destination.yotpo.com/?utm_source=helpcenter" target="_blank">Destination:D2C Conference</a></li>
+<li><a href="https://womeninecomm.yotpo.com/?utm_source=helpcenter" target="_blank">Amazing Women in eCommerce</a></li>
+</ul>
+</div>
+<div>
+<h4>SUPPORT</h4>
+<ul>
+<li><a href="https://yap.yotpo.com/#/?modal=contact_support?utm_source=helpcenter" target="_blank">Contact Support</a></li>
+<li><a href="https://community.yotpo.com/?utm_source=helpcenter" target="_blank">Community</a></li>
+<li><a href="https://yotpo.document360.io/?utm_source=helpcenter" target="_blank">Help Center</a></li>
+<li><a href="https://www.yotpo.com/accessibility-statement/?utm_source=helpcenter" target="_blank">Accessibility Statement</a></li>
+<li><a href="https://core-api.yotpo.com/reference/welcome?utm_source=helpcenter" target="_blank">API Documentation</a></li>
+<li><a href="https://www.yotpo.com/api-changelog/?utm_source=helpcenter" target="_blank">API Changelog</a></li>
+<li><a href="https://status.yotpo.com/?utm_source=helpcenter" target="_blank">Yotpo Status</a></li>
+</ul>
+</div>
+</div>
+<div class="footer-bottom">
+<div>
+<a href="https://www.yotpo.com/?utm_source=helpcenter" target="_blank">
+<img alt="footer-logo" height="40.53" src="https://cdn.document360.io/f3c2ab59-fe4c-4f93-9614-2872f40e8aa7/Images/Documentation/Yotpo-logo.png?sv=2026-02-06&amp;spr=https&amp;st=2026-10-14T07%3A36%3A58Z&amp;se=2026-10-14T07%3A51%3A58Z&amp;sr=c&amp;sp=r&amp;sig=jSxJGUFDkY6UIImtsbPMp2a6VY37dbqSVELuqdei86Q%3D" width="148.28"/>
+</a>
+</div>
+<div class="footer-last">
+<p><a href="https://www.yotpo.com/terms-of-service/?utm_source=helpcenter" target="_blank">Terms of Service</a></p>
+<p> <a href="https://www.yotpo.com/terms-of-use/?utm_source=helpcenter" target="_blank">Terms of Use</a></p>
+<p> <a href="https://www.yotpo.com/security/?utm_source=helpcenter" target="_blank">Security</a></p>
+<p> <a href="https://www.yotpo.com/privacy-policy/?utm_source=helpcenter" target="_blank">Privacy Policy</a></p>
+</div>
+<div class="icons">
+<ul>
+<li class="facebook">
+<a href="https://www.facebook.com/yotpo?utm_source=helpcenter" target="_blank">
+<i class="fab fa-facebook-f"></i>
+</a>
+</li>
+<li class="linkedin">
+<a href="https://www.linkedin.com/company/yotpo/" target="_blank">
+<i class="fab fa-linkedin-in"></i>
+</a>
+</li>
+<li class="twitter">
+<a href="https://twitter.com/yotpo?utm_source=helpcenter" target="_blank">
+<i class="fab fa-twitter"></i>
+</a>
+</li>
+</ul>
+<div class="footer-form">
+<input id="fname" name="fname" placeholder="Enter your email" type="text"/>
+<button id="getinputval">Request a Demo</button>
+</div>
+</div>
+</div>
+</div>
+</div></div></site-custom-footer-section><!-- --><!-- --><!-- --><!-- --><!-- --></site-footer-section></footer><!-- --></div></div></site-page-loader><!-- --></site-document><!-- --><d360-scroll-to-top _nghost-serverapp-c2134347264="" ngh="0"><div _ngcontent-serverapp-c2134347264="" aria-label="scroll to top" class="scroll-to-top no-cookie-consent" role="button" tabindex="-1"><i _ngcontent-serverapp-c2134347264="" aria-hidden="true" class="fa-duotone fa-up-to-line"></i></div></d360-scroll-to-top></div><!-- --></d360-ui-root>
+
+</body></html>

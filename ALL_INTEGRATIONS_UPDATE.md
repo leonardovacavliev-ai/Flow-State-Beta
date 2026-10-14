@@ -170,11 +170,14 @@ three others 1 each.
 | catalog-linked Yotpo guides | ~100 | 400 |
 | partner-hosted integration articles | ~80 | 250 |
 | mechanics documentation for the 13 new messaging platforms | ~40 | 200–600 |
-| **total** | **~300** | **≈ 1,200–2,000** |
+| partner app overviews (added 2026-10-14; dry run: 226 proposals) | ~230 | ~600–700 |
+| **total** | **~530** | **≈ 1,800–2,700** |
 
 ### Two consequences
 
-1. Most integrations will rest on one ~500-word guide. Thin coverage will be the normal case.
+1. Most integrations will rest on one ~500-word guide. Thin coverage will be the normal case. The
+   partner app overviews (§4.3, added 2026-10-14) give each one a few pages on what the app itself
+   does.
 2. A corpus of ~300 documents does not justify automated discovery machinery. A re-runnable import
    into a proposals inbox plus human labelling does the job. Labelling ~200 new documents is a few
    hours of owner time; it is not a pipeline problem.
@@ -444,6 +447,30 @@ admin when the catalog changes:
      match is proposed with a note. Six of the seven dead links resolve this way.
    - Partner-hosted documentation-like links become proposals; homepages and shortlinks are skipped.
 3. **Pre-fill suggested labels from the Yotpo header only** (below).
+4. **Propose a few of the partner's own general articles** (added 2026-10-14, Leo's request; next
+   heading).
+
+**Partner app overviews** (added 2026-10-14). A Yotpo guide explains the integration and assumes
+the reader knows the other app. So that Flow State understands what each app does, the import
+also proposes up to 3 of the partner's own general articles: what the app is, its main concepts,
+how to get started. `backend/app_overview.py` finds them; they are proposals like any other, with
+source `overview`.
+- **The help centre** comes from, in order: an admin override (`scripts/help_centres.json`); a
+  documentation link on the catalog detail page; a link inside the Yotpo guide; probing
+  `help.`/`support.`/`docs.`/`knowledge.` of a partner domain one of those links gives. A host
+  counts only when it carries the app's name (`docs.gorgias.com` for Gorgias). Names are never
+  guessed into domains, because catalog names collide with ordinary words (Rule, Target, Drip).
+- **The articles**: Zendesk centres through their public Help Center API (the overview-like
+  categories, their first sections, in the partner's order); other centres from the home page's
+  "Getting started"-like sections; then the centre's `llms.txt`; then its sitemap. Links are
+  scored on visible wording ("Getting started", "Introduction to …", "Overview"), and pages about
+  APIs, billing, other integrations or Yotpo itself are skipped.
+- **Bounded**: one help centre per integration, at most two sections opened, at most 3 picks, at
+  one request per second per host. This is not a crawler and follows no links beyond that.
+- **Labels**: pre-filled `shared` (the article describes the app, not a Yotpo product). An admin
+  still confirms every label, and every proposal is approved or rejected URL by URL.
+- Where nothing is found, the report says why, and an admin adds the help centre to
+  `scripts/help_centres.json` (or `null` to skip an integration) and runs the dry run again.
 
 **Daily sitemap job** (in the worker's scheduler):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,

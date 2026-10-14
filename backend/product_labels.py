@@ -24,12 +24,13 @@ documentation, so a Reviews question on an ESP without it is told so instead
 of being answered from Loyalty docs. Retrieval does not filter on labels
 (PRODUCT_LINE_SPLIT_SCOPE.md, step 7).
 """
-import re
 import threading
 import time
 from typing import Optional
 
 from flask import jsonify, request
+
+import doc_header
 
 # Same tuple as adapters.vector.base.PRODUCT_LABELS (a test keeps them equal);
 # not imported from there, because the adapters package loads ChromaDB and Pinecone.
@@ -231,32 +232,20 @@ def chat_product(value) -> str:
     value = (value or '').strip().lower() if isinstance(value, str) else ''
     return value if value in CHAT_PRODUCTS else DEFAULT_CHAT_PRODUCT
 
-# Yotpo support pages open with "Products" (or "YotpoProducts") on its own line,
-# followed by the product name. The chunker drops sections under 20 words, so
-# this header never reaches a vector -- it can only be read from stored content.
-_HEADER = re.compile(r"^\s*(?:Yotpo)?Products?\s*$", re.I | re.M)
-HEADER_SCAN_CHARS = 1500
+# Yotpo support pages open with a "Products" header. The chunker drops sections
+# under 20 words, so this header never reaches a vector -- it can only be read
+# from stored content. doc_header owns the parsing.
+HEADER_SCAN_CHARS = doc_header.HEADER_SCAN_CHARS
 
 
 def header_label(text: Optional[str]) -> Optional[str]:
     """The product a Yotpo support page declares in its header, or None.
 
     Only a suggestion for the admin: most documents (ESP help centres, Yotpo
-    developer pages) have no header, and those need a human decision.
+    developer pages) have no header, and those need a human decision. A header
+    naming both products also gives None: the admin applies the majority rule.
     """
-    if not text:
-        return None
-    m = _HEADER.search(text[:HEADER_SCAN_CHARS])
-    if not m:
-        return None
-    following = [l.strip() for l in text[m.end():m.end() + 120].split("\n") if l.strip()]
-    for line in following[:2]:
-        low = line.lower()
-        if "loyalty" in low or "referral" in low:
-            return "loyalty"
-        if "review" in low:
-            return "reviews"
-    return None
+    return doc_header.suggested_label(text)
 
 
 def merge_labels(links, labels):

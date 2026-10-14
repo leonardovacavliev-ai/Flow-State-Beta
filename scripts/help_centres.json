@@ -1,0 +1,7 @@
+{
+  "_how": "Where to find an app's own help centre when the catalog import cannot (scripts/import_catalog.py, backend/app_overview.py). Key: the integration's esps.name. Value: the help centre's home page, or null to skip that integration's app overview on purpose. Each entry was opened and checked by a person; add the date.",
+  "_checked": "2026-10-14: hubspot, loyaltylion, bazaarvoice",
+  "hubspot": "https://knowledge.hubspot.com/",
+  "loyaltylion": "https://help.loyaltylion.com/en",
+  "bazaarvoice": "https://docs.bazaarvoice.com/home/en-us"
+}

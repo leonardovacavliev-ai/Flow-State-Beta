@@ -1,0 +1,234 @@
+Products
+
+Loyalty
+
+####### Supported plans
+
+Free, Pro, Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus
+
+### Goals and Outcomes
+
+Integrate Yotpo Loyalty & Referrals with Shopify Point of Sale (POS) to create anOmnichannelRewards Program that provides an incredible range of benefits:
+
+- Capture emails- Your omnichannel rewards program is all the reason your customers will need to provide their email addresses while in-store. Use Yotpo Loyalty & Referrals to convert one-time shoppers into repeat buyers
+- Connect with customers wherever they are- Many of your customers likely shop with you both in-person and online. Make sure they can sign up for your rewards program and redeem their points in both places.
+- Build stronger relationships with customers- Use Yotpo Referrals'Customer Managementsection to track each customer's in-store and online purchases,  helping you create more personalized and relevant communications.In this article, you’ll learn how to add Yotpo Loyalty & Referrals to your Shopify POS, how to use it, and how to troubleshoot issues.
+
+### How to Use the New Shopify POS Extension
+
+Important
+
+Shopify POS Legacy Extensions are no longer supported.
+
+As of February 28, 2025, Shopify officially deprecated its POS Legacy Extensions. To ensure the continued functionality of your loyalty program for in-person purchases, Yotpo Loyalty released a new POS-compatible extension available since January 29, 2025. The extension is compatible with the POS 10.0 version.
+
+Why upgrade to the new version?
+
+- Maintain in-store loyalty redemptions: The legacy POS integration no longer works. The new extension ensures seamless redemption on Shopify POS.
+- Enhanced discount capabilities:  Enjoy improved performance, reliable logic, and full compatibility with Shopify’s new Checkout Extensibility.
+- No developer work required: The new setup is fully self-serve, making it easy to implement and manage from the Yotpo admin.
+
+#### Adding the New Extension to the Shopify POS App
+
+You don’t need to download anything to start using the new Shopify POS Extension. As with the old extension, all you need is theYotpo Loyalty & Rewards app installedvia the Shopify App Store.
+
+To get started:
+
+1. Open theShopify POS app.
+2. ClickAdd tile.
+3. SelectApp.
+4. ChooseYotpo Loyalty & Rewards.
+5. Next toYotpo Loyalty & Rewards (POS UI extension), clickAdd.
+6. Saveyour changes.That’s it! You’re all set to start using the new POS extension. Once added, the tile will appear on all devices connected to the same Shopify account.
+
+Here’s what the process would look like in the app:
+
+Tip
+
+You can also use the new Shopify POS Extension in Dark Mode.
+
+#### What’s New
+
+The new POS extension maintains a similar user interface and offers the same core functionalities as the old solution. It also introduces a major improvement that will allow you to provide a seamless and consistent shopping experience across both online and in-person channels.
+
+Thenew POS extension supports all discount limitations and configuration options, such as:
+
+- Minimum spend
+- Discount combinations
+- Product-specific restrictionsAdditional Upgrades:
+
+- Pending RewardsDisplays rewards that require a higher cart valueHelps staff upsell by showing how much more is needed to unlock rewards
+- Additional Details SectionDisplays applied coupon codes and the number of loyalty points in the cart for added clarity.
+- Customer MetafieldsAnyYotpo loyalty customer metafieldsyou’ve pinned in your Shopify admin will appear on each customer’s profile in the POS.
+
+### How to Use Loyalty and Referrals in the Shopify POS System
+
+#### Enable In-Store Redemptions
+
+To enable redemptions for in-person purchases, rewards must be configured for “In Store & Online” so they can appear as options in the Shopify POS.
+
+1. Forstandalone fixed-amount rewards:
+- Go to:Manage Program>Rewards Program>Ways to Redeem.
+- Locate thefixed amount rewardyou want to display in the POS and clickEdit.
+- UnderWhere the coupon will be used, selectIn Store & Online.
+
+1. Forcash discount rewards(fixed amount only):
+- Go to:Manage Program>Rewards Program>Ways to Redeem.
+- Locate the reward and clickEdit.
+- Go toAdvanced Settingsand update thePurchase fromfield to includeIn Store & Online.
+
+You can track redemptions made through the new POS extension in theRedemptions History report.
+
+#### POS Reward Limitations
+
+- Only fixed amount rewards are supportedVariable rewards are not available in Shopify POS.
+- Reward restrictions still applyRewards limited by product ID or segment will only apply if cart conditions are met, even if they may be selectable in the POS UI. This is an app limitation managed by Shopify.
+- Direct rewards (which shoppers don’t redeem points for), such as birthday, anniversary, and referral rewards, are not supported
+- Free product rewards are not supportedWorkaround:Create a fixed-amount coupon equal to the product price and restrict it to that product. For example, if you’re offering a $20 mascara as a free product, create a $20 coupon limited to that item.TipUse a prefix likeFreeProductto easily identify the coupon.
+
+#### Step 1: Enroll or Sign in a Customer
+
+To complete a transaction using Shopify POS, the first step is to get the customer’s email address. Customers may be hesitant to volunteer their email, but enrolling them in the Rewards Program offers an incentive to participate.
+
+To add a customer:
+
+1. TapAdd customer.
+2. Search for the customerusing the search bar.If they have a profile: Tap their name in the search results.If they don’t have a profile already: Create one for them.
+3. For new profiles, refer to Shopify’s guide oncreating customer profiles in the POS app.Note
+
+Loyalty tiers appear as tags in the customer profile.
+
+##### Opt-in settings and enrollment flow
+
+Whether a customer is automatically enrolled in your loyalty program when added to the POS depends on your program's opt-in settings:
+
+All Customers– Adding a customer profile in the POS will automatically enroll them in your loyalty program.
+
+Only Members Who Signed Up(for Shopify’s new Customer Accounts only) – Adding a customer profile won't enroll them by default. When adding customers who are not yet loyalty members, store staff must:
+
+1. Obtain verbal consentthat shoppers agree to join the loyalty program, and
+2. Tap theEnroll nowbutton in the POS UI to complete the enrollment.Note
+
+This consent method mirrors the online opt-in flow where customers have to explicitly agree to the loyalty program’s terms and/or privacy policy before joining.Learn more about this opt-in flow.
+
+#### Step 2: Redeem Points at Checkout
+
+Once you've identified the customer, you can use Yotpo Loyalty & Referrals to help them redeem points at checkout:
+
+1. Add the itemsto the customer's cart.
+2. Tap theLoyalty and Referrals tileto see the redemption options the customer qualifies for:Available rewards: all rewards the customer is eligible to redeem.Pending rewards: all rewards the customer can redeem if they increase their cart value.
+3. Choose which of theavailable rewardsto apply to the cart.
+4. Review the applied rewards in the cart andcomplete the checkout. You’ll see the coupon code and the number of points used underAdditional detailsin the Shopify POS cart. This helps store staff confirm that the redemption was applied correctly.This is what Step 2 would look like in the POS interface:
+
+### How to Troubleshoot Your POS Extension Setup
+
+If you're experiencing issues with setting up the POS extension, try these troubleshooting steps to resolve common setup problems:
+
+Syncing the Shopify POS App
+
+Sometimes, the Shopify POS app doesn’t properly sync with the Shopify admin after a tile is added. To manually resync:
+
+1. Tap the menu icon, then selectConnectivity.
+2. TapData synchronization.
+3. ChooseRefresh allorRefreshfor specific store data.Checking for App Updates
+
+Ensure you're running the latest version of Shopify POS. Check for any pending software updates and install them.
+
+Verifying Integration Setup
+
+Confirm that the Yotpo Loyalty & Rewards integration with Shopify POS has been fully set up. If any integration steps were skipped, the extension may not function correctly.
+
+Checking for App Compatibility Issues
+
+If you suspect a compatibility issue between the current versions of Shopify POS and the Yotpo app, it may be causing functionality issues. Our support team is happy to assist with troubleshooting if needed.
+
+Restarting the POS App
+
+If the Shopify POS app is experiencing temporary glitches, try force-closing the app and reopening it to see if that resolves the issue.
+
+Reviewing POS Roles and Permissions
+
+The Shopify POS app is typically used by store staff. Each merchant can configure custom roles and permissions for their team. Incorrect permission settings may cause issues with how loyalty rewards are applied or displayed during checkout.
+
+To review and update staff permissions, visitShopify’s guide to POS roles and permissions.
+
+Reaching Out to Yotpo Support
+
+Share the Error details with Yotpo support to help identify the issue and achieve a quick resolution.
+
+Tip
+
+If you encounter an error in Shopify POS,share a screenshot and error details with Yotpo Support. This will help our team quickly identify the issue and provide a faster resolution.
+
+### FAQs
+
+Are variable rewards supported in the Shopify POS app?
+
+No. Only fixed amount rewards are supported.
+
+Can referral rewards be redeemed in-store?
+
+Direct rewards coupons are not displayed in the Shopify POS app, but staff can manually apply them if provided by the customer.
+
+Can I manually award customers with points in the POS?
+
+Not directly. However, you can use Shopify Flow and customer tags:
+
+- Create acustom action earning rule in Yotpo: set it up and choose how many points to award.
+- Trigger it via a tag in Shopify Flow
+- Add the tag to the customer in the POS: go to the customer’s profile in POS, clickManage tags, and add the respective tag.For example, if you have a program that awards points for in-store actions, such as returning items for recycling, you can add a Recycling tag, and the customer will earn the number of points specified in the custom action rule.
+
+### Shopify Online Discounts vs. Shopify POS Discounts
+
+Shopify POS discounts are applied to a purchase in-store by the clerk as part of the checkout process. Unlike online discounts, there is no discount code applied at any point - the POS discount is added as a line item that adjusts the final price of the purchase.
+
+Settings that apply to both online and POS:
+
+- The discount amount
+- The number of points to deduct from the customer’s point balance
+
+Online store discount
+
+Shopify POS discount
+
+Process
+
+A discount code is created and applied at checkout
+
+The discount is created as a line item that’s added to the order and reduces the price the customer needs to pay for that order. It’s a straightforward price adjustment. There is no actual discount code associated with this purchase.
+
+Discount settings
+
+The discount includes all the restrictions that were configured for the reward in Yotpo Loyalty & Referrals
+
+Same as the online store discount.
+
+Viewing analytics
+
+Discount codes are included in the order details by default.
+
+To learn more about the program analytics settings, seeYotpo Loyalty & Referrals Settings Section Guide.
+
+If your brand has mostly POS activity, we recommend you go to yourYotpo General Settingssection and choose theCustomers who made a purchase within 24 hours of redeeming a loyalty rewardsetting underProgram Analytics.
+
+This means that a customer is identified as a redeemer if they complete a purchase within 24 hours of making a redemption.
+
+In theRedemption History report, redemptions made through the POS will be marked withPOS UI Extensionas the source.
+
+Refunds
+
+If the customer gets a partial refund, some points used are added back to the customer’s point balance.
+
+To learn more, seePoint Balance for Refunded Orders.
+
+If the customer gets a partial refund, they will not receive any points back.
+
+To learn more, seePoint Balance for Refunded Orders.
+
+Tip
+
+To have a POS experience that includes all the relevant settings, you can use thein-store modulethat lets the customers choose their discounts on their phones.

@@ -1,0 +1,120 @@
+{
+ "pages": {
+  "https://docs.gorgias.com/en-US": {
+   "file": "00-docs-gorgias-com-en-us.txt",
+   "status": 200,
+   "url": "https://docs.gorgias.com/en-US",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://docs.gorgias.com/en-US/articles/get-started-18363": {
+   "file": "01-docs-gorgias-com-en-us-articles-get-started-18363.txt",
+   "status": 200,
+   "url": "https://docs.gorgias.com/en-US/articles/get-started-18363",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://docs.gorgias.com/en-US/articles/ai-agent-and-automations-135134": {
+   "file": "02-docs-gorgias-com-en-us-articles-ai-agent-and-automations-135.txt",
+   "status": 200,
+   "url": "https://docs.gorgias.com/en-US/articles/ai-agent-and-automations-135134",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://help.attentivemobile.com/api/v2/help_center/en-us/categories.json?per_page=100&sort_by=position&sort_order=asc": {
+   "file": "03-help-attentivemobile-com-api-v2-help-center-en-us-categories.txt",
+   "status": 200,
+   "url": "https://help.attentive.com/api/v2/help_center/en-us/categories.json?sort_by=position&per_page=100&sort_order=asc",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.attentivemobile.com/api/v2/help_center/en-us/categories/360002947311/sections.json?per_page=100&sort_by=position&sort_order=asc": {
+   "file": "04-help-attentivemobile-com-api-v2-help-center-en-us-categories.txt",
+   "status": 200,
+   "url": "https://help.attentive.com/api/v2/help_center/en-us/categories/360002947311/sections.json?sort_by=position&per_page=100&sort_order=asc",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.attentivemobile.com/api/v2/help_center/en-us/sections/36234699202964/articles.json?per_page=30&sort_by=position&sort_order=asc": {
+   "file": "05-help-attentivemobile-com-api-v2-help-center-en-us-sections-3.txt",
+   "status": 200,
+   "url": "https://help.attentive.com/api/v2/help_center/en-us/sections/36234699202964/articles.json?sort_by=position&per_page=30&sort_order=asc",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://help.rebuyengine.com/en": {
+   "file": "06-help-rebuyengine-com-en.txt",
+   "status": 200,
+   "url": "https://help.rebuyengine.com/en",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://help.rebuyengine.com/llms.txt": {
+   "file": "07-help-rebuyengine-com-llms-txt.txt",
+   "status": 200,
+   "url": "https://help.rebuyengine.com/llms.txt",
+   "content_type": "text/plain; charset=utf-8"
+  },
+  "https://support.dixa.help/en": {
+   "file": "08-support-dixa-help-en.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/llms.txt": {
+   "file": "09-support-dixa-help-llms-txt.txt",
+   "status": 502,
+   "url": "https://support.dixa.help/llms.txt",
+   "content_type": "text/html"
+  },
+  "https://support.dixa.help/robots.txt": {
+   "file": "10-support-dixa-help-robots-txt.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/robots.txt",
+   "content_type": "text/plain; charset=utf-8"
+  },
+  "https://support.dixa.help/en/sitemap.xml": {
+   "file": "13-support-dixa-help-en-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/sitemap.xml",
+   "content_type": "application/xml"
+  },
+  "https://support.dixa.help/sitemap.xml": {
+   "file": "12-support-dixa-help-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/sitemap.xml",
+   "content_type": "application/xml"
+  }
+ },
+ "expected": {
+  "gorgias": {
+   "help_centre": "https://docs.gorgias.com/en-US",
+   "method": "pages",
+   "picked": [
+    "https://docs.gorgias.com/en-US/how-to-use-gorgias-a-quick-start-guide-5705504",
+    "https://docs.gorgias.com/en-US/getting-started-for-new-Gorgias-users-7524978",
+    "https://docs.gorgias.com/en-US/articles/getting-started-with-ai-agent-294725"
+   ]
+  },
+  "attentive": {
+   "help_centre": "https://help.attentivemobile.com/hc/en-us",
+   "method": "zendesk-api",
+   "picked": [
+    "https://help.attentive.com/hc/en-us/articles/35985714775572--1-8-Welcome-to-Attentive",
+    "https://help.attentive.com/hc/en-us/articles/36062062955668--3-8-3-steps-to-getting-started-with-SMS",
+    "https://help.attentive.com/hc/en-us/articles/36168088263316--8-8-That-s-it-for-onboarding"
+   ]
+  },
+  "rebuy": {
+   "help_centre": "https://help.rebuyengine.com/en",
+   "method": "pages + llms.txt",
+   "picked": [
+    "https://help.rebuyengine.com/en/articles/10552414-rebuy-merchant-success-program-overview",
+    "https://help.rebuyengine.com/en/articles/11698129-rebuy-premium-support-overview",
+    "https://help.rebuyengine.com/en/articles/11713374-getting-started-with-cart-merchandising-3-quick-ways-to-boost-revenue-improve-ecommerce-kpis"
+   ]
+  },
+  "dixa": {
+   "help_centre": "https://support.dixa.help/en",
+   "method": "pages + sitemap",
+   "picked": [
+    "https://support.dixa.help/en/articles/604-an-introduction-to-dixa-messenger",
+    "https://support.dixa.help/en/articles/252-team-overview",
+    "https://support.dixa.help/en/articles/2161-queue-settings-overview"
+   ]
+  }
+ }
+}
