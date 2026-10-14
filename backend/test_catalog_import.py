@@ -272,6 +272,72 @@ def test_mechanics_on_saved_help_centres():
         assert all(c.topic and c.reason for c in m.candidates)
 
 
+# ---------- the model's part ----------
+
+import mechanics_ai as mai  # noqa: E402
+
+
+def test_model_answers_are_checked():
+    """The model answers with candidate numbers; anything else is dropped."""
+    assert mai.parse_choice('{"picks": [{"n": 2, "why": "flows"}, {"n": 9, "why": "x"}, '
+                            '{"n": 2, "why": "again"}, {"n": "1", "why": "ok"}]}', 3, 3) == \
+        [(1, 'flows'), (0, 'ok')]
+    assert mai.parse_choice('Sure! ```json {"picks": [{"n": 1}]} ```', 1, 3) == [(0, '')]
+    assert mai.parse_choice('{"picks": []}', 5, 3) == []           # "none are good enough"
+    assert mai.parse_choice('I think number 2', 5, 3) is None       # unusable: fall back
+    assert mai.parse_choice('{"picks": [{"n": true}]}', 5, 3) == []
+    assert len(mai.parse_choice('{"picks": [{"n": 1}, {"n": 2}, {"n": 3}]}', 5, 2)) == 2
+    assert mai.parse_queries('{"queries": ["flow triggers", "Yotpo integration", "", "Flow triggers"]}') \
+        == ['flow triggers']
+
+
+def test_prompts_carry_the_guide_and_numbered_candidates():
+    p = mai.choose_prompt('Recharge', ['subscription-recurring-billing'], 'coupon codes on subscriptions',
+                          [('https://a/1', 'Managing subscription discount codes'), ('https://a/2', 'Portal')], 3)
+    assert '[1] Managing subscription discount codes (https://a/1)' in p and '[2] Portal' in p
+    assert 'coupon codes on subscriptions' in p and 'Answer with JSON only' in p
+    assert 'Recharge' in mai.queries_prompt('Recharge', [], 'x')
+
+
+class FakeChooser:
+    """Suggests one search and picks the candidate whose title has `want`."""
+
+    def __init__(self, query, want, fail=False):
+        self.query, self.want, self.fail, self.seen = query, want, fail, []
+
+    def suggest_queries(self, name, categories, guide):
+        return [self.query]
+
+    def choose(self, name, categories, guide, candidates, limit):
+        self.seen = candidates
+        if self.fail:
+            return None
+        return [(i, 'because') for i, (_, title) in enumerate(candidates) if self.want in title.lower()][:limit]
+
+
+def test_the_model_chooses_from_the_shortlist():
+    fetch, _ = _mechanics_fetch()
+    c = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))['recharge']
+    chooser = FakeChooser('subscription discount codes', 'managing subscription discount')
+    m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch, categories=c['categories'],
+                    platform_type=c['platform_type'], context=c['context'], chooser=chooser)
+    assert m.method.endswith('+ ai') and m.topics[0] == '"subscription discount codes"'
+    assert [x.title for x in m.candidates] == ['Managing subscription discount codes']
+    assert m.candidates[0].reason == 'because'
+    assert chooser.seen and len(chooser.seen) <= am.SHORTLIST
+    # Every candidate shown to the model is a real article from the help centre
+    assert all(url.startswith('https://support.getrecharge.com/hc/') for url, _ in chooser.seen)
+
+
+def test_a_failed_model_falls_back_to_scoring():
+    fetch, expected = _mechanics_fetch()
+    c = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))['klaviyo']
+    m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch, categories=c['categories'],
+                    platform_type=c['platform_type'], context=c['context'],
+                    chooser=FakeChooser('flow triggers', '', fail=True))
+    assert 'rules (the model failed)' in m.method and m.candidates
+
+
 # ---------- the plan and --apply ----------
 
 def _detail_fetch():

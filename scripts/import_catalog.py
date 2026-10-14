@@ -14,6 +14,9 @@ Options:
     --cache DIR         keep every fetched page in DIR; a re-run reads from it
     --no-mechanics      skip the partners' own help-centre articles
     --mechanics-limit N partner articles per integration (default 3)
+    --no-ai             pick the partner articles by topic scoring alone
+    --ai-model NAME     the Gemini model that chooses them (default: the app's,
+                        gemini-flash-latest; needs GEMINI_API_KEY)
     --only a,b          only these integrations (esps.name), for trying things
 
 What it proposes, per integration (ALL_INTEGRATIONS_UPDATE.md §4.3):
@@ -27,7 +30,9 @@ What it proposes, per integration (ALL_INTEGRATIONS_UPDATE.md §4.3):
     subscriptions (source `mechanics`, label pre-filled `shared`), found by
     backend/app_mechanics.py from the topics in backend/mechanics_topics.py.
     Added 2026-10-14 at Leo's request: a Yotpo guide explains how to connect
-    the integration, not how the partner's side behaves.
+    the integration, not how the partner's side behaves. A model reads the
+    Yotpo guide, suggests searches, and chooses from the numbered candidates
+    the code found (backend/mechanics_ai.py); it cannot add a link of its own.
 Every proposal waits for an admin. Nothing is crawled or labelled here.
 
 --apply writes the saved plan, never a fresh fetch, so what is written is what
@@ -65,6 +70,7 @@ load_dotenv(os.path.join(BASE, '.env'))
 import app_mechanics  # noqa: E402
 import catalog_import as ci  # noqa: E402
 import doc_header  # noqa: E402
+import mechanics_ai  # noqa: E402
 
 SITEMAP_URL = 'https://support.yotpo.com/sitemap-en.xml'
 OVERRIDES_PATH = os.path.join(BASE, 'scripts', 'help_centres.json')
@@ -214,7 +220,7 @@ def _overrides() -> Dict[str, Optional[str]]:
 def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
                mechanics_limit: int = app_mechanics.DEFAULT_LIMIT,
                only: Optional[List[str]] = None, overrides: Optional[Dict] = None,
-               log=print) -> Dict:
+               log=print, chooser=None) -> Dict:
     """Everything the import would do, as plain data. Reads the network
     through `fetch`; never touches the database (store_view is what was read)."""
     cards = ci.parse_catalog(html)
@@ -223,7 +229,7 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
             'create': [], 'update': [], 'proposals': [], 'clashes': [], 'removed_cards': [],
             'gone': [], 'ambiguous_renames': [], 'nothing': [], 'no_help_centre': [],
             'already_documents': [], 'already_proposed': [], 'duplicates': [], 'unreachable': [],
-            'mechanics': {}, 'integrations': 0, 'only': only}
+            'mechanics': {}, 'integrations': 0, 'only': only, 'ai': None}
     if problem:
         return plan
     existing = store_view['integrations']
@@ -327,7 +333,7 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
                 links.partner_docs + links.partner_other, outbound, fetch,
                 categories=integ.categories, platform_type=integ.platform_type,
                 context='\n'.join(context), override=overrides.get(integ.name),
-                limit=mechanics_limit)
+                limit=mechanics_limit, chooser=chooser)
             plan['mechanics'][integ.name] = {
                 'help_centre': found.help_centre, 'found_via': found.found_via,
                 'method': found.method, 'topics': found.topics, 'problem': found.problem,
@@ -336,6 +342,8 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
                 plan['no_help_centre'].append({'esp': integ.name, 'why': found.problem})
             for c in found.candidates:
                 propose(integ.name, c.url, 'mechanics', 'shared', f'"{c.title}": {c.reason}')
+    if chooser is not None:
+        plan['ai'] = {'model': chooser.model_name, **chooser.usage}
     return plan
 
 
@@ -521,6 +529,11 @@ def render_report(plan: Dict) -> str:
             w(f"| `{p['esp']}` | {p['url']} | {p['suggested_label'] or '—'} | {_cell(p['note'])} |")
         w('')
 
+    if plan.get('ai'):
+        ai = plan['ai']
+        w(f"Mechanics articles were chosen by `{ai['model']}` from candidates the import found "
+          f"({ai['calls']} calls, {ai['input_tokens']:,} input and {ai['output_tokens']:,} output "
+          f"tokens, {ai['failures']} failed and fell back to topic scoring).\n")
     w('## How each integration\'s mechanics articles were found\n')
     w('Topics: what was searched for, best first (ranked by what the Yotpo guide and partner pages '
       'talk about; the lists are in `backend/mechanics_topics.py`).\n')
@@ -586,6 +599,8 @@ def main(argv=None):
     ap.add_argument('--cache')
     ap.add_argument('--no-mechanics', action='store_true')
     ap.add_argument('--mechanics-limit', type=int, default=app_mechanics.DEFAULT_LIMIT)
+    ap.add_argument('--no-ai', action='store_true')
+    ap.add_argument('--ai-model', default=mechanics_ai.DEFAULT_MODEL)
     ap.add_argument('--only')
     args = ap.parse_args(argv)
 
@@ -618,9 +633,16 @@ def main(argv=None):
             return 2
         html = page.text
     only = [s.strip() for s in args.only.split(',')] if args.only else None
+    chooser = None
+    if not args.no_ai and not args.no_mechanics:
+        try:
+            chooser = mechanics_ai.GeminiChooser(args.ai_model)
+        except RuntimeError as e:
+            print(f'{e}: set it, or run with --no-ai.')
+            return 2
     plan = build_plan(html, view, fetch, mechanics=not args.no_mechanics,
                       mechanics_limit=args.mechanics_limit, only=only, overrides=_overrides(),
-                      log=lambda m: print(m, file=sys.stderr))
+                      log=lambda m: print(m, file=sys.stderr), chooser=chooser)
     with open(args.plan, 'w') as f:
         json.dump(plan, f, indent=1)
     report = render_report(plan)

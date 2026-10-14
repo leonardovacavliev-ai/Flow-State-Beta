@@ -122,8 +122,10 @@ sides failed.
   refuse when the branches differ there, so work in worktrees.
 - **Mechanics picks are suggestions, not truth.** Leo wants articles on how the feature the
   integration plugs into works (his email-platform picks are the model), not general
-  introductions. The topic lists in `backend/mechanics_topics.py` decide what is searched; change
-  them there, not in the scoring. C1.4's inbox must show each pick's note (title and topic).
+  introductions. A model (Gemini Flash, `backend/mechanics_ai.py`) suggests the searches and
+  chooses from candidates the code found; the topic lists in `backend/mechanics_topics.py` seed
+  the search and are the fallback. A dry run with the model needs `GEMINI_API_KEY`; tests use a
+  fake model. C1.4's inbox must show each pick's note (title and the model's reason).
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
 - **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the

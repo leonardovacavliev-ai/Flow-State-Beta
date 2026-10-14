@@ -632,6 +632,9 @@ human reads before anything is written.
     listed titles, `llms.txt`, sitemap).
   - Proposals with source `mechanics`, label pre-filled `shared`, note = title and topic.
   - `scripts/help_centres.json`: admin overrides (`name: url`, or `null` to skip one).
+  - `backend/mechanics_ai.py` (Leo, 2026-10-14): a model (Gemini Flash, the app's default)
+    suggests searches from the Yotpo guide and chooses from the numbered shortlist; answers are
+    numbers only, checked; on failure the topic scoring picks. `--no-ai`, `--ai-model`.
   - `--no-mechanics` and `--mechanics-limit N` on the script.
 - [x] **`backend/test_catalog_import.py`:**
   - parsing the fixtures;
@@ -659,7 +662,7 @@ report from the live catalog (read-only) attached to the PR.
 **Rollback:** nothing is written in this checkpoint.
 
 **Deviations (2026-10-14)**
-- **Partner mechanics added** (Leo, this session): see the task above. 213 proposals in the dry
+- **Partner mechanics added** (Leo, this session): see the task above. 171 proposals in the dry
   run; an admin approves each one. A first version picked general "Welcome to the app" articles;
   Leo rejected that: the target is the features the integration uses, as in his email-platform picks.
 - **Live dry run** (`docs/integrations/catalog_dry_run.md`), against the live catalog and partner
@@ -669,14 +672,14 @@ report from the live catalog (read-only) attached to the PR.
   renamed 6 (6); gone 1, Yieldify (1); pages with nothing documentary 13 (14); partner pages 135
   (~58–83: this also counts partner pages on detail pages that have a Yotpo guide, and partner pages
   whose address names Yotpo); type conflicts 18 among the integrations to create (~25 in all).
-- **Mechanics quality, read by hand:** most picks are about the feature the integration uses
-  (Klaviyo "Guide to Flow Triggers and Flow Filters", Recharge "Managing subscription discount
-  codes", Omnisend workflow events, Dixa sidebar and macros, Smile ways to redeem points). Weak
-  spots: apps the catalog files under an unexpected category (Searchspring is "eCommerce
-  platform"), very large help centres (Shopify Flow got Shopify's reports articles), and centres
-  in another language (Rule is in Swedish). 37 integrations have no help centre found and 39 have
-  one but no on-topic article; each is listed with the reason, for `scripts/help_centres.json`,
-  a topic edit or a hand pick.
+- **Mechanics quality, read by hand:** with the model choosing (Gemini Flash; 200 calls,
+  ~215k input tokens, 2 fell back to scoring), 171 articles for 67 integrations, nearly all about
+  the feature the integration uses (Klaviyo flow triggers, Mailchimp merge tags, Recharge
+  subscription discount codes, Nosto review ratings in recommendations, Smile ways to earn
+  points). The model turns down weak candidates instead of filling slots, so more integrations get
+  none: those, and the 37 with no help centre found, are listed with the reason, for
+  `scripts/help_centres.json`, a topic edit or a hand pick. The word-matching-only run gave 213
+  articles, many off target.
 - **`--apply` writes a saved plan** (`--plan`), never a fresh fetch, so what Leo reads is what is
   written. A plan made with `--only` is refused.
 - **The Zendesk guide now names "Reviews"** in its header; the plan expected no product line. The
@@ -1391,7 +1394,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
-| Partner mechanics articles are proposed by the import (Leo, 2026-10-14) | a bounded exception to "no automated link-following": up to 3 articles per integration from the partner's own help centre on the features the integration uses (topics in `backend/mechanics_topics.py`), source `mechanics`, label pre-filled `shared`, each approved per URL (C1.2; plan §4.3) |
+| Partner mechanics articles are proposed by the import, chosen by a model from candidates code found (Leo, 2026-10-14) | a bounded exception to "no automated link-following": up to 3 articles per integration from the partner's own help centre on the features the integration uses (topics in `backend/mechanics_topics.py`), source `mechanics`, label pre-filled `shared`, each approved per URL (C1.2; plan §4.3) |
 
 ---
 

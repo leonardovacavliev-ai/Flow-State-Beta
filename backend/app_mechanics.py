@@ -134,6 +134,7 @@ class Mechanics:
     method: Optional[str] = None          # zendesk-search, pages, llms.txt, sitemap; joined by +
     topics: List[str] = field(default_factory=list)   # the topics searched, best first
     candidates: List[Candidate] = field(default_factory=list)
+    shortlisted: int = 0                  # candidates a model chose from
     problem: Optional[str] = None         # why nothing was found, in plain words
 
 
@@ -421,12 +422,13 @@ def _on_host(url: str, public_host: str) -> str:
     return normalize_url(urlunsplit(parts))
 
 
-def zendesk_pool(root: str, fetch: Fetch, topics: List[Topic]) -> List[Tuple[str, str]]:
-    """(url, title) from the Help Center search API, two searches per topic."""
+def zendesk_pool(root: str, fetch: Fetch, topics: List[Topic],
+                 per_topic: int = 2) -> List[Tuple[str, str]]:
+    """(url, title) from the Help Center search API, `per_topic` searches per topic."""
     locale = _zendesk_locale(root) or 'en-us'
     pool = []
     for topic in topics:
-        for query in topic.queries[:2]:
+        for query in topic.queries[:per_topic]:
             page = fetch(f'https://{host_of(root)}/api/v2/help_center/articles/search.json'
                          f'?query={quote(query)}&locale={locale}&per_page=10')
             found = _json(page)
@@ -542,13 +544,43 @@ def pick(pool: List[Tuple[str, str]], ranked: List[Tuple[Topic, int]],
     return out
 
 
+SHORTLIST = 30
+_QUERY_STOP = {'the', 'and', 'for', 'with', 'how', 'to', 'a', 'an', 'of', 'in', 'on', 'your', 'set', 'up'}
+
+
+def query_topic(query: str) -> Topic:
+    """A model's suggested search as a topic: on topic when a title uses its words."""
+    words = tuple(w for w in re.findall(r'[a-z0-9]+', query.lower()) if len(w) > 2 and w not in _QUERY_STOP)
+    return Topic(f'"{query}"', (query,), words or (query.lower(),))
+
+
+def shortlist(pool: List[Tuple[str, str]], topics: List[Topic], size: int = SHORTLIST) -> List[Candidate]:
+    """The pool's on-topic articles, best first, one per URL and title: what
+    a model chooses from."""
+    best = {}
+    for i, (url, title) in enumerate(pool):
+        key_title = re.sub(r'\s+', ' ', title or '').strip().lower()
+        if key_title in _GENERIC_TITLES:
+            continue
+        scored = max(((score_article(title, url, t), t.name) for t in topics), default=(0, ''))
+        if scored[0] >= 3 and url not in best and key_title not in {b[2] for b in best.values()}:
+            best[url] = (scored[0], i, key_title, Candidate(url, title, scored[0], '', scored[1]))
+    ordered = sorted(best.values(), key=lambda b: (-b[0], b[1]))
+    return [b[3] for b in ordered[:size]]
+
+
 def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: Iterable[str],
              fetch: Fetch, categories: Iterable[str] = (), platform_type: Optional[str] = None,
              context: str = '', override: Optional[str] = None,
-             limit: int = DEFAULT_LIMIT) -> Mechanics:
+             limit: int = DEFAULT_LIMIT, chooser=None) -> Mechanics:
     """Up to `limit` articles on how the partner's side of the integration
-    works, from its own help centre."""
+    works, from its own help centre.
+
+    chooser (backend/mechanics_ai.py, optional): a model that suggests extra
+    searches from the Yotpo guide, then picks from the shortlist. Without one,
+    or if it fails, the topic scoring picks."""
     catalog_links, guide_links = list(catalog_links), list(guide_links)
+    categories = list(categories)
     tokens = name_tokens(*app_names)
     ranked = rank_topics(topics_for(categories, platform_type), context)
     result = Mechanics(topics=[t.name for t, _ in ranked[:TOPICS_TRIED]])
@@ -570,23 +602,53 @@ def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: It
             root = help_centre_root(home.url)
             result.help_centre = root
 
+    app = app_names[0] if app_names else ''
+    suggested = []
+    if chooser is not None:
+        # The model's searches lead: they come from this integration's own guide
+        suggested = [query_topic(q) for q in chooser.suggest_queries(app, categories, context)]
+        result.topics = [t.name for t in suggested] + result.topics
+    searched = suggested + top
+
     pool, methods = [], []
     sources = []
     if _zendesk_locale(root) is not None:
-        sources.append(('zendesk-search', lambda: zendesk_pool(root, fetch, top)))
+        # With a model, one search per topic is enough: it judges the results
+        sources.append(('zendesk-search', lambda: zendesk_pool(root, fetch, searched,
+                                                               1 if chooser else 2)))
     if home and home.status == 200:
-        sources.append(('pages', lambda: pages_pool(root, home, fetch, top)))
+        sources.append(('pages', lambda: pages_pool(root, home, fetch, searched)))
     sources += [('llms.txt', lambda: llms_pool(root, fetch)), ('sitemap', lambda: sitemap_pool(root, fetch))]
     for name, source in sources:
-        if len(pick(pool, ranked, limit)) >= limit:
+        # A model judges a wide pool well, so it gets every source; the
+        # scoring stops as soon as it has enough
+        if chooser is None and len(pick(pool, ranked, limit)) >= limit:
             break
         found = source()
         if found:
             pool += found
             methods.append(name)
+
+    if chooser is not None:
+        cands = shortlist(pool, searched)
+        result.shortlisted = len(cands)
+        choice = chooser.choose(app, categories, context, [(c.url, c.title) for c in cands], limit) \
+            if cands else []
+        if choice is not None:
+            for i, why in choice:
+                c = cands[i]
+                result.candidates.append(Candidate(c.url, c.title, c.score, why or c.topic, c.topic))
+            methods.append('ai')
+        else:
+            result.candidates = pick(pool, ranked + [(t, 1) for t in suggested], limit)
+            methods.append('rules (the model failed)')
+    else:
+        result.candidates = pick(pool, ranked, limit)
     result.method = ' + '.join(methods) or None
-    result.candidates = pick(pool, ranked, limit)
-    if not result.candidates:
+    if not result.candidates and result.shortlisted:
+        result.problem = (f'help centre {root} found; the model judged none of its '
+                          f'{result.shortlisted} candidates good enough; pick some by hand')
+    elif not result.candidates:
         result.problem = (f'help centre {root} found, but no article on '
                           f'{", ".join(result.topics[:3])}; pick some by hand')
     return result
