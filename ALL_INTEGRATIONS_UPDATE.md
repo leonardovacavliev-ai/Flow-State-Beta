@@ -170,8 +170,8 @@ three others 1 each.
 | catalog-linked Yotpo guides | ~100 | 400 |
 | partner-hosted integration articles | ~80 | 250 |
 | mechanics documentation for the 13 new messaging platforms | ~40 | 200–600 |
-| partner mechanics articles (added 2026-10-14; dry run: 171 proposals) | ~170 | ~450–550 |
-| **total** | **~470** | **≈ 1,650–2,550** |
+| partner mechanics articles (added 2026-10-14; dry run: 268 proposals) | ~270 | ~700–800 |
+| **total** | **~570** | **≈ 1,900–2,800** |
 
 ### Two consequences
 
@@ -447,44 +447,43 @@ admin when the catalog changes:
      match is proposed with a note. Six of the seven dead links resolve this way.
    - Partner-hosted documentation-like links become proposals; homepages and shortlinks are skipped.
 3. **Pre-fill suggested labels from the Yotpo header only** (below).
-4. **Propose a few of the partner's own articles on the features the integration uses** (added
-   2026-10-14, Leo's request; next heading).
+4. **Find the partner's own articles on the functions the integration touches**, by model, with a
+   person approving each integration's final list (added 2026-10-14, Leo; next heading).
 
 **Partner mechanics** (added 2026-10-14, Leo). A Yotpo guide explains how to connect the
-integration; it does not explain how the partner's side behaves. So the import also proposes up to 3
-of the partner's own articles on **the features the integration plugs into**, the way Leo chose the
-email platforms' articles: Klaviyo's "Guide to Flow Triggers and Flow Filters", Recharge's
-"Managing subscription discount codes". General "Welcome to the app" articles are not the target.
-- **Topics** (`backend/mechanics_topics.py`): per catalog category, the features Yotpo touches.
-  Email/SMS: flows and triggers, delays and re-entry, custom properties and events, segments,
-  personalisation. Subscriptions: discount codes on subscriptions, renewals, customer portal. Help
-  desk: customer sidebar, macros, rules, AI agent knowledge. And so on for every category. They are
-  ranked for each integration by what its Yotpo guide and partner pages talk about (the Recharge
-  guide is about coupon codes on subscriptions, so that topic leads). The lists are product
-  knowledge; Leo edits them.
-- **The help centre** (`backend/app_mechanics.py`) comes from, in order: an admin override
-  (`scripts/help_centres.json`); a documentation link on the catalog detail page; a link inside
-  the Yotpo guide; the help link on the partner's homepage; probing
-  `help.`/`support.`/`docs.`/`knowledge.` of the partner's domain. A host counts only when it
-  carries the app's name. Names are never guessed into domains (Rule, Target, Drip).
-- **The articles**: Zendesk centres through their search API; other centres from the titles they
-  list (home page, the sections named like a topic, `llms.txt`) and their sitemap. Code keeps the
-  on-topic ones (title uses a topic's words; announcements, legal pages and Yotpo's own articles
-  skipped), up to 30.
-- **A model chooses** (Leo, 2026-10-14; `backend/mechanics_ai.py`). Word matching misjudges
-  (Shopify Flow got Shopify's reports articles). So the app's default model (Gemini Flash) reads
-  the integration's Yotpo guide, suggests up to 3 searches for the partner's help centre, and then
-  picks up to 3 of the numbered candidates, with one sentence each on why. It answers with numbers
-  only, so it cannot add a link; a broken answer falls back to the topic scoring. About 2 calls
-  per integration, well under a dollar a run. The dry run saves its choices in the plan, so
-  `--apply` writes exactly what the report showed. `--no-ai` turns it off.
-- **Bounded**: one help centre per integration, about ten requests at one per second per host.
-  This is not a crawler.
-- **Proposals** with source `mechanics`, label pre-filled `shared` (they explain the partner's
-  features, not a Yotpo product), note = the article's title and the topic it answers. An admin
-  confirms each URL and its label.
-- Where nothing is found, the report says why; an admin adds the help centre to
-  `scripts/help_centres.json` (or `null` to skip one) and re-runs the dry run.
+integration; it does not explain how the partner's side behaves. So the import also finds the
+partner's own articles on **every partner function the integration touches**, the way Leo chose
+the email platforms' articles (Klaviyo's flow triggers and profile properties, Recharge's
+"Managing subscription discount codes"). Leo's design, per integration
+(`backend/app_mechanics.py`, `backend/mechanics_ai.py`, the app's default model, Gemini Flash):
+1. **Read what Yotpo and the partner wrote about the integration**: the Yotpo guides, the partner
+   pages about Yotpo the catalog links, and the partner help centre's own articles that mention
+   Yotpo.
+2. **The model lists the functions**: every partner function Yotpo sends data into, takes data
+   from, or that a merchant uses to act on it, each with what Yotpo does there and searches for it.
+3. **Code searches the partner's help centre** for each function: Zendesk's search API, or, for
+   centres without one, the model picks from the centre's list of titles (pages, `llms.txt`,
+   sitemap) the ones worth reading.
+4. **The model confirms by reading**: code fetches every candidate, and the model accepts only
+   articles whose text explains one of the functions (at most 2 per function). It answers with
+   candidate numbers, so it cannot add a link; a broken answer adds nothing.
+5. **A person approves the final list** per integration in the admin (C1.4): source `mechanics`,
+   label pre-filled `shared`, note = function and the model's reason. One click for the list, or
+   per article.
+
+**Blocked help centres go to a person.** A bot check, 401/403/429/503, or articles that show no
+text without a browser: the integration is listed as "needs a person", and the model is not asked
+to guess. Zendesk centres are the exception: their search API returns article text even when their
+pages show a bot check (Cordial). The crawler also now reads an article's JSON-LD text when its
+visible text is an empty shell (Dixa), so those pages can be crawled at all.
+
+**Finding the help centre**: an admin override (`scripts/help_centres.json`); a documentation link
+on the catalog detail page; a link inside the Yotpo guide; the help link on the partner's
+homepage; probing `help.`/`support.`/`docs.`/`knowledge.` of the partner's domain. A host counts
+only when it carries the app's name; names are never guessed into domains (Rule, Target, Drip).
+
+**Bounded**: one help centre per integration, at most 20 articles read, one request per second per
+host; three model calls per integration. Not a crawler.
 
 **Daily sitemap job** (in the worker's scheduler):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,

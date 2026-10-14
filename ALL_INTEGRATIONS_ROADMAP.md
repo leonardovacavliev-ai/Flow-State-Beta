@@ -622,20 +622,21 @@ human reads before anything is written.
       (rejections are remembered).
     - Store the snapshot.
     - Never delete anything.
-- [x] **Partner mechanics** (added 2026-10-14 at Leo's request; plan §4.3, decision log):
-  - `backend/mechanics_topics.py`: the features Yotpo touches, per catalog category (flows and
-    triggers, discount codes on subscriptions, customer sidebar…), ranked per integration by its
-    Yotpo guide and partner pages. Product knowledge: Leo edits it.
+- [x] **Partner mechanics** (added 2026-10-14, Leo's design; plan §4.3, decision log):
   - `backend/app_mechanics.py`: find the partner's help centre (override file, catalog link, guide
     link, the partner homepage's help link, then `help.`/`support.`/`docs.`/`knowledge.` probes;
-    the host must carry the app's name), then the best article per top topic (Zendesk search,
-    listed titles, `llms.txt`, sitemap).
-  - Proposals with source `mechanics`, label pre-filled `shared`, note = title and topic.
-  - `scripts/help_centres.json`: admin overrides (`name: url`, or `null` to skip one).
-  - `backend/mechanics_ai.py` (Leo, 2026-10-14): a model (Gemini Flash, the app's default)
-    suggests searches from the Yotpo guide and chooses from the numbered shortlist; answers are
-    numbers only, checked; on failure the topic scoring picks. `--no-ai`, `--ai-model`.
-  - `--no-mechanics` and `--mechanics-limit N` on the script.
+    the host must carry the app's name); read the partner's own Yotpo articles; search for each
+    function (Zendesk API, or the model's pick from the centre's titles); read every candidate.
+  - `backend/mechanics_ai.py`: the model lists the partner functions from the Yotpo guides and
+    partner Yotpo pages, shortlists titles where there is no search API, and accepts only articles
+    whose text explains a function. Numbers only, checked; a failure adds nothing.
+  - Blocked centres (bot check, 401/403/429/503, no text without a browser) are listed for a
+    person; Zendesk centres are read through their API.
+  - `crawler._extract_text` falls back to JSON-LD article text when a page's visible text is an
+    empty shell (under 200 characters).
+  - Proposals with source `mechanics`, label pre-filled `shared`, note = function and reason; a
+    person approves each integration's final list (C1.4).
+  - `scripts/help_centres.json`: admin overrides. `--no-mechanics`, `--ai-model` on the script.
 - [x] **`backend/test_catalog_import.py`:**
   - parsing the fixtures;
   - grouping;
@@ -662,9 +663,15 @@ report from the live catalog (read-only) attached to the PR.
 **Rollback:** nothing is written in this checkpoint.
 
 **Deviations (2026-10-14)**
-- **Partner mechanics added** (Leo, this session): see the task above. 171 proposals in the dry
-  run; an admin approves each one. A first version picked general "Welcome to the app" articles;
-  Leo rejected that: the target is the features the integration uses, as in his email-platform picks.
+- **Partner mechanics added** (Leo, this session), in three versions: general "Welcome to the
+  app" articles (rejected by Leo); topic lists with word matching (off target where words
+  overlap); then Leo's design above, where the model reads the integration's own documents, lists
+  the functions and confirms each article by reading it, blocked centres go to a person, and a
+  person approves each final list. Final dry run: the model listed functions for
+  111 integrations and accepted 272 articles for 65 of them (268 proposals after duplicates);
+  39 help centres could not be read automatically (bot check, login, moved, or built in the
+  browser) and go to a person; for 13 the model read the candidates and accepted none; 37 have
+  no help centre found. 256 model calls, ~980k input tokens, no failures after the retry.
 - **Live dry run** (`docs/integrations/catalog_dry_run.md`), against the live catalog and partner
   sites, with the knowledge-base rows read from a read-only copy of production
   (`eval/seed_local_db.py`), never production itself. Against the plan's figures:
@@ -672,14 +679,6 @@ report from the live catalog (read-only) attached to the PR.
   renamed 6 (6); gone 1, Yieldify (1); pages with nothing documentary 13 (14); partner pages 135
   (~58–83: this also counts partner pages on detail pages that have a Yotpo guide, and partner pages
   whose address names Yotpo); type conflicts 18 among the integrations to create (~25 in all).
-- **Mechanics quality, read by hand:** with the model choosing (Gemini Flash; 200 calls,
-  ~215k input tokens, 2 fell back to scoring), 171 articles for 67 integrations, nearly all about
-  the feature the integration uses (Klaviyo flow triggers, Mailchimp merge tags, Recharge
-  subscription discount codes, Nosto review ratings in recommendations, Smile ways to earn
-  points). The model turns down weak candidates instead of filling slots, so more integrations get
-  none: those, and the 37 with no help centre found, are listed with the reason, for
-  `scripts/help_centres.json`, a topic edit or a hand pick. The word-matching-only run gave 213
-  articles, many off target.
 - **`--apply` writes a saved plan** (`--plan`), never a fresh fetch, so what Leo reads is what is
   written. A plan made with `--only` is refused.
 - **The Zendesk guide now names "Reviews"** in its header; the plan expected no product line. The
@@ -801,8 +800,11 @@ Management, whose N+1 fetch-and-render cannot scale.
   - [ ] `GET /api/admin/integrations/<name>/documents?page=`: paginated
     `crawl_queue.list_document_states`.
   - [ ] `GET /api/admin/proposals?esp=&source=&state=open&page=`. Sources are `catalog`,
-    `sitemap`, `manual` and `mechanics` (the partner's own articles on the features the integration
-    uses, C1.2); the inbox shows `mechanics` proposals with their note (title and topic).
+    `sitemap`, `manual` and `mechanics` (the partner's own articles on the functions the
+    integration touches, C1.2). `mechanics` proposals are shown per integration as one list, with
+    the functions the model found and each article's function and reason; an admin approves the
+    final list in one click or per article. Integrations whose help centre blocked automated
+    reading are listed for an admin to pick articles by hand.
   - [ ] `POST /api/admin/proposals/approve {items: [{id, product}]}`:
     - a product is required per item;
     - `add_document(…, product=…)` then `enqueue_crawl_job`;
@@ -1394,7 +1396,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
-| Partner mechanics articles are proposed by the import, chosen by a model from candidates code found (Leo, 2026-10-14) | a bounded exception to "no automated link-following": up to 3 articles per integration from the partner's own help centre on the features the integration uses (topics in `backend/mechanics_topics.py`), source `mechanics`, label pre-filled `shared`, each approved per URL (C1.2; plan §4.3) |
+| Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
 ---
 

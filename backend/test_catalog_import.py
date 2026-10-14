@@ -23,7 +23,7 @@ sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'scripts'))
 
 import app_mechanics as am  # noqa: E402
-import mechanics_topics as mt  # noqa: E402
+import mechanics_ai as mai  # noqa: E402
 import catalog_import as ci  # noqa: E402
 
 CATALOG = os.path.join(HERE, 'fixtures', 'catalog')
@@ -190,31 +190,141 @@ def test_help_centre_from_the_homepage():
 
 # ---------- partner mechanics ----------
 
-def test_topics_follow_the_category_and_the_guide():
-    """Recharge's guide is about coupon codes on subscriptions: that topic first."""
-    topics = mt.topics_for(['subscription-recurring-billing'])
-    ranked = mt.rank_topics(topics, 'Yotpo Loyalty generates coupon codes that can be applied to '
-                                    'ongoing Recharge subscriptions.')
-    assert ranked[0][0].name == 'discount codes on subscriptions' and ranked[0][1] > 0
-    # An email platform with nothing in its guide keeps the default order: flows first
-    assert mt.rank_topics(mt.topics_for(['email-marketing']), '')[0][0].name == 'flows and their triggers'
-    # No known category: the platform type's topics
-    assert mt.topics_for([], 'service')[0].name == 'customer profile in the sidebar'
-    assert mt.topics_for(['email-marketing', 'sms-marketing']) == list(mt.MESSAGING)
+CASES = None
 
 
-def test_score_article():
-    flows, discounts = mt.MESSAGING[0], mt.SUBSCRIPTIONS[0]
-    assert am.score_article('Guide to Flow Triggers and Flow Filters', '', flows) >= 5
-    assert am.score_article('Managing subscription discount codes', '', discounts) >= 4
-    # Not about the topic, or not an explanation of it
-    assert am.score_article('Welcome to Recharge', '', discounts) == 0
-    assert am.score_article('Code freeze for BFCM', '', discounts) <= 0
-    assert am.score_article('Discount code field is not available at checkout', '', discounts) < 3
-    assert am.score_article('Yotpo discount codes', '', discounts) < 0
-    assert am.score_article('Announcing new flow triggers', '', flows) < 0
-    # The address counts against: a developer page about webhooks
-    assert am.score_article('Flow triggers', 'https://x.com/developer/flows', flows) < 3
+def _cases():
+    global CASES
+    if CASES is None:
+        CASES = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))
+    return CASES
+
+
+class FakeModel:
+    """Stands in for the language model: the functions from cases.json, a
+    title shortlist by word match, and acceptance by title words. Records
+    what it was shown."""
+
+    def __init__(self, fail_at=None):
+        self.fail_at, self.shown = fail_at, {}
+
+    def _case(self, app):
+        return next(c for c in _cases().values() if c['names'][0] == app)
+
+    def extract_functions(self, app, categories, sources):
+        self.shown['sources'] = sources
+        if self.fail_at == 'functions':
+            return None
+        return [mai.Function(**f) for f in self._case(app)['functions']]
+
+    def shortlist(self, app, functions, titles):
+        words = [w for f in functions for q in f.searches for w in q.lower().split()]
+        return [i for i, t in enumerate(titles) if sum(w in t.lower() for w in words) >= 2][:20]
+
+    def verify(self, app, functions, candidates):
+        self.shown['candidates'] = candidates
+        if self.fail_at == 'verify':
+            return None
+        keys = self._case(app)['accept_if']
+        return [(i, functions[-1].name if 'tags' in t.lower() else functions[0].name, 'fits')
+                for i, (u, t, x) in enumerate(candidates) if any(k in t.lower() for k in keys)]
+
+
+def _discover(name, model, fetch=None):
+    c = _cases()[name]
+    fetch = fetch or _mechanics_fetch()[0]
+    return am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch, model,
+                       sources=[tuple(x) for x in c['sources']], categories=c['categories'])
+
+
+def test_model_answers_are_checked():
+    """The model names functions and candidate numbers; anything else is dropped."""
+    fs = mai.parse_functions('{"functions": [{"name": "Flows", "yotpo_role": "events trigger flows", '
+                             '"searches": ["flow triggers", "Yotpo integration", "flow triggers"]}, '
+                             '{"name": "flows"}, {"name": ""}, "x"]}')
+    assert [(f.name, f.searches) for f in fs] == [('Flows', ['flow triggers'])]
+    assert mai.parse_functions('no json') is None
+    assert mai.parse_functions('{"functions": [{"name": "Segments"}]}')[0].searches == ['Segments']
+    funcs = [mai.Function('Flows', ''), mai.Function('Segments', '')]
+    got = mai.parse_verified('{"accepted": [{"n": 2, "function": "flows", "why": "w"}, '
+                             '{"n": 9, "function": "Flows"}, {"n": 3, "function": "Unknown"}, '
+                             '{"n": 2, "function": "Segments"}, {"n": "1", "function": "Segments"}]}', funcs, 3)
+    assert got == [(1, 'Flows', 'w'), (0, 'Segments', '')]
+    assert mai.parse_verified('{"accepted": []}', funcs, 3) == []
+    assert mai.parse_verified('sure', funcs, 3) is None
+    many = ', '.join(f'{{"n": {n}, "function": "Flows"}}' for n in (1, 2, 3))
+    assert len(mai.parse_verified('{"accepted": [' + many + ']}', funcs, 3)) == mai.PER_FUNCTION
+    assert mai.parse_shortlist('{"read": [3, 1, 3, 99, "2", true]}', 5) == [2, 0, 1]
+
+
+def test_prompts_carry_what_the_model_must_read():
+    p = mai.functions_prompt('Recharge', ['subscription-recurring-billing'],
+                             [('Yotpo guide', 'coupon codes on subscriptions')])
+    assert 'coupon codes on subscriptions' in p and 'Answer with JSON only' in p
+    p = mai.verify_prompt('Recharge', [mai.Function('Discount codes', 'Yotpo creates codes')],
+                          [('https://a/1', 'Managing subscription discount codes', 'Text of the article')])
+    assert '[1] Managing subscription discount codes (https://a/1)\nText of the article' in p
+    assert '- Discount codes: Yotpo creates codes' in p
+
+
+def test_zendesk_centre_end_to_end():
+    """Recharge: functions from the guide, Zendesk search, article text from
+    the search API, the model accepts Leo's example."""
+    model = FakeModel()
+    m = _discover('recharge', model)
+    expected = json.loads(_read(os.path.join(MECHANICS, 'manifest.json')))['expected']['recharge']
+    assert (m.help_centre, m.method) == (expected['help_centre'], expected['method'])
+    assert [c.url for c in m.candidates] == expected['accepted']
+    assert 'https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes' \
+        in [c.url for c in m.candidates]
+    assert m.candidates[0].function == 'Subscription discount codes' and m.candidates[0].reason == 'fits'
+    # Step 1 also read the partner's own Yotpo articles from its help centre
+    assert any('help centre' in label for label, _ in model.shown['sources'])
+    # The model only saw real articles from that help centre, with their text
+    assert all(u.startswith('https://support.getrecharge.com/hc/') and len(x) >= 200
+               for u, _, x in model.shown['candidates'])
+
+
+def test_title_list_centre_and_structured_text():
+    """Dixa has no search API and builds its pages in the browser: the model
+    shortlists from the sitemap's titles, and the text comes from the pages'
+    structured data."""
+    model = FakeModel()
+    m = _discover('dixa', model)
+    assert m.method == 'sitemap' and not m.blocked
+    assert [c.title for c in m.candidates] == ['Configurable conversation sidebar']
+    assert all(len(x) >= 200 for _, _, x in model.shown['candidates'])
+
+
+def test_blocked_help_centre_goes_to_a_person():
+    """A bot check instead of the help centre: no model call, a person picks."""
+    page = am.Page(403, 'https://help.acme.io/en', 'Just a moment...')
+    fetch = {'https://help.acme.io/en': page}.get
+    model = FakeModel()
+    m = am.discover(['Acme'], ['https://help.acme.io/en/articles/1-acme-yotpo'], [], fetch, model)
+    assert m.blocked and 'a person picks' in m.problem and not m.candidates
+    assert 'sources' not in model.shown
+    assert am.is_blocked(am.Page(200, 'u', '<title>Just a moment...</title>'))
+    assert not am.is_blocked(am.Page(200, 'u', '<h1>Flows</h1>' + 'x' * 70000 + 'captcha'))
+
+
+def test_a_failed_model_adds_nothing():
+    for stage in ('functions', 'verify'):
+        m = _discover('recharge', FakeModel(fail_at=stage))
+        assert not m.candidates and 'nothing added' in m.problem
+
+
+def test_crawler_reads_structured_article_text():
+    """A page whose visible text is a shell: the crawler stores the JSON-LD article."""
+    from crawler import _extract_text
+
+    class R:
+        content = ('<html><body><h1>Sidebar</h1><script type="application/ld+json">'
+                   '{"mainEntity": [{"acceptedAnswer": {"text": "The sidebar shows cards from your '
+                   'integrations. Agents can hide, reorder and pin cards for every conversation."}}]}'
+                   '</script></body></html>').encode()
+    text, error = _extract_text('https://x', R())
+    assert error is None and 'reorder and pin cards' in text
 
 
 def test_help_centre_root():
@@ -243,99 +353,6 @@ def test_no_link_no_guess():
     """Names are never turned into domains: 'Target' would find target.com."""
     root, via, problem = am.find_help_centre(am.name_tokens('Target'), [], [], fetch=lambda u: None)
     assert root is None and 'help_centres.json' in problem
-
-
-def test_mechanics_on_saved_help_centres():
-    fetch, expected = _mechanics_fetch()
-    cases = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))
-    found = {}
-    for name, c in cases.items():
-        m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch,
-                        categories=c['categories'], platform_type=c['platform_type'],
-                        context=c['context'], limit=3)
-        assert m.help_centre == expected[name]['help_centre'], name
-        assert m.method == expected[name]['method'], name
-        assert [x.url for x in m.candidates] == expected[name]['picked'], name
-        found[name] = m
-    # What they are, read by a human on 2026-10-14
-    recharge = [c.url for c in found['recharge'].candidates]
-    assert 'https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes' \
-        in recharge  # Leo's example
-    assert found['recharge'].candidates[0].topic == 'discount codes on subscriptions'
-    assert found['klaviyo'].candidates[0].title == 'Guide to Flow Triggers and Flow Filters'
-    assert found['dixa'].method == 'sitemap'  # its pages are built in the browser
-    assert {c.topic for c in found['dixa'].candidates} == {
-        'customer profile in the sidebar', 'macros and replies', 'rules and automations'}
-    assert 'llms.txt' in found['smile_io'].method
-    for m in found.values():
-        assert all('yotpo' not in c.url.lower() for c in m.candidates)
-        assert all(c.topic and c.reason for c in m.candidates)
-
-
-# ---------- the model's part ----------
-
-import mechanics_ai as mai  # noqa: E402
-
-
-def test_model_answers_are_checked():
-    """The model answers with candidate numbers; anything else is dropped."""
-    assert mai.parse_choice('{"picks": [{"n": 2, "why": "flows"}, {"n": 9, "why": "x"}, '
-                            '{"n": 2, "why": "again"}, {"n": "1", "why": "ok"}]}', 3, 3) == \
-        [(1, 'flows'), (0, 'ok')]
-    assert mai.parse_choice('Sure! ```json {"picks": [{"n": 1}]} ```', 1, 3) == [(0, '')]
-    assert mai.parse_choice('{"picks": []}', 5, 3) == []           # "none are good enough"
-    assert mai.parse_choice('I think number 2', 5, 3) is None       # unusable: fall back
-    assert mai.parse_choice('{"picks": [{"n": true}]}', 5, 3) == []
-    assert len(mai.parse_choice('{"picks": [{"n": 1}, {"n": 2}, {"n": 3}]}', 5, 2)) == 2
-    assert mai.parse_queries('{"queries": ["flow triggers", "Yotpo integration", "", "Flow triggers"]}') \
-        == ['flow triggers']
-
-
-def test_prompts_carry_the_guide_and_numbered_candidates():
-    p = mai.choose_prompt('Recharge', ['subscription-recurring-billing'], 'coupon codes on subscriptions',
-                          [('https://a/1', 'Managing subscription discount codes'), ('https://a/2', 'Portal')], 3)
-    assert '[1] Managing subscription discount codes (https://a/1)' in p and '[2] Portal' in p
-    assert 'coupon codes on subscriptions' in p and 'Answer with JSON only' in p
-    assert 'Recharge' in mai.queries_prompt('Recharge', [], 'x')
-
-
-class FakeChooser:
-    """Suggests one search and picks the candidate whose title has `want`."""
-
-    def __init__(self, query, want, fail=False):
-        self.query, self.want, self.fail, self.seen = query, want, fail, []
-
-    def suggest_queries(self, name, categories, guide):
-        return [self.query]
-
-    def choose(self, name, categories, guide, candidates, limit):
-        self.seen = candidates
-        if self.fail:
-            return None
-        return [(i, 'because') for i, (_, title) in enumerate(candidates) if self.want in title.lower()][:limit]
-
-
-def test_the_model_chooses_from_the_shortlist():
-    fetch, _ = _mechanics_fetch()
-    c = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))['recharge']
-    chooser = FakeChooser('subscription discount codes', 'managing subscription discount')
-    m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch, categories=c['categories'],
-                    platform_type=c['platform_type'], context=c['context'], chooser=chooser)
-    assert m.method.endswith('+ ai') and m.topics[0] == '"subscription discount codes"'
-    assert [x.title for x in m.candidates] == ['Managing subscription discount codes']
-    assert m.candidates[0].reason == 'because'
-    assert chooser.seen and len(chooser.seen) <= am.SHORTLIST
-    # Every candidate shown to the model is a real article from the help centre
-    assert all(url.startswith('https://support.getrecharge.com/hc/') for url, _ in chooser.seen)
-
-
-def test_a_failed_model_falls_back_to_scoring():
-    fetch, expected = _mechanics_fetch()
-    c = json.loads(_read(os.path.join(MECHANICS, 'cases.json')))['klaviyo']
-    m = am.discover(c['names'], c['catalog_links'], c['guide_links'], fetch, categories=c['categories'],
-                    platform_type=c['platform_type'], context=c['context'],
-                    chooser=FakeChooser('flow triggers', '', fail=True))
-    assert 'rules (the model failed)' in m.method and m.candidates
 
 
 # ---------- the plan and --apply ----------
@@ -372,6 +389,15 @@ def _boot_db():
     return db
 
 
+class PlanModel(FakeModel):
+    """FakeModel for the integrations in cases.json; none for the others."""
+    model_name, usage = 'fake', {'calls': 0, 'input_tokens': 0, 'output_tokens': 0, 'failures': 0}
+
+    def extract_functions(self, app, categories, sources):
+        known = [c['names'][0] for c in _cases().values()]
+        return super().extract_functions(app, categories, sources) if app in known else []
+
+
 def test_plan_and_apply_is_idempotent():
     import import_catalog as ic
     db = _boot_db()
@@ -381,7 +407,7 @@ def test_plan_and_apply_is_idempotent():
     store.close()
     html = _read(os.path.join(CATALOG, 'catalog.html'))
     plan = ic.build_plan(html, view, _detail_fetch(), only=['recharge', 'dixa', 'shopify', 'bazaarvoice'],
-                         log=lambda m: None)
+                         log=lambda m: None, chooser=PlanModel())
     assert plan['guard'] is None
     created = {r['name']: r for r in plan['create']}
     assert created['recharge']['platform_type'] == 'storefront'

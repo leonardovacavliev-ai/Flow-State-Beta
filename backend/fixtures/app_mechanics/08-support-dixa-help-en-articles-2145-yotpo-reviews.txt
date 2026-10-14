@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Yotpo reviews</title>
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Yotpo reviews","acceptedAnswer":{"@type":"Answer","text":"Leverage your existing Yotpo integration to answer product reviews.\nRequirements\nA paid subscription to Yotpo\nA configured Yotpo native integration in Dixa. Read here how to set up the integration.\nSetup\nTo create a Yotpo channel for product reviews, please navigate to Settings -&gt; Reviews.\n\nSelect Create Yotpo integration, and fill out the fields.\n\nYotpo widget: choose a configured integration from Settings -&gt; Integrations.\nDefault queue for incoming reviews: Choose where incoming reviews are queued.\nFilter threshold: What is the threshold of review starts that you want to create as conversations in Dixa (eg, 3 stars would be all reviews with a star count ranging from 1 to 3, while reviews with 4 to 5 will not be imported into Dixa)\nAnswering a new review\nAll new reviews come in as a new conversation and are placed in the queue that was defined in the integration settings. It is offered out to Agents or Teams that belong to that queue, as in any other conversation, and with the channel type \"Chat\".\n\nThe incoming conversation contains the following information:\nReviewers Name\nStar rating\nProduct name\nReview Title\nReview Body\nReviewer email address\nAll replies are public, and replying to a review in Dixa will publish both the review and reply in the Yotpo review widget.\nEdit an answer\nIf a customer updates their review, you can edit your answer to correct your initial response and match the customer's new reply.\nSelect Edit reply, and the reply field will contain the latest response, and you can make edits to reflect that the customer has made changes.\nFAQ\nQ: I'm receiving multiple response that looks similar; why is that?\nA: Yotpo updates their reviews, and we don't want you to miss any changes. Examples of updates include, but are not limited to, a customer verifying themselves with a link, the score being changed, or a review being published through the Yotpo portal.\nQ: Are replies a private or a public response?\nA: All replies are public. But you can still handle private replies in the Yotpo portal.\nQ: I have replied to a review, but it's not showing up in the Yotpo widget. Where is it?\nA: There's publish pipeline between Yotpo and Shopify, which can lead to delay in up to four hours."}}],"@context":"http://schema.org","@type":"FAQPage","name":"Yotpo reviews","headline":"Yotpo reviews","author":{"@type":"Person","name":"Villars Gimm","image":"https://www.gravatar.com/avatar/494ce5e29c2c5af8b9a56bbbea8f4a0b?e=vgi@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/Villars%2BGimm/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/2145-yotpo-reviews","image":null,"mainEntityOfPage":"https://support.dixa.help/en/articles/2145-yotpo-reviews","dateCreated":"2026-06-23","datePublished":"2026-10-05","dateModified":"2026-10-05"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

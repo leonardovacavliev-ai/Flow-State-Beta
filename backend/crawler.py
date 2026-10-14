@@ -160,10 +160,42 @@ def extract_main_content_detailed(url):
     return result.content, result.error
 
 
+# Below this, a page's visible text is probably a shell its scripts fill in
+SHELL_PAGE_CHARS = 200
+
+
+def _structured_data_text(soup):
+    """Article text a page carries as JSON-LD (schema.org articleBody, or a
+    FAQ answer), for help centres that render the visible article with
+    JavaScript (e.g. Dixa's)."""
+    texts = []
+
+    def walk(node):
+        if isinstance(node, dict):
+            for key in ('articleBody', 'text'):
+                value = node.get(key)
+                if isinstance(value, str) and len(value) > 40:
+                    texts.append(value)
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    for tag in soup.find_all('script', type='application/ld+json'):
+        try:
+            walk(json.loads(tag.string or ''))
+        except ValueError:
+            continue
+    body = '\n\n'.join(dict.fromkeys(texts))
+    return BeautifulSoup(body, 'html.parser').get_text('\n').strip() if body else ''
+
+
 def _extract_text(url, response):
     """Turn a fetched page into structured text: (content, error)."""
     try:
         soup = BeautifulSoup(response.content, 'html.parser')
+        structured = _structured_data_text(soup)
 
         # Remove script, style, nav, footer elements
         for element in soup(['script', 'style', 'nav', 'footer', 'header']):
@@ -234,6 +266,10 @@ def _extract_text(url, response):
                 prev_blank = True
 
         cleaned_text = '\n'.join(cleaned_lines)
+
+        if len(cleaned_text.strip()) < SHELL_PAGE_CHARS and len(structured) > len(cleaned_text.strip()):
+            title = cleaned_text.strip()
+            cleaned_text = f'{title}\n\n{structured}' if title else structured
 
         if not cleaned_text.strip():
             return None, "Page fetched but no text content could be extracted"

@@ -1,17 +1,17 @@
 {
- "recharge": {"names": ["Recharge", "recharge"], "categories": ["subscription-recurring-billing"], "platform_type": "storefront",
+ "recharge": {
+   "names": ["Recharge", "recharge"], "categories": ["subscription-recurring-billing"],
    "catalog_links": [], "guide_links": ["https://support.getrecharge.com/hc/en-us/articles/360008683274-Understanding-the-customer-portal"],
-   "context": "This integration allows Yotpo Loyalty & Referrals to generate coupon codes that can be applied to Recharge products or ongoing Recharge subscriptions."},
- "klaviyo": {"names": ["Klaviyo", "klaviyo"], "categories": ["email-marketing", "sms-marketing"], "platform_type": "messaging",
-   "catalog_links": [], "guide_links": ["https://help.klaviyo.com/hc/en-us/articles/115005237908"],
-   "context": "Use Yotpo loyalty events as flow triggers and profile properties in Klaviyo segments."},
- "omnisend": {"names": ["Omnisend", "omnisend"], "categories": ["email-marketing", "sms-marketing"], "platform_type": "messaging",
-   "catalog_links": ["https://support.omnisend.com/en/articles/2851596-integration-with-yotpo-product-reviews"], "guide_links": [],
-   "context": "Trigger automation workflows from Yotpo events."},
- "dixa": {"names": ["Dixa", "dixa"], "categories": ["help-desk-crm", "onsite-chatbots"], "platform_type": "service",
+   "sources": [["Yotpo guide", "This integration allows Yotpo Loyalty & Referrals to generate coupon codes that can be applied to Recharge products or ongoing Recharge subscriptions."]],
+   "functions": [{"name": "Subscription discount codes", "yotpo_role": "Yotpo Loyalty creates coupon codes that apply to subscriptions.", "searches": ["subscription discount codes"]},
+                 {"name": "Order tags", "yotpo_role": "Yotpo earning rules read Recharge's Shopify order tags.", "searches": ["shopify order tags"]}],
+   "accept_if": ["subscription discount codes", "order and customer tags"]
+ },
+ "dixa": {
+   "names": ["Dixa", "dixa"], "categories": ["help-desk-crm"],
    "catalog_links": ["https://support.dixa.help/en/articles/1879-yotpo-integration"], "guide_links": [],
-   "context": "See the customer's reviews and loyalty points in the Dixa conversation sidebar."},
- "smile_io": {"names": ["Smile.io", "smile_io", "smile-io"], "categories": ["loyalty-referrals"], "platform_type": "data",
-   "catalog_links": ["https://help.smile.io/en/articles/4036202-yotpo-and-smile"], "guide_links": [],
-   "context": "Reward customers with points for writing reviews."}
+   "sources": [],
+   "functions": [{"name": "Conversation sidebar", "yotpo_role": "Shows the customer's reviews and loyalty data next to the conversation.", "searches": ["conversation sidebar"]}],
+   "accept_if": ["sidebar"]
+ }
 }

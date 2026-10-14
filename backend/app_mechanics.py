@@ -1,19 +1,28 @@
 """
-Find a partner app's mechanics: its own articles on the features a Yotpo
-integration plugs into.
+Find a partner app's mechanics: its own articles on the functions a Yotpo
+integration touches (Leo's design, 2026-10-14).
 
 A Yotpo guide explains how to connect the integration. To answer well, Flow
-State also needs to know how the partner's side behaves: for an email
-platform, how its flows, triggers, delays and segments work; for Recharge, how
-discount codes apply to subscriptions. Leo picked exactly such articles for
-the email platforms already in the knowledge base. The catalog import uses
-this module to propose them for every integration: a few per integration,
-each tied to a topic. Nothing is approved here: every result becomes a
-proposal that an admin accepts or rejects URL by URL.
+State also needs the partner's documentation of its side: for Klaviyo, how
+flows, triggers and profile properties work; for Recharge, how subscription
+discount codes work. Per integration:
 
-What to look for comes from backend/mechanics_topics.py: topics per catalog
-category (flows, discount codes, customer sidebar…), ranked by what the
-integration's own Yotpo guide and partner pages talk about.
+  1. Read what Yotpo and the partner wrote about the integration: the Yotpo
+     guides and partner pages the catalog links (read by the caller), plus
+     the partner help centre's own articles that mention Yotpo.
+  2. A model lists the partner functions the integration touches, each with
+     searches (backend/mechanics_ai.py).
+  3. Code searches the partner's help centre for each function.
+  4. Code reads every candidate article, and the model accepts only those
+     whose text explains one of the functions.
+The accepted articles are one list per integration, proposed with label
+`shared`; a person approves the final list in the admin (C1.4). A candidate
+is always a real page the code found and read; the model cannot add a link.
+
+When the help centre blocks automated reading (a bot check, 403, 429), the
+model is not asked to guess: the integration is marked blocked, for a person
+to pick the articles. Zendesk centres are the exception: their search API
+returns each article's text even when their pages show a bot check.
 
 How the help centre is found, in order:
   1. an admin override (scripts/help_centres.json);
@@ -22,24 +31,18 @@ How the help centre is found, in order:
   4. when one of the links above gives the partner's domain: the help link
      on its homepage ("Help Center", "Support", "Docs"); failing that,
      probing help./support./docs./knowledge.<domain>.
-A host only counts when its name carries the app's name (docs.gorgias.com for
-Gorgias), so a Shopify link inside the Gorgias guide is never taken as
-Gorgias's help centre. Names are never guessed into domains: "Rule" or
-"Target" would find someone else's site.
+A host only counts when its name carries the app's name, so a Shopify link
+inside the Gorgias guide is never taken as Gorgias's help centre. Names are
+never guessed into domains: "Rule" or "Target" would find someone else's site.
 
-How articles are found inside it, for each top topic:
-  - Zendesk help centres: their public search API, with the topic's searches.
-    Many Zendesk centres show a bot check to page fetches but answer the API.
-  - Anything else: the titles the centre lists itself (home page, the
-    sections named like a topic, llms.txt) and the addresses in its sitemap.
-An article is on topic when its title (or address) uses the topic's words;
-explanations ("Managing…", "How … works") rank above troubleshooting.
+How a help centre is searched: Zendesk centres through their public search
+API (many show a bot check to page fetches but answer the API); others
+through the titles they list (home page and its sections, llms.txt, the
+sitemap's addresses), matched against the function's search words.
 
-Bounded: one help centre per integration, about ten requests, one per second
-per host. Not a crawler.
-
-The network is injected: discover() takes a fetch(url) -> Page | None, so the
-logic is tested on saved pages without touching the network.
+Bounded: one help centre per integration, at most MAX_CANDIDATES articles
+read, one request per second per host. The network is injected
+(fetch(url) -> Page | None), so all of it is tested on saved pages.
 """
 
 import json
@@ -50,11 +53,11 @@ from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
-from mechanics_topics import Topic, mentions, rank_topics, topics_for
 from urls import normalize_url
 
-DEFAULT_LIMIT = 3
-TOPICS_TRIED = 4
+MAX_CANDIDATES = 20      # articles read and shown to the model, per integration
+PER_SEARCH = 4           # results kept from each search
+YOTPO_ARTICLES = 3       # the partner's own Yotpo articles read in step 1
 
 # Never a partner's own documentation: Yotpo, shorteners, social and video
 # sites, app stores, form and page builders. Matched as a whole domain.
@@ -105,25 +108,12 @@ _EXCLUDE = ('changelog', 'release notes', "what's new", 'whats new', 'password',
             'careers', 'webinar', 'legal', 'terms of service', 'cookie', 'uninstall', 'status page',
             'yotpo', 'announcing', 'announcement', 'announcements', 'code freeze', 'laws', 'law',
             'trends', 'tax', 'taxes')
-# Usually not how the feature works: problems, money, other integrations
-_DOWNRANK = ('troubleshoot', 'troubleshooting', 'error', 'errors', 'issue', 'issues', 'not working',
-             'faq', 'faqs', 'billing', 'pricing', 'invoice', 'migration', 'migrate', 'integration',
-             'integrations', 'api', 'developer', 'developers', 'sdk', 'legacy', 'deprecated', 'why',
-             'warning', ' x ', 'not', "isn't", "doesn't", "don't", "can't", 'cannot', 'unable',
-             'failed', 'fails', 'compliance', 'webhook', 'webhooks', 'video')
-# Explanations of a feature
-_EXPLAINS = ('how', 'managing', 'manage', 'creating', 'create', 'understanding', 'understand',
-             'about', 'overview', 'setting up', 'set up', 'using', 'use', 'guide', 'getting started',
-             'introduction', 'works', 'configure', 'configuring', 'adding', 'add', 'build', 'building')
-
-
 @dataclass
 class Candidate:
     url: str
     title: str
-    score: int
-    reason: str
-    topic: str = ''
+    function: str = ''
+    reason: str = ''
 
 
 @dataclass
@@ -132,33 +122,12 @@ class Mechanics:
     help_centre: Optional[str] = None     # root URL used
     found_via: Optional[str] = None       # override | catalog | guide | homepage | probe
     method: Optional[str] = None          # zendesk-search, pages, llms.txt, sitemap; joined by +
-    topics: List[str] = field(default_factory=list)   # the topics searched, best first
-    candidates: List[Candidate] = field(default_factory=list)
-    shortlisted: int = 0                  # candidates a model chose from
+    sources: List[str] = field(default_factory=list)      # what step 1 read
+    functions: List[dict] = field(default_factory=list)   # step 2: name, yotpo_role, searches
+    checked: int = 0                      # candidate articles read in step 4
+    blocked: bool = False                 # the centre refuses automated reading: a person picks
+    candidates: List[Candidate] = field(default_factory=list)   # accepted
     problem: Optional[str] = None         # why nothing was found, in plain words
-
-
-def score_article(title: str, url: str, topic: Topic) -> int:
-    """How well an article explains one topic. 0 or less: not for this topic."""
-    path = urlsplit(url).path
-    slug = path.rstrip('/').rsplit('/', 1)[-1]
-    text = f'{title} {slug.replace("-", " ").replace("_", " ")}'
-    # The whole address counts against an article (/developer/, /video/), only
-    # its title and slug for it
-    hay = _words(f'{text} {path}')
-    if any(_words(w) in hay for w in _EXCLUDE):
-        return -1
-    if re.search(r'[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]', title or ''):
-        return -1  # a Japanese, Chinese or Korean copy of an article
-    hits = mentions(text, topic.words)
-    if not hits:
-        return 0
-    score = 3 + min(hits - 1, 2)
-    if any(_words(w) in hay for w in _EXPLAINS):
-        score += 1
-    if any(_words(w) in hay for w in _DOWNRANK):
-        score -= 3
-    return score
 
 
 # ---------- pure helpers ----------
@@ -422,48 +391,6 @@ def _on_host(url: str, public_host: str) -> str:
     return normalize_url(urlunsplit(parts))
 
 
-def zendesk_pool(root: str, fetch: Fetch, topics: List[Topic],
-                 per_topic: int = 2) -> List[Tuple[str, str]]:
-    """(url, title) from the Help Center search API, `per_topic` searches per topic."""
-    locale = _zendesk_locale(root) or 'en-us'
-    pool = []
-    for topic in topics:
-        for query in topic.queries[:per_topic]:
-            page = fetch(f'https://{host_of(root)}/api/v2/help_center/articles/search.json'
-                         f'?query={quote(query)}&locale={locale}&per_page=10')
-            found = _json(page)
-            if not found:
-                continue
-            public_host = host_of(page.url) or host_of(root)
-            for a in found.get('results', []):
-                if not a.get('draft') and a.get('html_url'):
-                    pool.append((_on_host(a['html_url'], public_host), a.get('title', '')))
-    return pool
-
-
-def pages_pool(root: str, home: Page, fetch: Fetch, topics: List[Topic]) -> List[Tuple[str, str]]:
-    """(url, title) the centre lists on its home page, plus the articles of
-    the one or two sections named like a topic (a "Flows" or "Discounts"
-    section)."""
-    pool, sections = [], []
-    for url, text, full in page_links(home.text, home.url):
-        if not _same_site(url, root):
-            continue
-        if _LISTING_PATH.search(urlsplit(url).path) or _COUNT_TEXT.search(full):
-            best = max((mentions(text, t.words) for t in topics), default=0)
-            if best:
-                sections.append((best, url))
-        elif _is_article(url, root):
-            pool.append((url, _clean_title(text)))
-    for _, url in sorted(sections, key=lambda s: -s[0])[:2]:
-        page = fetch(url)
-        if page and page.status == 200:
-            for a_url, text, _ in page_links(page.text, page.url):
-                if _same_site(a_url, root) and _is_article(a_url, root) and a_url != url:
-                    pool.append((a_url, _clean_title(text)))
-    return pool
-
-
 def llms_pool(root: str, fetch: Fetch) -> List[Tuple[str, str]]:
     """(url, title) from the centre's llms.txt, a markdown list of its pages
     ("- [Title](url): description") that many help centres publish."""
@@ -512,84 +439,134 @@ def sitemap_pool(root: str, fetch: Fetch) -> List[Tuple[str, str]]:
     return pool
 
 
-# ---------- picking ----------
+# ---------- searching a help centre ----------
 
-def pick(pool: List[Tuple[str, str]], ranked: List[Tuple[Topic, int]],
-         limit: int = DEFAULT_LIMIT) -> List[Candidate]:
-    """The best article for each topic in turn, best topic first, then a
-    second round, until `limit`. One per URL and per title."""
-    best_by_topic = []
-    for topic, mentioned in ranked[:TOPICS_TRIED]:
-        cands = []
-        for i, (url, title) in enumerate(pool):
-            score = score_article(title, url, topic)
-            if score >= 3:
-                why = f'{topic.name}' + (' (the Yotpo guide or partner pages mention it)'
-                                         if mentioned else '')
-                cands.append((score, i, Candidate(url, title, score, why, topic.name)))
-        cands.sort(key=lambda c: (-c[0], c[1]))
-        best_by_topic.append([c for _, _, c in cands])
-    seen, out = set(), []
-    for round_ in range(limit):
-        for cands in best_by_topic:
-            for c in cands[round_:]:
-                key_title = re.sub(r'\s+', ' ', c.title or '').strip().lower()
-                if c.url in seen or key_title in seen or key_title in _GENERIC_TITLES:
-                    continue
-                seen.update((c.url, key_title))
-                out.append(c)
-                break
-            if len(out) >= limit:
-                return out
-    return out
+_QUERY_STOP = {'the', 'and', 'for', 'with', 'how', 'to', 'a', 'an', 'of', 'in', 'on', 'your', 'set',
+               'up', 'use', 'using', 'create', 'creating', 'manage', 'managing'}
 
 
-SHORTLIST = 30
-_QUERY_STOP = {'the', 'and', 'for', 'with', 'how', 'to', 'a', 'an', 'of', 'in', 'on', 'your', 'set', 'up'}
+def query_words(query: str) -> List[str]:
+    return [w for w in re.findall(r'[a-z0-9]+', query.lower()) if len(w) > 2 and w not in _QUERY_STOP]
 
 
-def query_topic(query: str) -> Topic:
-    """A model's suggested search as a topic: on topic when a title uses its words."""
-    words = tuple(w for w in re.findall(r'[a-z0-9]+', query.lower()) if len(w) > 2 and w not in _QUERY_STOP)
-    return Topic(f'"{query}"', (query,), words or (query.lower(),))
+def excluded(title: str, url: str) -> bool:
+    """News, account admin, legal, Yotpo's own pages, other languages."""
+    hay = _words(f'{title} {urlsplit(url).path}')
+    if any(_words(w) in hay for w in _EXCLUDE):
+        return True
+    return bool(re.search(r'[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]', title or ''))
 
 
-def shortlist(pool: List[Tuple[str, str]], topics: List[Topic], size: int = SHORTLIST) -> List[Candidate]:
-    """The pool's on-topic articles, best first, one per URL and title: what
-    a model chooses from."""
-    best = {}
+def match_titles(pool: List[Tuple[str, str]], query: str, n: int = PER_SEARCH) -> List[Tuple[str, str]]:
+    """The pool's articles whose title or slug uses most of the query's words."""
+    words = query_words(query)
+    if not words:
+        return []
+    scored = []
     for i, (url, title) in enumerate(pool):
-        key_title = re.sub(r'\s+', ' ', title or '').strip().lower()
-        if key_title in _GENERIC_TITLES:
-            continue
-        scored = max(((score_article(title, url, t), t.name) for t in topics), default=(0, ''))
-        if scored[0] >= 3 and url not in best and key_title not in {b[2] for b in best.values()}:
-            best[url] = (scored[0], i, key_title, Candidate(url, title, scored[0], '', scored[1]))
-    ordered = sorted(best.values(), key=lambda b: (-b[0], b[1]))
-    return [b[3] for b in ordered[:size]]
+        slug = urlsplit(url).path.rstrip('/').rsplit('/', 1)[-1].replace('-', ' ').replace('_', ' ')
+        hay = _words(f'{title} {slug}')
+        hits = sum(1 for w in words if f' {w}' in hay)   # prefix match: "trigger" finds "triggers"
+        if hits >= max(1, (len(words) + 1) // 2):
+            scored.append((-hits, i, url, title))
+    scored.sort()
+    return [(url, title) for _, _, url, title in scored[:n]]
 
+
+def zendesk_search(root: str, fetch: Fetch, query: str, n: int = PER_SEARCH,
+                   bodies: Optional[dict] = None) -> List[Tuple[str, str]]:
+    """(url, title) from the Zendesk Help Center search API. Each article's
+    text comes with it; it is kept in `bodies` (url -> text), so a centre
+    whose pages show a bot check can still be read."""
+    locale = _zendesk_locale(root) or 'en-us'
+    page = fetch(f'https://{host_of(root)}/api/v2/help_center/articles/search.json'
+                 f'?query={quote(query)}&locale={locale}&per_page=10')
+    found = _json(page)
+    if not found:
+        return []
+    public_host = host_of(page.url) or host_of(root)
+    out = []
+    for a in found.get('results', []):
+        if a.get('draft') or not a.get('html_url'):
+            continue
+        url = _on_host(a['html_url'], public_host)
+        if bodies is not None and a.get('body'):
+            bodies[url] = html_text(a['body'], url)
+        out.append((url, a.get('title', '')))
+    return out[:n]
+
+
+def pages_pool(root: str, home: Page, fetch: Fetch, sections: int = 6) -> List[Tuple[str, str]]:
+    """(url, title) the centre lists on its home page and in its first
+    sections."""
+    pool, listings = [], []
+    for url, text, full in page_links(home.text, home.url):
+        if not _same_site(url, root):
+            continue
+        if _LISTING_PATH.search(urlsplit(url).path) or _COUNT_TEXT.search(full):
+            listings.append(url)
+        elif _is_article(url, root):
+            pool.append((url, _clean_title(text)))
+    for url in listings[:sections]:
+        page = fetch(url)
+        if page and page.status == 200:
+            for a_url, text, _ in page_links(page.text, page.url):
+                if _same_site(a_url, root) and _is_article(a_url, root) and a_url != url:
+                    pool.append((a_url, _clean_title(text)))
+    return pool
+
+
+_BOT_CHECK = re.compile(r'just a moment|cf-chl|attention required|checking your browser|'
+                        r'captcha|access denied|are you a robot', re.I)
+
+
+def is_blocked(page: Optional[Page]) -> bool:
+    """A bot check or refusal instead of the page."""
+    if page is None:
+        return False
+    if page.status in (401, 403, 429, 503):
+        return True
+    return page.status == 200 and bool(_BOT_CHECK.search((page.text or '')[:5000])) \
+        and len(page.text or '') < 60000
+
+
+def html_text(html: str, url: str = '') -> str:
+    from crawler import _extract_text
+
+    class _Response:
+        content = (html or '').encode('utf-8', 'replace')
+    text, _ = _extract_text(url, _Response())
+    return text or ''
+
+
+def page_text(page: Optional[Page]) -> str:
+    """A fetched article's text, as the crawler would store it."""
+    if not page or page.status != 200:
+        return ''
+    if 'json' in (page.content_type or '') or is_blocked(page):
+        return ''
+    return html_text(page.text, page.url)
+
+
+# ---------- the whole step ----------
 
 def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: Iterable[str],
-             fetch: Fetch, categories: Iterable[str] = (), platform_type: Optional[str] = None,
-             context: str = '', override: Optional[str] = None,
-             limit: int = DEFAULT_LIMIT, chooser=None) -> Mechanics:
-    """Up to `limit` articles on how the partner's side of the integration
-    works, from its own help centre.
-
-    chooser (backend/mechanics_ai.py, optional): a model that suggests extra
-    searches from the Yotpo guide, then picks from the shortlist. Without one,
-    or if it fails, the topic scoring picks."""
+             fetch: Fetch, model, sources: Iterable[Tuple[str, str]] = (),
+             categories: Iterable[str] = (), override: Optional[str] = None) -> Mechanics:
+    """The partner's articles on the functions this integration touches,
+    found and confirmed as the module docstring says. `sources` are
+    (label, text) the caller already read: the Yotpo guides and the
+    catalog's partner pages."""
     catalog_links, guide_links = list(catalog_links), list(guide_links)
-    categories = list(categories)
+    categories, sources = list(categories), list(sources)
     tokens = name_tokens(*app_names)
-    ranked = rank_topics(topics_for(categories, platform_type), context)
-    result = Mechanics(topics=[t.name for t, _ in ranked[:TOPICS_TRIED]])
+    app = app_names[0] if app_names else ''
+    result = Mechanics()
     root, via, problem = find_help_centre(tokens, catalog_links, guide_links, override, fetch)
     if not root:
         result.problem = problem
         return result
     result.help_centre, result.found_via = root, via
-    top = [t for t, _ in ranked[:TOPICS_TRIED]]
 
     home = None
     if _zendesk_locale(root) is None:
@@ -597,58 +574,123 @@ def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: It
         if home and home.status == 200 and home.url and not _same_site(home.url, root) \
                 and host_matches_app(host_of(home.url), tokens):
             root = help_centre_root(home.url)  # support.judge.me -> judge.me/help/en
-            result.help_centre = root
         if home and home.status == 200 and _zendesk_locale(home.url) is not None:
             root = help_centre_root(home.url)
-            result.help_centre = root
+        result.help_centre = root
+    zendesk = _zendesk_locale(root) is not None
+    if not zendesk and is_blocked(home):
+        result.blocked = True
+        result.problem = (f'help centre {root} blocks automated reading (bot check); '
+                          f'a person picks the articles')
+        return result
+    bodies = {}   # Zendesk article texts, from the search API
 
-    app = app_names[0] if app_names else ''
-    suggested = []
-    if chooser is not None:
-        # The model's searches lead: they come from this integration's own guide
-        suggested = [query_topic(q) for q in chooser.suggest_queries(app, categories, context)]
-        result.topics = [t.name for t in suggested] + result.topics
-    searched = suggested + top
-
+    # Titles a non-Zendesk centre lists: searched by matching words
     pool, methods = [], []
-    sources = []
-    if _zendesk_locale(root) is not None:
-        # With a model, one search per topic is enough: it judges the results
-        sources.append(('zendesk-search', lambda: zendesk_pool(root, fetch, searched,
-                                                               1 if chooser else 2)))
-    if home and home.status == 200:
-        sources.append(('pages', lambda: pages_pool(root, home, fetch, searched)))
-    sources += [('llms.txt', lambda: llms_pool(root, fetch)), ('sitemap', lambda: sitemap_pool(root, fetch))]
-    for name, source in sources:
-        # A model judges a wide pool well, so it gets every source; the
-        # scoring stops as soon as it has enough
-        if chooser is None and len(pick(pool, ranked, limit)) >= limit:
-            break
-        found = source()
-        if found:
-            pool += found
-            methods.append(name)
-
-    if chooser is not None:
-        cands = shortlist(pool, searched)
-        result.shortlisted = len(cands)
-        choice = chooser.choose(app, categories, context, [(c.url, c.title) for c in cands], limit) \
-            if cands else []
-        if choice is not None:
-            for i, why in choice:
-                c = cands[i]
-                result.candidates.append(Candidate(c.url, c.title, c.score, why or c.topic, c.topic))
-            methods.append('ai')
-        else:
-            result.candidates = pick(pool, ranked + [(t, 1) for t in suggested], limit)
-            methods.append('rules (the model failed)')
+    if zendesk:
+        methods.append('zendesk-search')
     else:
-        result.candidates = pick(pool, ranked, limit)
+        for name, source in (('pages', lambda: pages_pool(root, home, fetch) if home and home.status == 200 else []),
+                             ('llms.txt', lambda: llms_pool(root, fetch)),
+                             ('sitemap', lambda: sitemap_pool(root, fetch))):
+            found = source()
+            if found:
+                pool += found
+                methods.append(name)
     result.method = ' + '.join(methods) or None
-    if not result.candidates and result.shortlisted:
-        result.problem = (f'help centre {root} found; the model judged none of its '
-                          f'{result.shortlisted} candidates good enough; pick some by hand')
-    elif not result.candidates:
-        result.problem = (f'help centre {root} found, but no article on '
-                          f'{", ".join(result.topics[:3])}; pick some by hand')
+
+    # Step 1: the partner help centre's own articles about Yotpo join the sources
+    own = zendesk_search(root, fetch, 'yotpo', 10, bodies) if zendesk else \
+        [(u, t) for u, t in pool if 'yotpo' in f'{u} {t}'.lower()]
+    for url, title in own[:YOTPO_ARTICLES]:
+        text = bodies.get(url) or page_text(fetch(url))
+        if text:
+            sources.append((f'{app} help centre: {title}', text))
+    result.sources = [label for label, _ in sources]
+
+    # Step 2: the model lists the functions
+    if model is None:
+        result.problem = 'no model configured; nothing added'
+        return result
+    functions = model.extract_functions(app, categories, sources)
+    if functions is None:
+        result.problem = 'the model could not list the functions; nothing added'
+        return result
+    result.functions = [{'name': f.name, 'yotpo_role': f.yotpo_role, 'searches': f.searches}
+                        for f in functions]
+    if not functions:
+        result.problem = 'the model found no partner function this integration touches'
+        return result
+
+    # Step 3: search for each function, alternating so every function gets
+    # candidates. A centre with no search API: the model also picks from its
+    # list of titles, since words alone miss ("Mim" is Dixa's sidebar).
+    per_function = []
+    for f in functions:
+        found = []
+        for q in f.searches:
+            found += zendesk_search(root, fetch, q, bodies=bodies) if zendesk else match_titles(pool, q)
+        per_function.append(found)
+    if not zendesk and pool:
+        titles, seen_urls = [], set()
+        for url, title in pool:
+            if url not in seen_urls and not excluded(title, url) and (title or '').strip():
+                seen_urls.add(url)
+                titles.append((url, title))
+        chosen = model.shortlist(app, functions, [t for _, t in titles]) if titles else []
+        per_function.insert(0, [titles[i] for i in chosen])
+    picked, seen = [], set()
+    for rank in range(max((len(x) for x in per_function), default=0)):
+        for found in per_function:
+            if rank < len(found) and len(picked) < MAX_CANDIDATES:
+                url, title = found[rank]
+                key = (url, re.sub(r'\s+', ' ', title or '').strip().lower())
+                if url in seen or key[1] in seen or key[1] in _GENERIC_TITLES or excluded(title, url):
+                    continue
+                seen.update(key)
+                picked.append((url, title))
+
+    if not picked:
+        # Not the model's judgement: this centre could not be searched or
+        # listed (a login, a move, a page built in the browser)
+        result.blocked = True
+        result.problem = (f'the help centre at {root} could not be searched or listed '
+                          f'(it may need a login, have moved, or need a browser); a person picks')
+        return result
+
+    # Step 4: read every candidate, and the model accepts or rejects it
+    readable, refused = [], 0
+    for url, title in picked:
+        text = bodies.get(url, '')
+        if not text:
+            page = fetch(url)
+            refused += is_blocked(page)
+            text = page_text(page)
+        if len(text) >= 200:
+            readable.append((url, _clean_title(title) or url, text))
+    result.checked = len(readable)
+    if picked and not readable and not refused:
+        result.blocked = True
+        result.problem = (f'the articles at {root} show no text without a browser; '
+                          f'a person picks the articles')
+        return result
+    if picked and refused > len(picked) // 2:
+        result.blocked = True
+        result.problem = (f'{refused} of {len(picked)} articles at {root} refused automated '
+                          f'reading (bot check); a person picks the articles')
+        return result
+    if not readable:
+        result.blocked = True
+        result.problem = (f'the articles at {root} could not be read (no text without a '
+                          f'browser, or refused); a person picks')
+        return result
+    verified = model.verify(app, functions, readable)
+    if verified is None:
+        result.problem = 'the model could not check the articles; nothing added'
+        return result
+    for i, function, why in verified:
+        url, title, _ = readable[i]
+        result.candidates.append(Candidate(url, title, function, why))
+    if not result.candidates:
+        result.problem = f'the model accepted none of the {len(readable)} articles it read'
     return result

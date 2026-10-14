@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Conversation Redaction</title>
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Conversation Redaction","acceptedAnswer":{"@type":"Answer","text":"This feature is part of our Utimate &amp; Prime plans\nYou can redact Conversation content to dispose of the sensitive parts of conversations that should not be stored, while maintaining the rest of the conversation intact.It works with all text-based channels, but only with the incoming messages.  Agent responses can not be redacted.\nRedacting a message\nTo redact a conversation, simply find the incoming message that you want to alter and click the menu (...)  &gt; Redact\n\nHighlight the text parts that you want to get rid of, and click the button Redact (x characters), where the x indicates the character count that you're redacting.\n\nAfter you highlighted all the parts that need to be redacted, click Confirm at the bottom of the redaction modal. You will be prompted with one final modal.\n\nClick Confirm to complete the redaction.\nYou can redact the same message multiple times.\nDeleting Conversation Attachments\nDeleting conversation attachments uses the same Redact functionality as well. Simply click on the message that has the attachments that you want to delete, and find the list of attachments at the bottom of the redaction modal.\n\nClick on the trash bin icon for attachments you want to delete, they will be highlighted in red, and then click Confirm.\n\nLastly, confirm your action in the last warning modal.\n\nGeneral Information\nInformation about who performed the redaction is stored on the Conversation Activity Log as well.\n\nBy default, the following roles can redact conversations:\nAdministrators\nSystem Administrators\nTeam Leads"}}],"@context":"http://schema.org","@type":"FAQPage","name":"Conversation Redaction","headline":"Conversation Redaction","author":{"@type":"Person","name":"Domantas Laurynas","image":"https://www.gravatar.com/avatar/ff97f8ce7f669ae8b447ea3a2dd08490?e=dol@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/Domantas%2BLaurynas/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/2084-conversation-redaction","image":null,"mainEntityOfPage":"https://support.dixa.help/en/articles/2084-conversation-redaction","dateCreated":"2025-11-13","datePublished":"2026-06-11","dateModified":"2026-06-11"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

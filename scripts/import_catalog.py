@@ -13,9 +13,7 @@ Options:
     --html FILE         parse a saved catalog page instead of fetching it
     --cache DIR         keep every fetched page in DIR; a re-run reads from it
     --no-mechanics      skip the partners' own help-centre articles
-    --mechanics-limit N partner articles per integration (default 3)
-    --no-ai             pick the partner articles by topic scoring alone
-    --ai-model NAME     the Gemini model that chooses them (default: the app's,
+    --ai-model NAME     the Gemini model for them (default: the app's,
                         gemini-flash-latest; needs GEMINI_API_KEY)
     --only a,b          only these integrations (esps.name), for trying things
 
@@ -25,15 +23,15 @@ What it proposes, per integration (ALL_INTEGRATIONS_UPDATE.md §4.3):
   - a guide that 404s, re-found in the help centre's sitemap under a renamed
     slug (note "renamed from …"); one with no match is reported as gone;
   - each documentation-like partner page the detail page links (`catalog`);
-  - up to N of the partner's own articles on the features the integration
-    plugs into, e.g. Klaviyo flows and triggers, Recharge discount codes on
-    subscriptions (source `mechanics`, label pre-filled `shared`), found by
-    backend/app_mechanics.py from the topics in backend/mechanics_topics.py.
-    Added 2026-10-14 at Leo's request: a Yotpo guide explains how to connect
-    the integration, not how the partner's side behaves. A model reads the
-    Yotpo guide, suggests searches, and chooses from the numbered candidates
-    the code found (backend/mechanics_ai.py); it cannot add a link of its own.
-Every proposal waits for an admin. Nothing is crawled or labelled here.
+  - the partner's own articles on the functions the integration touches,
+    e.g. Klaviyo flow triggers, Recharge subscription discount codes (source
+    `mechanics`, label pre-filled `shared`; Leo, 2026-10-14). A model reads
+    the Yotpo guides and the partner's Yotpo pages, lists those functions,
+    and confirms each article the code found by reading it
+    (backend/app_mechanics.py, backend/mechanics_ai.py). Help centres that
+    block automated reading are listed for a person instead.
+Every proposal waits for an admin: a person approves each integration's final
+list in the admin (C1.4). Nothing is crawled or labelled here.
 
 --apply writes the saved plan, never a fresh fetch, so what is written is what
 the report showed. It creates new integrations as `listed` (invisible to chat
@@ -218,7 +216,6 @@ def _overrides() -> Dict[str, Optional[str]]:
 # ---------- planning ----------
 
 def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
-               mechanics_limit: int = app_mechanics.DEFAULT_LIMIT,
                only: Optional[List[str]] = None, overrides: Optional[Dict] = None,
                log=print, chooser=None) -> Dict:
     """Everything the import would do, as plain data. Reads the network
@@ -229,7 +226,7 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
             'create': [], 'update': [], 'proposals': [], 'clashes': [], 'removed_cards': [],
             'gone': [], 'ambiguous_renames': [], 'nothing': [], 'no_help_centre': [],
             'already_documents': [], 'already_proposed': [], 'duplicates': [], 'unreachable': [],
-            'mechanics': {}, 'integrations': 0, 'only': only, 'ai': None}
+            'mechanics': {}, 'blocked': [], 'integrations': 0, 'only': only, 'ai': None}
     if problem:
         return plan
     existing = store_view['integrations']
@@ -285,14 +282,14 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
                 mine += [u for u in theirs if u not in mine]
 
         outbound = []
-        # What this integration is about, for ranking the partner topics:
-        # the catalog text, the Yotpo guides and the partner pages' addresses
-        context = [integ.description] + links.partner_docs
+        # What Yotpo and the partner wrote about this integration: the model
+        # reads it to list the partner functions involved
+        sources = [('Yotpo catalog card', integ.description)] if integ.description else []
         for url in links.yotpo:
             page = fetch(url)
             if page and page.status == 200:
                 text = _guide_text(url, page)
-                context.append(text)
+                sources.append((f'Yotpo guide {url}', text))
                 label = doc_header.suggested_label(text)
                 final = ci.clean_link(page.url or url)
                 if final != url and ci.is_yotpo_doc(final):
@@ -323,25 +320,30 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
         if not links.yotpo and not links.partner_docs:
             plan['nothing'].append(integ.name)
 
+        if mechanics:
+            for url in links.partner_docs:
+                text = app_mechanics.page_text(fetch(url))
+                if text:
+                    sources.append((f'{integ.display_name} page about Yotpo {url}', text))
         if mechanics and integ.name in overrides and overrides[integ.name] is None:
-            plan['mechanics'][integ.name] = {'help_centre': None, 'found_via': 'override', 'method': None,
-                                             'topics': [], 'picked': [],
-                                             'problem': 'skipped in scripts/help_centres.json'}
+            plan['mechanics'][integ.name] = {'help_centre': None, 'problem': 'skipped in scripts/help_centres.json'}
         elif mechanics:
             found = app_mechanics.discover(
                 [integ.display_name, integ.name] + integ.slugs,
-                links.partner_docs + links.partner_other, outbound, fetch,
-                categories=integ.categories, platform_type=integ.platform_type,
-                context='\n'.join(context), override=overrides.get(integ.name),
-                limit=mechanics_limit, chooser=chooser)
+                links.partner_docs + links.partner_other, outbound, fetch, chooser,
+                sources=sources, categories=integ.categories, override=overrides.get(integ.name))
             plan['mechanics'][integ.name] = {
                 'help_centre': found.help_centre, 'found_via': found.found_via,
-                'method': found.method, 'topics': found.topics, 'problem': found.problem,
-                'picked': [asdict(c) for c in found.candidates]}
+                'method': found.method, 'sources': found.sources, 'functions': found.functions,
+                'checked': found.checked, 'blocked': found.blocked, 'problem': found.problem,
+                'accepted': [asdict(c) for c in found.candidates]}
             if found.help_centre is None:
                 plan['no_help_centre'].append({'esp': integ.name, 'why': found.problem})
+            if found.blocked:
+                plan['blocked'].append({'esp': integ.name, 'why': found.problem})
             for c in found.candidates:
-                propose(integ.name, c.url, 'mechanics', 'shared', f'"{c.title}": {c.reason}')
+                propose(integ.name, c.url, 'mechanics', 'shared',
+                        f'{c.function}: "{c.title}". {c.reason}')
     if chooser is not None:
         plan['ai'] = {'model': chooser.model_name, **chooser.usage}
     return plan
@@ -481,6 +483,7 @@ def render_report(plan: Dict) -> str:
                      ('  of which renamed guides', len(renamed)),
                      ('proposals: partner pages from the catalog', len(partner)),
                      ('proposals: partner mechanics articles (new)', len(by_source.get('mechanics', []))),
+                     ('help centres that could not be read automatically (a person picks)', len(plan['blocked'])),
                      ('guides gone (404, no renamed match)', len(plan['gone'])),
                      ('detail pages with nothing documentary', len(plan['nothing'])),
                      ('integrations with no help centre found', len(plan['no_help_centre'])),
@@ -521,39 +524,56 @@ def render_report(plan: Dict) -> str:
       '(empty when it names both, or none). Partner pages are left empty. Mechanics articles are '
       'pre-filled `shared`: they explain the partner\'s features, not a Yotpo product. An admin '
       'confirms every label.\n')
-    for title, rows in (('Yotpo guides', yotpo), ('Partner pages from the catalog', partner),
-                        ('Partner mechanics articles', by_source.get('mechanics', []))):
+    for title, rows in (('Yotpo guides', yotpo), ('Partner pages from the catalog', partner)):
         w(f'### {title} ({len(rows)})\n')
         w('| integration | link | label | note |\n|---|---|---|---|')
         for p in sorted(rows, key=lambda p: (p['esp'], p['url'])):
             w(f"| `{p['esp']}` | {p['url']} | {p['suggested_label'] or '—'} | {_cell(p['note'])} |")
         w('')
 
-    if plan.get('ai'):
-        ai = plan['ai']
-        w(f"Mechanics articles were chosen by `{ai['model']}` from candidates the import found "
-          f"({ai['calls']} calls, {ai['input_tokens']:,} input and {ai['output_tokens']:,} output "
-          f"tokens, {ai['failures']} failed and fell back to topic scoring).\n")
-    w('## How each integration\'s mechanics articles were found\n')
-    w('Topics: what was searched for, best first (ranked by what the Yotpo guide and partner pages '
-      'talk about; the lists are in `backend/mechanics_topics.py`).\n')
-    w('| integration | topics searched | help centre | found via | method | picked |\n'
-      '|---|---|---|---|---|---:|')
-    for name, o in sorted(plan['mechanics'].items()):
-        w(f"| `{name}` | {'; '.join(o['topics'][:3]) or '—'} | {o['help_centre'] or '—'} | "
-          f"{o['found_via'] or '—'} | {o['method'] or '—'} | {len(o['picked'])} |")
-    w('')
+    if plan['mechanics']:
+        w('## Partner mechanics, per integration\n')
+        ai = plan.get('ai') or {}
+        if ai:
+            w(f"The model (`{ai['model']}`, {ai['calls']} calls, {ai['input_tokens']:,} input and "
+              f"{ai['output_tokens']:,} output tokens, {ai['failures']} failed) read what Yotpo and "
+              f"the partner wrote about each integration, listed the partner functions it touches, "
+              f"and accepted only articles whose text explains one. A person approves each "
+              f"integration's final list in the admin.\n")
+        for name, o in sorted(plan['mechanics'].items()):
+            if not o.get('functions'):
+                continue
+            w(f"### `{name}`\n")
+            w(f"Read: {', '.join(o['sources']) or 'nothing'}. Help centre: {o['help_centre']} "
+              f"({o['method'] or '—'}); {o['checked']} articles read.\n")
+            w('Functions:')
+            for f in o['functions']:
+                w(f"- **{f['name']}**: {f['yotpo_role']}")
+            w('')
+            if o['accepted']:
+                w('Accepted:')
+                for c in o['accepted']:
+                    w(f"- [{c['title']}]({c['url']}) ({c['function']}): {c['reason']}")
+            else:
+                w(f"Accepted: none. {o['problem'] or ''}")
+            w('')
+    if plan['blocked']:
+        w(f"## Needs a person: the help centre could not be read automatically ({len(plan['blocked'])})\n")
+        for r in sorted(plan['blocked'], key=lambda r: r['esp']):
+            w(f"- `{r['esp']}`: {r['why']}")
+        w('')
     if plan['no_help_centre']:
-        w(f"### No help centre found ({len(plan['no_help_centre'])})\n")
+        w(f"## No help centre found ({len(plan['no_help_centre'])})\n")
         w('Add a line to `scripts/help_centres.json` (`"name": "https://help.example.com"`) and run '
           'the dry run again, or `null` to skip an integration on purpose.\n')
         for r in sorted(plan['no_help_centre'], key=lambda r: r['esp']):
             w(f"- `{r['esp']}`: {r['why']}")
         w('')
-    found_empty = [(n, o) for n, o in plan['mechanics'].items() if o['help_centre'] and not o['picked']]
-    if found_empty:
-        w(f'### Help centre found, nothing picked ({len(found_empty)})\n')
-        for n, o in sorted(found_empty):
+    nothing = [(n, o) for n, o in plan['mechanics'].items()
+               if o.get('help_centre') and not o.get('accepted') and not o.get('blocked')]
+    if nothing:
+        w(f'## Help centre read, nothing accepted ({len(nothing)})\n')
+        for n, o in sorted(nothing):
             w(f"- `{n}`: {o['problem']}")
         w('')
 
@@ -598,8 +618,6 @@ def main(argv=None):
     ap.add_argument('--html')
     ap.add_argument('--cache')
     ap.add_argument('--no-mechanics', action='store_true')
-    ap.add_argument('--mechanics-limit', type=int, default=app_mechanics.DEFAULT_LIMIT)
-    ap.add_argument('--no-ai', action='store_true')
     ap.add_argument('--ai-model', default=mechanics_ai.DEFAULT_MODEL)
     ap.add_argument('--only')
     args = ap.parse_args(argv)
@@ -634,14 +652,13 @@ def main(argv=None):
         html = page.text
     only = [s.strip() for s in args.only.split(',')] if args.only else None
     chooser = None
-    if not args.no_ai and not args.no_mechanics:
+    if not args.no_mechanics:
         try:
             chooser = mechanics_ai.GeminiChooser(args.ai_model)
         except RuntimeError as e:
-            print(f'{e}: set it, or run with --no-ai.')
+            print(f'{e}: set it, or run with --no-mechanics.')
             return 2
-    plan = build_plan(html, view, fetch, mechanics=not args.no_mechanics,
-                      mechanics_limit=args.mechanics_limit, only=only, overrides=_overrides(),
+    plan = build_plan(html, view, fetch, mechanics=not args.no_mechanics, only=only, overrides=_overrides(),
                       log=lambda m: print(m, file=sys.stderr), chooser=chooser)
     with open(args.plan, 'w') as f:
         json.dump(plan, f, indent=1)

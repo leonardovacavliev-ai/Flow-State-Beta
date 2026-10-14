@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Linking Conversations</title>
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Linking Conversations","acceptedAnswer":{"@type":"Answer","text":"When the same customer is reaching out to you about the same issue multiple times it creates additional and unnecessary workload for your Agents. It also can cause delays in response for a customer and even result in different answers for the same issue that the customer is facing.\nTo mitigate that - you can link conversations multiple conversations together. \nConversation linking\nWhen linking multiple conversations into one - the child conversations are automatically closed, linked to the main conversation and an internal note is left in each conversation.\nAll child conversations (who are already linked) - have an icon next to them in the sidebar indicating that they are already linked.\nHow to link conversations\nOpen conversation history sidebar\nSelect the Conversations that you want to link together and click on the \"Link\" button at the top of the sidebar\n\nLeave additional information inside the note and add additional tags if needed (will be added to the child conversations), and click the \"Link\" button at the bottom of the modal.\n\nThe conversations are now linked together, and you can see the conversation linkage (at the conversation sidebar and the bottom of the conversation)\n\nConversation unlinking\nIf you have linked a conversation by mistake, you can unlink it. \nNavigate to the conversation that you want to unlink, and click the unlink button at the top of the conversation screen.\nHow to link conversations from different end-users (contacts)\nYou can now link conversations across contacts by using the filter option in the conversation history sidebar to search for and select another contact.\nImportant information\nYou can only link a conversation to one other conversation\nMain conversations (who have child conversations) can't be linked"}}],"@context":"http://schema.org","@type":"FAQPage","name":"Linking Conversations","headline":"Linking Conversations","author":{"@type":"Person","name":"Domantas Laurynas","image":"https://www.gravatar.com/avatar/ff97f8ce7f669ae8b447ea3a2dd08490?e=dol@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/Domantas%2BLaurynas/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/1953-linking-conversations","image":null,"mainEntityOfPage":"https://support.dixa.help/en/articles/1953-linking-conversations","dateCreated":"2025-04-29","datePublished":"2026-03-03","dateModified":"2026-03-03"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

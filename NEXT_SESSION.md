@@ -23,9 +23,9 @@ Production data steps Leo ran on 2026-10-13:
 
 **Open:**
 - **C1.2 (branch `v2/c1-2-catalog-import`)**: header parser, catalog import, and the **partner mechanics
-  articles** Leo asked for on 2026-10-14 (the import also proposes up to 3 of each partner's own
-  articles on the features the integration uses, e.g. Recharge's subscription discount codes;
-  source `mechanics`). Leo rejected a first version that picked "Welcome to the app" articles. Nothing is
+  articles** Leo asked for on 2026-10-14 (source `mechanics`): a model reads the integration's own
+  documents, lists the partner functions it touches, and confirms each article by reading it;
+  blocked help centres go to a person; a person approves each integration's final list (C1.4). Nothing is
   written to production by this branch. Waiting for Leo to read
   `docs/integrations/catalog_dry_run.md`; then merge when CI is green. `--apply` stays C1.9.
 - **PR #4 (C0.4 sources)**: `docs/integrations/messaging_sources.md`, the help links for the 13
@@ -120,12 +120,10 @@ sides failed.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
-- **Mechanics picks are suggestions, not truth.** Leo wants articles on how the feature the
-  integration plugs into works (his email-platform picks are the model), not general
-  introductions. A model (Gemini Flash, `backend/mechanics_ai.py`) suggests the searches and
-  chooses from candidates the code found; the topic lists in `backend/mechanics_topics.py` seed
-  the search and are the fallback. A dry run with the model needs `GEMINI_API_KEY`; tests use a
-  fake model. C1.4's inbox must show each pick's note (title and the model's reason).
+- **Partner mechanics: Leo's design, keep it.** No hand-made topic lists and no human picking,
+  except where a help centre blocks automated reading. The model lists the functions from the
+  integration's own documents and confirms articles by reading them; a person approves the final
+  list. A dry run needs `GEMINI_API_KEY`; tests use a fake model. Two runs can differ slightly.
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
 - **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the
