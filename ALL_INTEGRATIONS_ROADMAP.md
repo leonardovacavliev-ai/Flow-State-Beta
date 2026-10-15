@@ -178,7 +178,7 @@ Not part of the suite:
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
-| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | doing | branch `v2/c1-4-admin-integrations`; built to `design/integrations-redesign.html` (Admin) |
+| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PR #6, merged and deployed 2026-10-15; live health, Klaviyo chat (17 sources) and the admin routes' access checked; Leo to open the new tabs once |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | todo | |
@@ -1466,3 +1466,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
 | 2026-10-15 | C0.4 | Leo approved the sources; PR #4 merged | Claude Code |
 | 2026-10-15 | C1.4 | Integrations and Proposals tabs, crawl summary, owner/editor roles, listed integrations documentable; independent review, findings fixed; practice import into a local SQLite copy (no model calls) | Claude Code |
+| 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |

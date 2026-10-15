@@ -1,6 +1,7 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2).
+Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2)
+and the third (C0.4 merge, C1.4).
 Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
@@ -14,6 +15,8 @@ your session with the agenda for the one after.
 | #1 | C0.2 | Dependencies pinned to production's own freeze (`requirements.txt`, `constraints.txt`, Dockerfile) |
 | #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres` |
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
+| #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms, approved by Leo 2026-10-15 (docs only) |
+| #6 | C1.4 | Admin **Integrations** tab (list, filters, an integration's page, crawl summary) and **Proposals** tab (the import's inbox); owner/editor roles (`ADMIN_OWNER_EMAILS`, unset = all owners); listed integrations can be documented before they go into chat; only messaging can be active; `--apply` stores the inbox's notes. Details: roadmap C1.4 Deviations |
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
@@ -38,11 +41,18 @@ Don't bring them back. Last dry run (2026-10-14/15): 272 articles for 65 integra
 person, 37 with no help centre found, 13 where the model accepted nothing. Report:
 `docs/integrations/catalog_dry_run.md`.
 
-**Open:**
-- **PR #4 (C0.4 sources)**: `docs/integrations/messaging_sources.md`, the help links for the 13
-  missing email/SMS platforms. It waits for Leo to read the "Flags for Leo" and approve the links.
-  After he approves, merge it. Then Leo creates the platforms in the admin panel, and you do the
-  per-platform retrieval check that C0.4 describes.
+**Open, waiting for Leo:**
+- **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → Create New
+  Integration, owner only), adds and labels each link from `docs/integrations/messaging_sources.md`,
+  and crawls or pastes them. Use the names the import expects (`catalog_import.KNOWN_MATCHES`), e.g.
+  "Salesforce Marketing Cloud" → `salesforce_marketing_cloud`. Then you do the per-platform
+  retrieval check C0.4 describes.
+- **C1.4:** Leo opens the new Integrations and Proposals tabs once (Google sign-in). Proposals is
+  empty until C1.9's import. Optionally he sets `ADMIN_OWNER_EMAILS` on Railway.
+- **A suggested task** (chip in the session that built C1.4): chat's integration check lets a
+  message through when the database check fails, and the public Reviews-coverage list includes
+  listed integrations' names. Both are pre-existing; they matter once listed integrations have
+  indexed documents (after C1.9).
 
 ## 2. How to work with Leo (he asked for these)
 
@@ -68,14 +78,16 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 
 ## 3. Next work, in order
 
-1. **Next, in parallel** (each its own branch; C1.1 and C1.2 are done): C1.3 refresh pipeline,
-   C1.4 admin, C1.5 chat picker, C1.6 Reviews readiness, C1.7 prompts by type. C1.8 waits for
-   C1.3. C1.4 and C1.5 have a design prototype; see §5. Suggested order: **C1.4 first**: C1.9
-   (Leo's import) cannot happen without it.
-   - C1.4 must show `mechanics` proposals **per integration as one list**: the functions the model
-     found, each article with its function and reason, approve-all or per article; and the
-     "needs a person" integrations, where an admin adds articles by hand.
-2. **C0.4**, whenever Leo approves PR #4 (see §1).
+1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done): C1.7 prompts by type, C1.3
+   refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. Suggested
+   order: **C1.7** (it protects the email/SMS answers, and lets non-messaging types go active:
+   extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Proposals tab's
+   sitemap section and the retire/replace buttons wait for it), then C1.5, C1.6.
+   - C1.5 has a design prototype (`design/integrations-redesign.html`, Chat screen; untracked,
+     **don't commit it**: Leo, 2026-10-15). Use it as the baseline.
+   - The Usage Analytics additions in that design (plan §4.9) need C1.5's picks of listed
+     integrations and a source count per chat message; build them with or after C1.5.
+2. **C0.4**, once Leo has created the platforms (see §1).
 3. **Re-running the catalog dry run** (e.g. after help centres are added to
    `scripts/help_centres.json`), read-only, against a local copy of the knowledge base:
    ```bash
@@ -142,7 +154,31 @@ restricted (see §5); check whether runs appear again once it is lifted. Run the
 PR. The Postgres jobs need `TEST_DATABASE_URL`, which isn't available locally. Tell Leo if a change
 touches the database code; fixing Actions (billing or settings) is his.
 
+**Try the admin in the built-in browser, on local data only** (how C1.4 was checked):
+- Seed a scratch SQLite: `python3 eval/seed_local_db.py <scratch>/local.db` (reads production
+  read-only; needs `.env`, so link it in for this one command and remove the link after).
+- Optional: `DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=<scratch>/local.db GEMINI_API_KEY= python3
+  scripts/import_catalog.py --no-mechanics --cache <scratch>/cache --plan <scratch>/plan.json`
+  (about 10 minutes, no model calls), then `--apply --plan` into the **same local file**.
+- Add a temporary entry to the main checkout's `.claude/launch.json` that starts `app.py` from your
+  worktree with every provider set by hand (`DATABASE_PROVIDER=sqlite`, `SQLITE_DB_PATH`,
+  `SESSION_PROVIDER=memory`, `USE_ASYNC_CRAWL=false`, `VECTOR_DB_PROVIDER=chromadb`,
+  `GEMINI_API_KEY=` and the other keys empty, `ADMIN_PASSWORD_FALLBACK=true`,
+  `ADMIN_PASSWORD=local-only`), with no `.env` in the worktree. Restore the file afterwards.
+- The page has no password sign-in: in the browser, set `window.Auth.headers` to send
+  `X-Admin-Password`, `isSignedIn`/`isAdmin` to true, then call `openAdminPanel()`.
+- Crawls and pastes write `docs/` and `docs/crawl_metadata.json` in the worktree: remove or restore
+  them before committing.
+
+**The app's PR panel can't follow PRs here** (`bind_pr` needs `gh`). Read CI from the Actions API
+for the branch's sha, at most once a minute.
+
 ## 5. Watch out for
+
+- **Listed integrations are found by name** (C1.4): `get_esp_by_name` and `find_documents_by_url`
+  see `active` and `listed` rows, so their documents can be approved, crawled and indexed before
+  they go into chat. Chat (`is_active_integration`) and the sidebar (`list_esps`) still see
+  `active` only; `test_admin_integrations.py` checks it. Keep it that way.
 
 - **Another session is working on a design** (`design/integrations-redesign.html`, untracked).
   It edited `ALL_INTEGRATIONS_ROADMAP.md` (C1.4/C1.5 design notes, an analytics deviation) and
