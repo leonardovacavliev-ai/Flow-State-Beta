@@ -324,7 +324,7 @@ def owner_request_ok() -> bool:
     return current_admin_role() == 'owner'
 
 
-OWNER_ONLY_ERROR = 'This needs an owner account. Ask an owner (ADMIN_OWNER_EMAILS) to make this change.'
+OWNER_ONLY_ERROR = 'Only an owner can do this. Ask an owner to make this change.'
 
 
 def require_admin(fn):

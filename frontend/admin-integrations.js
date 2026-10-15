@@ -13,27 +13,64 @@
 
 (function () {
     const PLATFORM_TYPES = ['messaging', 'storefront', 'service', 'data', 'content'];
-    const TYPE_NAMES = { messaging: 'Messaging', storefront: 'Storefront', service: 'Service', data: 'Data', content: 'Content' };
-    const STATUS_NAMES = { active: 'Active', listed: 'Listed', archived: 'Archived' };
-    const TIER_NAMES = { basic: 'Basic', listed: 'Listed' };
+    // What the admin shows for each internal value. The words are chosen so
+    // nobody needs to know the code: plain, and never the same word for two
+    // different things (the database's 'listed' status and the plan's
+    // 'Listed' coverage tier both used to read "Listed").
+    const TYPE_NAMES = { messaging: 'Email & SMS', storefront: 'Store & checkout', service: 'Customer service', data: 'Data & automation', content: 'Reviews & content' };
+    const STATUS_NAMES = { active: 'In chat', listed: 'Not in chat yet', archived: 'Hidden' };
+    // One short line each: shown under the In chat? control and as tooltips
+    const STATUS_HELP = {
+        active: 'Anyone using the chat can pick it.',
+        listed: 'Not offered in chat. Get its documents ready first.',
+        archived: 'Removed from chat and from this list (filter for Hidden to find it). Its documents are kept.'
+    };
+    const TIER_NAMES = { basic: 'Ready', listed: 'Missing documents' };
+    const TIER_HELP = {
+        basic: 'It has the crawled documents the AI needs.',
+        listed: 'The AI lacks documents to answer well. Open it to see which.'
+    };
     const PRODUCT_NAMES = { loyalty: 'Loyalty', reviews: 'Reviews' };
-    const SOURCE_KIND = { yotpo_support: 'Yotpo guide', yotpo_developer: 'Yotpo developer docs', partner: 'Partner page', pasted: 'Pasted' };
-    const SOURCE_NAMES = { catalog: 'Catalog', sitemap: 'Sitemap', manual: 'Manual', mechanics: 'Partner article' };
+    const SOURCE_KIND = { yotpo_support: 'Yotpo guide', yotpo_developer: 'Yotpo developer docs', partner: "Platform's own page", pasted: 'Pasted' };
+    const SOURCE_NAMES = { catalog: 'From yotpo.com', sitemap: 'New Yotpo article', manual: 'Added by hand', mechanics: 'Platform help article' };
+    // The list's To do filter, one at a time
     const FLAG_NAMES = {
-        unlabelled: 'Unlabelled documents',
-        failed: 'Failed crawls',
-        proposals: 'Open proposals',
-        misses: 'Missing pages',
-        mixed_types: 'Type to check'
+        proposals: 'Links to review',
+        unlabelled: 'No product picked',
+        failed: 'Crawl failed',
+        misses: 'Page gone',
+        mixed_types: 'Kind of platform to set or confirm'
     };
     const NEEDS_PERSON = {
-        blocked: 'The help centre blocks automated reading',
-        nothing_found: 'The model accepted none of the articles it read',
-        no_help_centre: 'No help centre was found'
+        blocked: 'Help site blocks automatic reading',
+        nothing_found: "Articles found didn't fit",
+        no_help_centre: 'Help site not found'
     };
-    // States shown in the crawl strip, in this order, when non-zero
+    // The crawl box, in this order, when non-zero
     const STRIP_STATES = ['crawling', 'queued', 'waiting', 'retrying', 'failed', 'saved_copy', 'pending'];
+    const STRIP_TEXT = {
+        crawling: 'crawling now',
+        queued: 'waiting',
+        waiting: 'paused by the website',
+        retrying: 'retrying',
+        failed: 'failed',
+        saved_copy: 'using a saved copy',
+        pending: 'not crawled yet'
+    };
+    // The answers to "what is this?", one hover away (the ⓘ beside a label)
+    const HELP = {
+        crawls: "Crawling reads a document's page and saves its text for the AI. Only crawled documents are used.",
+        products: "Which Yotpo products it works with; unticked means it doesn't. They decide which documents it needs. The yotpo.com import ticks them from yotpo.com/integrations; change them if they're wrong.",
+        kind: 'Picks the instructions the AI follows for it, and which documents it needs. Only Email & SMS works in chat for now.',
+        inChat: 'In chat: anyone using the chat can pick it. Not in chat yet: not offered in chat while its documents are prepared. Hidden: removed from chat and from this list. Only an owner changes this.',
+        documentation: 'Ready: it has the crawled documents the AI needs. Missing documents: open it to see which.',
+        yotpoCom: 'Where yotpo.com/integrations lists it, and under which categories. The yotpo.com import links these.',
+        documents: "What the AI reads about it. Each needs a product: Loyalty, Reviews, or Shared (the platform's own help, true for both).",
+        suggested: 'Links the yotpo.com import found for each integration. None is used until you approve it.'
+    };
+    const NOT_LINKED = 'Not linked to yotpo.com yet: the yotpo.com import fills this in.';
     const SUMMARY_POLL_MS = 5000;
+    const SAVED_MS = 1600;
     const MISS_LIMIT = 3;
 
     const inputCls = 'px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring';
@@ -84,21 +121,112 @@
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
     }
 
+    const STATE_HELP = {
+        crawled: 'Its text is saved and the AI uses it.',
+        pending: "Not crawled yet, so the AI can't use it. Tick it and press Crawl Selected.",
+        failed: 'The last crawl failed (the reason is below it).',
+        saved_copy: "The page couldn't be crawled, so an older saved copy is used.",
+        queued: 'Waiting its turn to be crawled.',
+        crawling: 'Being crawled right now.',
+        retrying: 'The crawl failed and will be tried again.',
+        waiting: 'The website asked us to slow down; it will be crawled shortly.'
+    };
+
     function stateBadge(state) {
-        return `<span class="text-xs font-medium px-2 py-0.5 rounded ${crawlStateStyle(state).badge} uppercase tracking-wide whitespace-nowrap">${esc(statusLabel(state))}</span>`;
+        return `<span class="text-xs font-medium px-2 py-0.5 rounded ${crawlStateStyle(state).badge} uppercase tracking-wide whitespace-nowrap" title="${attr(STATE_HELP[state] || '')}">${esc(statusLabel(state))}</span>`;
     }
 
     function statusPill(status) {
         const tone = status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-700';
-        return `<span class="text-xs font-medium px-2 py-0.5 rounded ${tone}">${esc(STATUS_NAMES[status] || status)}</span>`;
+        return `<span class="text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap ${tone}" title="${attr(STATUS_HELP[status] || '')}">${esc(STATUS_NAMES[status] || status)}</span>`;
     }
 
-    function productsText(products) {
-        return (products || []).map(p => PRODUCT_NAMES[p] || p).join(' · ') || '—';
+    function tierPill(tier) {
+        const tone = tier === 'basic' ? 'text-green-800' : 'text-amber-800';
+        return `<span class="whitespace-nowrap ${tone}" title="${attr(TIER_HELP[tier] || '')}">${esc(TIER_NAMES[tier] || tier)}</span>`;
+    }
+
+    // A small ⓘ beside a label: the explanation is a hover (or focus) away
+    function info(text) {
+        return `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full border border-border text-[10px] leading-none font-semibold text-muted-foreground hover:text-foreground hover:border-foreground cursor-help align-middle select-none" tabindex="0" role="img" aria-label="${attr(text)}" title="${attr(text)}">i</span>`;
+    }
+
+    // A brief "Saved" beside what was just saved
+    function flashSaved(el, { below = false } = {}) {
+        if (!el) return;
+        const note = document.createElement('span');
+        note.className = `${below ? 'absolute left-3 bottom-0 text-[11px]' : 'ml-2 text-xs'} font-normal text-green-700 transition-opacity duration-500`;
+        note.textContent = 'Saved';
+        note.setAttribute('role', 'status');
+        el.appendChild(note);
+        setTimeout(() => { note.style.opacity = '0'; }, SAVED_MS);
+        setTimeout(() => note.remove(), SAVED_MS + 600);
+    }
+
+    function productsText(products, empty = 'Not set') {
+        return (products || []).map(p => PRODUCT_NAMES[p] || p).join(' · ') || empty;
+    }
+
+    function plural(n, one, many) {
+        return `${n} ${n === 1 ? one : many}`;
+    }
+
+    function hostOf(url) {
+        try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
+    }
+
+    // An address without its https://www., for the line under a name
+    function shortUrl(url) {
+        return String(url || '').replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
+    }
+
+    // A document's name when it has no title yet (titles come from crawls of
+    // Yotpo guides): the last part of its address, as words. An address that
+    // ends in a number (help-centre article ids) reads as "<site> article <id>".
+    function pageName(url) {
+        try {
+            const u = new URL(url);
+            const host = u.hostname.replace(/^www\./, '');
+            const last = u.pathname.split('/').filter(Boolean).pop() || '';
+            const decoded = decodeURIComponent(last).replace(/\.[a-z]+$/i, '');
+            const id = decoded.match(/^(\d{4,})(?:[-_]|$)/);
+            const words = decoded.replace(/^\d+[-_]?/, '').replace(/[-_]+/g, ' ').trim();
+            if (words) return words[0].toUpperCase() + words.slice(1);
+            return id ? `${host} article ${id[1]}` : host;
+        } catch (e) {
+            return url;
+        }
+    }
+
+    // A help-site address as a link, escaped
+    function siteLink(url) {
+        return url ? `<a href="${attr(url)}" target="_blank" rel="noopener" class="underline hover:text-foreground">${esc(shortUrl(url))}</a>` : '';
+    }
+
+    // What the import found, or didn't, about the platform's own help site
+    // (HTML: the address is a link)
+    function helpSiteHTML(m) {
+        if (!m) return '';
+        if (m.blocked) return `Its help site${m.help_centre ? ` (${siteLink(m.help_centre)})` : ''} blocks automatic reading: add its help articles yourself, labelled Shared.`;
+        if (!m.help_centre) return "Its help site wasn't found: add its help articles yourself, labelled Shared.";
+        if (!m.accepted) return `The articles found on ${siteLink(m.help_centre)} didn't fit: add the right ones yourself, labelled Shared.`;
+        return '';
+    }
+
+    // The import's notes on a suggested link, in words
+    function noteText(note) {
+        if (!note) return '';
+        if (note === 'Yotpo guide linked from the catalog') return 'Yotpo guide';
+        if (note === 'partner page linked from the catalog') return "Platform's own page about Yotpo";
+        if (note.startsWith('renamed from ')) return 'Dead link on yotpo.com; this is its new address';
+        if (note.startsWith('redirected from ')) return 'The yotpo.com link now leads here';
+        return note;
     }
 
     function pager(total, page, perPage, kind) {
         if (total <= perPage) {
+            // An integration's documents: the count is in the heading already
+            if (kind === 'docs') return '';
             return `<div class="mt-3 text-sm text-muted-foreground">${total ? `1–${total} of ${total}` : ''}</div>`;
         }
         const from = (page - 1) * perPage + 1;
@@ -127,17 +255,21 @@
         try {
             data = await getJSON('/admin/crawl-summary');
         } catch (error) {
-            box.innerHTML = `<div class="${card} mb-6 text-sm text-red-700">Could not load the crawl summary: ${esc(error.message)}</div>`;
+            box.innerHTML = `<div class="${card} mb-6 text-sm text-red-700">Could not load the crawl status: ${esc(error.message)}</div>`;
             return;
         }
         const counts = STRIP_STATES.filter(s => data.states[s]);
+        const crawled = data.states.crawled || 0;
+        const dot = '<span class="text-muted-foreground" aria-hidden="true">·</span>';
+        const parts = [`<span><span class="font-medium tabular-nums">${crawled}</span> crawled</span>`]
+            .concat(counts.length
+                ? counts.map(s => `<span class="${s === 'failed' ? 'text-red-700' : ''}" ${s === 'pending' ? `title="${attr('Listed under To do as “not crawled”')}"` : ''}><span class="font-medium tabular-nums">${data.states[s]}</span> ${esc(STRIP_TEXT[s])}</span>`)
+                : ['<span class="text-muted-foreground">nothing waiting</span>']);
         box.innerHTML = `
-            <div class="${card} mb-6">
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-                    <span class="text-sm font-medium text-card-foreground">Crawls</span>
-                    ${counts.length ? counts.map(s => `<span class="inline-flex items-center gap-1.5 text-sm">${stateBadge(s)}<span class="tabular-nums text-card-foreground">${data.states[s]}</span></span>`).join('')
-                        : '<span class="text-sm text-muted-foreground">Nothing queued or failed</span>'}
-                    <span class="text-sm text-muted-foreground">· ${data.states.crawled || 0} crawled</span>
+            <div class="${card} !py-3 mb-6">
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-card-foreground">
+                    <span class="inline-flex items-center gap-1.5 font-semibold">Crawls ${info(HELP.crawls)}</span>
+                    ${parts.join(dot)}
                     <button type="button" class="ml-auto text-sm text-muted-foreground hover:text-foreground" data-crawl-details aria-expanded="${S.crawlDetails}">${S.crawlDetails ? 'Hide details' : 'Details'}</button>
                 </div>
                 ${S.crawlDetails ? crawlDetailsHTML(data) : ''}
@@ -155,9 +287,9 @@
                 <td class="py-2 font-mono text-xs">${esc(h.host)}</td>
                 <td class="py-2 px-3 text-right tabular-nums">${h.queued}</td>
                 <td class="py-2 px-3 text-right tabular-nums ${h.failed ? 'text-red-700 font-medium' : ''}">${h.failed}</td>
-            </tr>`).join('') : `<tr><td colspan="3" class="py-3 text-sm text-muted-foreground">No site has queued or failed crawls.</td></tr>`;
+            </tr>`).join('') : `<tr><td colspan="3" class="py-3 text-sm text-muted-foreground">No website has crawls waiting or failed.</td></tr>`;
         const jobs = !data.queue
-            ? '<p class="text-sm text-muted-foreground">This server crawls when you click Crawl Selected; there is no background queue.</p>'
+            ? '<p class="text-sm text-muted-foreground">On this server a crawl runs while you wait, so nothing queues here.</p>'
             : data.jobs.length ? `
                 <ul class="space-y-2">
                     ${data.jobs.map(j => `
@@ -174,7 +306,7 @@
         return `
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                 <table class="w-full text-sm self-start">
-                    <thead><tr class="border-b border-border"><th class="text-left ${th} !px-0">Site</th><th class="text-right ${th}">Queued</th><th class="text-right ${th}">Failed</th></tr></thead>
+                    <thead><tr class="border-b border-border"><th class="text-left ${th} !px-0">Website</th><th class="text-right ${th}">Waiting</th><th class="text-right ${th}">Failed</th></tr></thead>
                     <tbody>${hosts}</tbody>
                 </table>
                 <div>${jobs}</div>
@@ -202,58 +334,69 @@
     function listShellHTML() {
         const f = S.filters;
         const facets = S.facets || { categories: [], flags: {} };
-        const sel = (key, label, options) => `
-            <select class="${inputCls}" data-filter="${key}" aria-label="${attr(label)}">
+        // Each filter is named like the column it filters
+        const sel = (key, label, options, width) => `
+            <select class="${inputCls} ${width}" data-filter="${key}" aria-label="${attr(label)}">
                 <option value="">${esc(label)}</option>
                 ${options.map(([v, t]) => `<option value="${attr(v)}" ${f[key] === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}
             </select>`;
-        const quick = (k) => `
-            <label class="inline-flex items-center gap-2 text-sm text-card-foreground cursor-pointer">
-                <input type="checkbox" class="w-4 h-4 rounded border-input" data-flag="${k}" ${f.flag === k ? 'checked' : ''}>
-                ${esc(FLAG_NAMES[k])} <span class="text-muted-foreground">(${facets.flags[k] || 0})</span>
-            </label>`;
         return `
-            <div class="flex flex-wrap gap-2 mb-3">
-                <input id="intSearch" value="${attr(f.q)}" placeholder="Search integrations" class="flex-1 min-w-[12rem] ${inputCls}" aria-label="Search integrations">
-                ${sel('category', 'All categories', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]))}
-                ${sel('type', 'All platform types', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]))}
-                ${sel('status', 'Any status', Object.entries(STATUS_NAMES))}
-                ${sel('tier', 'Any coverage', Object.entries(TIER_NAMES))}
+            <div class="flex flex-wrap gap-2 mb-4">
+                <input id="intSearch" value="${attr(f.q)}" placeholder="Search" class="flex-1 min-w-[10rem] ${inputCls}" aria-label="Search integrations by name or category">
+                ${sel('category', 'Category', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]), 'w-36')}
+                ${sel('type', 'Kind of platform', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-40')}
+                ${sel('status', 'In chat?', Object.entries(STATUS_NAMES), 'w-32')}
+                ${sel('tier', 'Documentation', Object.entries(TIER_NAMES), 'w-40')}
+                ${sel('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-32')}
             </div>
-            <div class="flex flex-wrap gap-x-5 gap-y-2 mb-4">${Object.keys(FLAG_NAMES).map(quick).join('')}</div>
             <div id="intTable"></div>`;
     }
 
+    function flagOption(k, n) {
+        return `${FLAG_NAMES[k]} (${n || 0})`;
+    }
+
     function attentionHTML(i) {
+        const waiting = i.not_crawled;
         const parts = [
-            i.documents.unlabelled && `<span class="text-amber-800">${i.documents.unlabelled} unlabelled</span>`,
-            i.failed && `<span class="text-red-700">${i.failed} failed</span>`,
-            i.misses && `<span class="text-red-700">${i.misses} missing</span>`,
-            i.open_proposals && `<span class="text-card-foreground">${i.open_proposals} proposal${i.open_proposals === 1 ? '' : 's'}</span>`,
-            i.type_choices.length && `<span class="text-amber-800" title="Its categories default to ${attr(i.type_choices.map(t => TYPE_NAMES[t]).join(' and '))}">type to check</span>`
+            i.open_proposals && `<span class="text-card-foreground">${plural(i.open_proposals, 'link to review', 'links to review')}</span>`,
+            i.documents.unlabelled && `<span class="text-amber-800">${plural(i.documents.unlabelled, 'needs a product', 'need a product')}</span>`,
+            i.failed && `<span class="text-red-700">${plural(i.failed, 'crawl failed', 'crawls failed')}</span>`,
+            i.misses && `<span class="text-red-700">${plural(i.misses, 'page gone', 'pages gone')}</span>`,
+            waiting && `<span class="text-amber-800" title="${attr(STATE_HELP.pending)}">${waiting} not crawled</span>`,
+            !i.platform_type && '<span class="text-amber-800">set its kind</span>',
+            i.type_choices.length && `<span class="text-amber-800" title="${attr(`yotpo.com lists it under ${i.type_choices.map(t => TYPE_NAMES[t]).join(' and ')}`)}">confirm its kind</span>`,
+            i.tier !== 'basic' && !i.open_proposals && '<span class="text-amber-800">add documents</span>'
         ].filter(Boolean);
-        return parts.join('<span class="text-muted-foreground"> · </span>');
+        // one per line: the column is narrow
+        return parts.join('<br>');
     }
 
     function tableHTML(data) {
         const rows = data.integrations.map(i => `
-            <tr class="border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer" data-open-int="${attr(i.name)}" tabindex="0">
-                <td class="py-2.5 px-3"><div class="font-medium text-card-foreground">${esc(i.display_name)}</div><div class="text-xs text-muted-foreground truncate max-w-[15rem]">${esc(i.category_names.join(' · '))}</div></td>
-                <td class="py-2.5 px-3 text-muted-foreground whitespace-nowrap">${esc(productsText(i.products))}</td>
-                <td class="py-2.5 px-3 text-muted-foreground">${esc(TYPE_NAMES[i.platform_type] || '—')}</td>
+            <tr class="group border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer" data-open-int="${attr(i.name)}" tabindex="0">
+                <td class="py-2.5 px-3"><div class="font-medium text-card-foreground">${esc(i.display_name)}</div><div class="text-xs text-muted-foreground truncate max-w-[12rem]" title="${attr(i.category_names.join(' · '))}">${esc(i.category_names.join(' · '))}</div></td>
+                <td class="relative py-2.5 px-3 whitespace-nowrap cursor-default" data-products-cell>
+                    ${['loyalty', 'reviews'].map(p => `
+                        <label class="inline-flex items-center gap-1.5 mr-3 last:mr-0 text-sm text-card-foreground cursor-pointer">
+                            <input type="checkbox" class="w-4 h-4 rounded border-input" data-row-product="${p}" data-esp="${attr(i.name)}" ${i.products.includes(p) ? 'checked' : ''} aria-label="${attr(`${i.display_name} works with ${PRODUCT_NAMES[p]}`)}">${PRODUCT_NAMES[p]}
+                        </label>`).join('')}
+                </td>
+                <td class="py-2.5 px-3 whitespace-nowrap ${i.platform_type ? 'text-muted-foreground' : 'text-amber-800'}">${esc(TYPE_NAMES[i.platform_type] || 'Not set')}</td>
                 <td class="py-2.5 px-3">${statusPill(i.status)}</td>
-                <td class="py-2.5 px-3 text-muted-foreground whitespace-nowrap">${esc(TIER_NAMES[i.tier])}</td>
-                <td class="py-2.5 px-3 text-right tabular-nums">${i.documents.total}</td>
-                <td class="py-2.5 px-3 text-xs">${attentionHTML(i)}</td>
+                <td class="py-2.5 px-3"><div>${tierPill(i.tier)}</div><div class="text-xs text-muted-foreground whitespace-nowrap">${plural(i.documents.total, 'document', 'documents')}</div></td>
+                <td class="py-2.5 px-3 text-xs min-w-[7rem]">${attentionHTML(i) || '<span class="text-muted-foreground">—</span>'}</td>
+                <td class="py-2.5 pr-3 text-muted-foreground group-hover:text-foreground" aria-hidden="true">›</td>
             </tr>`).join('');
+        const head = (text, help) => `<th class="text-left ${th}"><span class="inline-flex items-center gap-1.5 whitespace-nowrap">${text}${help ? ` ${info(help)}` : ''}</span></th>`;
         return `
             <div class="bg-background border border-border rounded-lg overflow-x-auto">
-                <table class="w-full text-sm min-w-[720px]">
+                <table class="w-full text-sm min-w-[680px]">
                     <thead><tr class="border-b border-border bg-muted">
-                        <th class="text-left ${th}">Integration</th><th class="text-left ${th}">Products</th><th class="text-left ${th}">Platform type</th>
-                        <th class="text-left ${th}">Status</th><th class="text-left ${th}">Coverage</th><th class="text-right ${th}">Documents</th><th class="text-left ${th}">Needs attention</th>
+                        ${head('Integration')}${head('Yotpo products', HELP.products)}${head('Kind of platform', HELP.kind)}
+                        ${head('In chat?', HELP.inChat)}${head('Documentation', HELP.documentation)}${head('To do')}<th class="w-4"></th>
                     </tr></thead>
-                    <tbody>${rows || '<tr><td colspan="7" class="text-center py-8 text-muted-foreground">No integrations match</td></tr>'}</tbody>
+                    <tbody>${rows || '<tr><td colspan="7" class="text-center py-8 text-muted-foreground">No integrations match these filters.</td></tr>'}</tbody>
                 </table>
             </div>
             ${pager(data.total, data.page, data.per_page, 'list')}`;
@@ -263,6 +406,7 @@
         const box = $('espManagement');
         if (!box) return;
         const ticket = ++S.listTicket;
+        if (!box.innerHTML.trim()) box.innerHTML = '<p class="text-sm text-muted-foreground">Loading integrations…</p>';
         let data;
         try {
             data = await getJSON(`/admin/integrations?${qs({ ...S.filters, page: S.page })}`);
@@ -280,22 +424,50 @@
             box.innerHTML = listShellHTML();
             wireListShell(box);
         } else {
-            box.querySelectorAll('[data-flag]').forEach(cb => {
-                const n = data.facets.flags[cb.dataset.flag] || 0;
-                const count = cb.parentElement.querySelector('span');
-                if (count) count.textContent = `(${n})`;
+            box.querySelectorAll('[data-filter="flag"] option[value]:not([value=""])').forEach(o => {
+                o.textContent = flagOption(o.value, data.facets.flags[o.value]);
             });
         }
         const table = $('intTable');
         table.innerHTML = tableHTML(data);
         table.querySelectorAll('[data-open-int]').forEach(row => {
-            row.addEventListener('click', () => openIntegration(row.dataset.openInt));
-            row.addEventListener('keydown', (e) => { if (e.key === 'Enter') openIntegration(row.dataset.openInt); });
+            row.addEventListener('click', (e) => {
+                // The product ticks save on their own; clicking them never opens the row
+                if (e.target.closest('[data-products-cell]')) return;
+                openIntegration(row.dataset.openInt);
+            });
+            row.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.target.closest('[data-products-cell]')) openIntegration(row.dataset.openInt);
+            });
         });
+        table.querySelectorAll('[data-row-product]').forEach(cb => cb.addEventListener('change', () => saveRowProducts(cb)));
         table.querySelectorAll('[data-page="list"]').forEach(b => b.addEventListener('click', () => {
             S.page = Number(b.dataset.to);
             loadList();
         }));
+    }
+
+    // A product tick in the list: saved at once, then the list redraws, since
+    // the products decide whether its documentation counts as ready
+    async function saveRowProducts(cb) {
+        const cell = cb.closest('[data-products-cell]');
+        const boxes = [...cell.querySelectorAll('[data-row-product]')];
+        const products = boxes.filter(x => x.checked).map(x => x.dataset.rowProduct);
+        const esp = cb.dataset.esp;
+        boxes.forEach(x => { x.disabled = true; });
+        let saved = true;
+        try {
+            await sendJSON('PATCH', `/admin/integrations/${encodeURIComponent(esp)}`, { products });
+        } catch (error) {
+            saved = false;
+            cb.checked = !cb.checked;
+            alert(`Could not save: ${error.message}`);
+        }
+        await loadList();
+        if (saved) {
+            const again = [...document.querySelectorAll('#intTable [data-row-product]')].find(x => x.dataset.esp === esp);
+            flashSaved(again?.closest('[data-products-cell]'), { below: true });
+        }
     }
 
     function wireListShell(box) {
@@ -304,15 +476,9 @@
             clearTimeout(timer);
             timer = setTimeout(() => { S.filters.q = e.target.value.trim(); S.page = 1; loadList(); }, 250);
         });
+        // To do (data-filter="flag") is one choice at a time, like the other filters
         box.querySelectorAll('[data-filter]').forEach(s => s.addEventListener('change', () => {
             S.filters[s.dataset.filter] = s.value;
-            S.page = 1;
-            loadList();
-        }));
-        // One quick filter at a time, like the prototype
-        box.querySelectorAll('[data-flag]').forEach(cb => cb.addEventListener('change', () => {
-            S.filters.flag = cb.checked ? cb.dataset.flag : '';
-            box.querySelectorAll('[data-flag]').forEach(o => { if (o !== cb) o.checked = false; });
             S.page = 1;
             loadList();
         }));
@@ -349,80 +515,113 @@
         const meta = [SOURCE_KIND[link.source_kind], (link.supported_plans || []).join(', '), (link.supported_platforms || []).join(', ')]
             .filter(Boolean).join(' · ');
         const missing = link.consecutive_misses >= MISS_LIMIT
-            ? `<span class="block text-xs text-red-700">Missing ${link.consecutive_misses} times — retire or replace it</span>` : '';
+            ? `<span class="block text-xs text-red-700">Page not found in the last ${link.consecutive_misses} crawls: replace or delete it.</span>` : '';
         return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
-                ${readOnly ? '' : `<input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer shrink-0" data-esp="${attr(name)}" value="${attr(link.url)}" ${(isCrawlCandidate(link) || link.needs_backfill) ? 'checked' : ''} aria-label="Select ${attr(link.url)}">`}
+                ${readOnly ? '' : `<input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer shrink-0" data-esp="${attr(name)}" value="${attr(link.url)}" aria-label="Tick ${attr(link.url)}">`}
                 ${stateBadge(link.status)}
-                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)">no backup</span>' : ''}
+                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Its text is not saved in the database yet. Crawl it once (Crawl Selected) to save a copy.">no backup</span>' : ''}
                 <div class="flex-1 min-w-0">
-                    <a href="${attr(link.url)}" target="_blank" rel="noopener" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${esc(link.title || link.url)}</a>
-                    <span class="block text-xs text-muted-foreground truncate">${esc([link.title ? link.url : '', meta].filter(Boolean).join(' · '))}</span>
+                    <a href="${attr(link.url)}" target="_blank" rel="noopener" class="block text-sm text-foreground hover:text-primary hover:underline truncate" title="${attr(link.url)}">${esc(link.title || pageName(link.url))}</a>
+                    <span class="block text-xs text-muted-foreground truncate" title="${attr(link.url)}">${esc([shortUrl(link.url), meta].filter(Boolean).join(' · '))}</span>
                     ${linkDetailHTML(link)}
                     ${missing}
                 </div>
                 ${readOnly ? '' : productPickerHTML(name, link)}
-                ${!readOnly && isCrawlCandidate(link) ? `<button type="button" class="paste-btn px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" data-url="${attr(link.url)}" title="Paste content manually">📋 Paste Content</button>` : ''}
+                ${!readOnly && isCrawlCandidate(link) ? `<button type="button" class="paste-btn px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded whitespace-nowrap" data-url="${attr(link.url)}" title="If the page can't be crawled, paste its text instead">Paste text</button>` : ''}
             </div>`;
     }
 
     function factsHTML(i) {
         const owner = isOwner();
-        const statusButtons = ['active', 'listed', 'archived'].map(s => `
+        const linked = i.catalog_cards.length > 0;
+        // "In chat" is offered only for the kinds whose instructions exist
+        const canChat = (i.in_chat_types || ['messaging']).includes(i.platform_type);
+        const statusButtons = ['active', 'listed', 'archived'].map(s => {
+            const blocked = s === 'active' && !canChat && i.status !== 'active';
+            const why = blocked ? 'Only Email & SMS platforms can be in chat for now.' : STATUS_HELP[s];
+            return `
             <button type="button" role="radio" aria-checked="${s === i.status}" data-set-status="${s}"
-                class="px-2.5 py-1 text-xs font-medium rounded-md ${s === i.status ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'} disabled:cursor-not-allowed"
-                ${owner ? '' : 'disabled'}>${STATUS_NAMES[s]}</button>`).join('');
-        const typeNote = i.type_choices.length
-            ? `<div class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900">
-                   Its categories default to ${esc(i.type_choices.map(t => TYPE_NAMES[t]).join(' and '))}. Pick the type that fits, or keep this one.
-                   <button type="button" class="ml-1 underline font-medium" data-keep-type>Keep ${esc(TYPE_NAMES[i.platform_type] || 'it')}</button>
-               </div>`
-            : i.type_set_by ? `<p class="text-[11px] text-muted-foreground mt-1">Chosen by ${esc(i.type_set_by)}.</p>` : '';
+                class="px-2.5 py-1 text-xs font-medium rounded-md whitespace-nowrap ${s === i.status ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'} disabled:cursor-not-allowed disabled:opacity-50"
+                ${owner && !blocked ? '' : 'disabled'} title="${attr(why)}">${STATUS_NAMES[s]}</button>`;
+        }).join('');
+        // One line under the control: what the current state means, or why it can't change
+        const statusLine = !canChat && i.status !== 'active'
+            ? 'Only Email &amp; SMS platforms can be in chat for now.'
+            : `${esc(STATUS_HELP[i.status] || '')}${owner ? '' : ' Only an owner can change this.'}`;
+        const kindsText = (i.category_kinds || []).filter(c => c.type).map(c => `${c.name}: ${TYPE_NAMES[c.type]}`).join(' · ');
+        const note = (html) => `<div class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-900">${html}</div>`;
+        const typeNote = !i.platform_type
+            ? note('Not set yet: pick the closest kind.')
+            : i.type_choices.length
+            ? note(`<span title="${attr(kindsText)}">A guess: its yotpo.com categories fit more than one kind.</span>
+                   <button type="button" class="mt-1.5 block px-3 py-1 rounded-md bg-background border border-amber-400 font-medium text-amber-900 hover:bg-amber-100" data-keep-type>Confirm ${esc(TYPE_NAMES[i.platform_type])}</button>`)
+            : '';
+        const kindHelp = HELP.kind + (i.type_set_by && !i.type_choices.length
+            ? ` Confirmed by ${i.type_set_by === 'admin password' ? 'an admin' : i.type_set_by}.` : '');
+        const label = (text, help, savedFor) => `<div class="flex items-center gap-1.5 text-sm font-medium text-card-foreground mb-1.5"${savedFor ? ` data-saved-for="${savedFor}"` : ''}>${text}${help ? ` ${info(help)}` : ''}</div>`;
+        const muted = (html) => `<p class="text-xs text-muted-foreground mt-1.5">${html}</p>`;
         return `
-            <div class="${card} space-y-4">
-                <h4 class="text-sm font-semibold text-card-foreground">Catalog facts</h4>
+            <div class="${card} space-y-5">
                 <div>
-                    <div class="text-xs text-muted-foreground mb-1.5">Status ${owner ? '' : '<span class="opacity-70">(owner only)</span>'}</div>
-                    <div class="inline-flex gap-1 p-1 rounded-lg bg-muted border border-border" role="radiogroup" aria-label="Status">${statusButtons}</div>
-                    <p class="text-[11px] text-muted-foreground mt-1">Active is in chat. Listed is not in chat yet. Only Messaging integrations can be active for now.</p>
+                    ${label('In chat?', HELP.inChat)}
+                    <div class="inline-flex flex-wrap gap-1 p-1 rounded-lg bg-muted border border-border" role="radiogroup" aria-label="In chat?">${statusButtons}</div>
+                    ${muted(statusLine)}
                 </div>
                 <div>
-                    <label class="block text-xs text-muted-foreground mb-1.5" for="intType">Platform type</label>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-card-foreground mb-1.5" for="intType" data-saved-for="kind">Kind of platform ${info(kindHelp)}</label>
                     <select id="intType" class="w-full ${inputCls}">
                         ${i.platform_type ? '' : '<option value="" selected disabled>Not set</option>'}
                         ${PLATFORM_TYPES.map(t => `<option value="${t}" ${i.platform_type === t ? 'selected' : ''}>${TYPE_NAMES[t]}</option>`).join('')}
                     </select>
-                    <p class="text-[11px] text-muted-foreground mt-1">Chooses the system prompt. The catalog import set it from the categories.</p>
                     ${typeNote}
                 </div>
                 <div>
-                    <div class="text-xs text-muted-foreground mb-1.5">Products</div>
+                    ${label('Yotpo products', HELP.products, 'products')}
                     <div class="flex gap-4 text-sm">${['loyalty', 'reviews'].map(p => `<label class="flex items-center gap-2"><input type="checkbox" class="w-4 h-4 rounded" data-product="${p}" ${i.products.includes(p) ? 'checked' : ''}>${PRODUCT_NAMES[p]}</label>`).join('')}</div>
+                    ${i.products.length ? '' : muted('None ticked yet, so a guide for either product counts.')}
                 </div>
                 <div>
-                    <div class="text-xs text-muted-foreground mb-1.5">Categories</div>
-                    <div class="flex flex-wrap gap-1">${i.category_names.length ? i.category_names.map(c => `<span class="text-xs px-2 py-0.5 rounded-full bg-background border border-border">${esc(c)}</span>`).join('') : '<span class="text-xs text-muted-foreground">None</span>'}</div>
-                </div>
-                <div>
-                    <div class="text-xs text-muted-foreground mb-1.5">Catalog cards</div>
-                    ${i.catalog_cards.length ? i.catalog_cards.map(c => `<a href="${attr(c.url)}" target="_blank" rel="noopener" class="block font-mono text-xs text-foreground hover:underline py-0.5">${esc(c.slug)} ↗</a>`).join('') : '<span class="text-xs text-muted-foreground">Not in the catalog</span>'}
+                    ${label('On yotpo.com', HELP.yotpoCom)}
+                    ${linked || i.category_names.length ? `
+                        <div class="flex flex-wrap gap-1">${i.category_names.map(c => `<span class="text-xs px-2 py-0.5 rounded-full bg-background border border-border">${esc(c)}</span>`).join('')}</div>
+                        <div class="mt-1.5">${i.catalog_cards.map(c => `<a href="${attr(c.url)}" target="_blank" rel="noopener" class="block text-xs text-foreground hover:underline py-0.5">yotpo.com/integrations/${esc(c.slug)} ↗</a>`).join('')}</div>`
+                        : `<p class="text-xs text-muted-foreground">${esc(NOT_LINKED)}</p>`}
                 </div>
             </div>`;
     }
 
+    // What the AI needs before it can answer well about an integration, as a
+    // checklist from the counts the tier is computed from (coverage_tier).
+    // It names the labels, because that is what is counted.
     function coverageHTML(i) {
         const m = i.mechanics;
-        const functions = m && m.functions && m.functions.length
-            ? `<p class="text-xs text-muted-foreground mt-3"><span class="font-medium text-card-foreground">Partner functions the import found:</span> ${esc(m.functions.map(f => f.name).join(', '))}</p>` : '';
-        const problem = m && m.problem ? `<p class="text-xs text-amber-800 mt-2">${esc(m.problem)}</p>` : '';
+        const wanted = i.products.filter(p => PRODUCT_NAMES[p]);
+        const products = (wanted.length ? wanted : ['loyalty', 'reviews']).map(p => PRODUCT_NAMES[p]).join(' or ');
+        const guides = (wanted.length ? wanted : ['loyalty', 'reviews']).reduce((n, p) => n + (i.indexed[p] || 0), 0);
+        const needsMechanics = i.platform_type === 'messaging';
+        const shared = i.indexed.shared || 0;
+        const ready = i.tier === 'basic';
+        const count = (n) => n ? ` <span class="text-muted-foreground">(${n})</span>` : '';
+        const item = (ok, text, tip, optional = false) => `<li class="flex gap-2" title="${attr(tip)}"><span class="${ok ? 'text-green-700' : optional ? 'text-muted-foreground' : 'text-red-700'} font-bold w-3 shrink-0">${ok ? '✓' : optional ? '○' : '✗'}</span><span>${text}</span></li>`;
+        const searchedFor = m && m.functions && m.functions.length ? ` The yotpo.com import searched its help site for: ${m.functions.map(f => f.name).join(', ')}.` : '';
+        const helpSite = !shared ? helpSiteHTML(m) : '';
+        const lines = [
+            !i.platform_type && '<p class="text-xs text-muted-foreground">Set its kind of platform to see everything it needs.</p>',
+            !ready && i.status === 'active' && '<p class="text-xs text-amber-800">In chat already: answers may be thin until each ✗ is added.</p>',
+            !guides && !i.open_proposals && `<p class="text-xs text-card-foreground">Nothing suggested: find its guide on support.yotpo.com and add the link.</p>`,
+            helpSite && `<p class="text-xs text-amber-800">${helpSite}</p>`
+        ].filter(Boolean).join('');
         return `
             <div class="${card}">
-                <h4 class="text-sm font-semibold text-card-foreground mb-2">Coverage: ${esc(TIER_NAMES[i.tier])}</h4>
-                <p class="text-xs text-muted-foreground">${i.platform_type === 'messaging'
-                    ? 'Basic needs a labelled, indexed Yotpo guide for a product the catalog lists, and a Shared document on the platform\'s own mechanics.'
-                    : 'Basic needs a labelled, indexed Yotpo guide for a product the catalog lists.'}</p>
-                ${functions}${problem}
-                ${i.open_proposals ? `<button type="button" class="mt-3 text-sm font-medium text-primary hover:underline" data-review-proposals>Review ${i.open_proposals} open proposal${i.open_proposals === 1 ? '' : 's'} →</button>` : ''}
+                <h4 class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground mb-3">Documentation: ${tierPill(i.tier)} ${info(`${HELP.documentation} Only crawled documents count.`)}</h4>
+                <ul class="space-y-1.5 text-xs text-card-foreground">
+                    ${item(guides > 0, `Yotpo guide, labelled ${esc(products)}${count(guides)}`, "Usually Yotpo's setup guide for it.")}
+                    ${item(shared > 0, `${needsMechanics ? "Platform's" : 'Optional: platform\'s'} own help, labelled Shared${count(shared)}`,
+                        `Its help articles on the features the Yotpo guide uses, such as how its flows or triggers work.${searchedFor}`, !needsMechanics)}
+                </ul>
+                ${lines ? `<div class="mt-3 space-y-2">${lines}</div>` : ''}
+                ${i.open_proposals ? `<button type="button" class="mt-3 ${btnPrimary} !px-3 !py-1.5" data-review-proposals>Review ${plural(i.open_proposals, 'suggested link', 'suggested links')} →</button>` : ''}
             </div>`;
     }
 
@@ -430,9 +629,9 @@
         const box = $('espManagement');
         const name = S.open;
         if (!box || !name) return;
-        let info, docs;
+        let detail, docs;
         try {
-            [info, docs] = await Promise.all([
+            [detail, docs] = await Promise.all([
                 getJSON(`/admin/integrations/${encodeURIComponent(name)}`),
                 getJSON(`/admin/integrations/${encodeURIComponent(name)}/documents?page=${S.docPage}`)
             ]);
@@ -443,29 +642,33 @@
             return;
         }
         if (S.open !== name) return;
-        const i = info.integration;
+        const i = detail.integration;
         // An archived integration's rows are shown, but not selectable: the
         // document routes don't find archived integrations
         const rows = docs.documents.map(link => docRowHTML(name, link, i.status === 'archived')).join('');
         box.innerHTML = `
             <button type="button" class="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4" data-back>← All integrations</button>
             <h4 class="text-base font-semibold text-card-foreground mb-4 flex flex-wrap items-center gap-2">
-                <span>${esc(i.display_name)} (${docs.total} document${docs.total === 1 ? '' : 's'})</span>
-                <span class="unlabelled-count"></span>
+                <span>${esc(i.display_name)}</span>
                 <button type="button" class="text-muted-foreground hover:text-primary transition-colors" data-rename title="Rename ${attr(i.display_name)}" aria-label="Rename ${attr(i.display_name)}">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
                 </button>
-                <span class="text-xs font-normal text-muted-foreground font-mono">${esc(i.name)}</span>
+                ${statusPill(i.status)}
             </h4>
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 min-w-0">
                     <div class="${card}">
-                        <div class="space-y-2 mb-4" id="links-${attr(name)}">
-                            ${rows || `<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No documents yet. Approve this integration's proposals, or add a link below.</div>`}
+                        <div class="flex flex-wrap items-center gap-2 mb-3">
+                            <h4 class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">Documents (${docs.total}) ${info(HELP.documents)}</h4>
+                            ${docs.total ? '<span class="unlabelled-count"></span>' : ''}
+                            ${docs.total && i.status !== 'archived' ? '<span class="ml-auto text-xs text-muted-foreground">Tick documents to crawl or delete them.</span>' : ''}
                         </div>
-                        ${i.status === 'archived' ? `<p class="text-sm text-muted-foreground">Archived: its documents can't be added, crawled or labelled. An owner can set it back to Listed.</p>` : `
+                        <div class="space-y-2 mb-4" id="links-${attr(name)}">
+                            ${rows || '<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No documents yet.</div>'}
+                        </div>
+                        ${i.status === 'archived' ? '<p class="text-sm text-muted-foreground">Hidden, so its documents can\'t be changed. An owner can set it to Not in chat yet.</p>' : `
                         <div class="flex gap-2">
-                            <input type="text" placeholder="Add new link URL" id="newLink-${attr(name)}" class="flex-1 min-w-0 ${inputCls}" aria-label="New link URL">
+                            <input type="text" placeholder="Paste a link to add" id="newLink-${attr(name)}" class="flex-1 min-w-0 ${inputCls}" aria-label="New link URL">
                             ${newLinkProductHTML(`newLinkProduct-${name}`)}
                             <button type="button" class="${btnPrimary}" data-add-link>Add Link</button>
                         </div>
@@ -474,8 +677,8 @@
                     </div>
                 </div>
                 <div class="space-y-4">
-                    ${factsHTML(i)}
                     ${coverageHTML(i)}
+                    ${factsHTML(i)}
                 </div>
             </div>`;
         wireDetail(box, i);
@@ -504,30 +707,34 @@
         box.querySelectorAll('.link-checkbox').forEach(cb => cb.addEventListener('change', updateGlobalBulkActions));
         updateGlobalBulkActions();
 
-        $('intType').addEventListener('change', (e) => patch(name, { platform_type: e.target.value }));
-        box.querySelector('[data-keep-type]')?.addEventListener('click', () => patch(name, { platform_type: i.platform_type }));
+        $('intType').addEventListener('change', (e) => patch(name, { platform_type: e.target.value }, { flash: 'kind' }));
+        box.querySelector('[data-keep-type]')?.addEventListener('click', () => patch(name, { platform_type: i.platform_type }, { flash: 'kind' }));
         box.querySelectorAll('[data-product]').forEach(cb => cb.addEventListener('change', () => {
             const products = [...box.querySelectorAll('[data-product]:checked')].map(x => x.dataset.product);
-            patch(name, { products });
+            patch(name, { products }, { flash: 'products' });
         }));
         box.querySelectorAll('[data-set-status]').forEach(b => b.addEventListener('click', () => {
             const status = b.dataset.setStatus;
             if (status === i.status) return;
-            const what = status === 'active' ? 'put it into chat for every user'
-                : status === 'archived' ? 'hide it everywhere' : 'take it out of chat';
-            if (!confirm(`Make ${i.display_name} ${STATUS_NAMES[status]}? This will ${what}.`)) return;
+            const question = status === 'active' ? `Put ${i.display_name} in chat? Everyone using the chat will be able to pick it.`
+                : status === 'archived' ? `Hide ${i.display_name}? It disappears from chat and from these lists. Its documents are kept.`
+                : `Set ${i.display_name} to "Not in chat yet"?${i.status === 'active' ? ' People will no longer be able to pick it in chat.' : ''}`;
+            if (!confirm(question)) return;
             patch(name, { status }, { sidebar: true });
         }));
     }
 
-    async function patch(name, body, { sidebar = false } = {}) {
+    async function patch(name, body, { sidebar = false, flash = '' } = {}) {
+        let saved = true;
         try {
             await sendJSON('PATCH', `/admin/integrations/${encodeURIComponent(name)}`, body);
             if (sidebar && typeof reloadSidebar === 'function') reloadSidebar();
         } catch (error) {
+            saved = false;
             alert(`Could not save: ${error.message}`);
         }
-        loadDetail();
+        await loadDetail();
+        if (saved && flash && S.open === name) flashSaved($('espManagement')?.querySelector(`[data-saved-for="${flash}"]`));
     }
 
     async function rename(i) {
@@ -540,11 +747,9 @@
 
     function headerHint(p) {
         if (p.source === 'mechanics') {
-            return `${p.partner_function ? `<span class="font-medium text-card-foreground">${esc(p.partner_function)}</span>: ` : ''}${esc(p.reason || p.note || '')}`;
+            return `${p.partner_function ? `Explains <span class="font-medium text-card-foreground">${esc(p.partner_function)}</span>: ` : ''}${esc(p.reason || p.note || '')}`;
         }
-        const label = p.suggested_label === 'loyalty' || p.suggested_label === 'reviews'
-            ? `Yotpo header: ${PRODUCT_NAMES[p.suggested_label]}` : 'No product from a Yotpo header';
-        return `${esc(label)}${p.note ? ` · ${esc(p.note)}` : ''}`;
+        return esc(noteText(p.note));
     }
 
     function proposalRowHTML(p) {
@@ -553,9 +758,12 @@
         const label = P.labels[p.id] || '';
         const prefilled = label && label === p.suggested_label && !P.touched.has(p.id);
         const tone = !label ? 'border-amber-400 text-amber-800' : prefilled ? 'border-dashed border-ring' : 'border-input';
+        const said = p.suggested_label === 'loyalty' || p.suggested_label === 'reviews'
+            ? ` The page says it is about ${PRODUCT_NAMES[p.suggested_label]}.` : '';
+        const tip = `${PRODUCT_LABEL_HELP}${said}${prefilled ? ' Filled in for you (dashed): check it.' : ''}`;
         const picker = `
-            <select class="w-28 shrink-0 text-xs px-2 py-1 rounded bg-background cursor-pointer border ${tone}" data-prop-label="${attr(p.id)}" aria-label="Yotpo product for ${attr(p.url)}" title="${attr(PRODUCT_LABEL_HELP)}">
-                <option value="" ${!label ? 'selected' : ''} disabled>Product…</option>
+            <select class="w-28 shrink-0 text-xs px-2 py-1 rounded bg-background cursor-pointer border ${tone}" data-prop-label="${attr(p.id)}" aria-label="Yotpo product for ${attr(p.url)}" title="${attr(tip)}">
+                <option value="" ${!label ? 'selected' : ''} disabled>Pick product</option>
                 ${Object.entries(PRODUCT_LABELS).map(([v, t]) => `<option value="${v}" ${label === v ? 'selected' : ''}>${t}</option>`).join('')}
             </select>`;
         const decided = open ? '' : `<div class="pl-6 mt-1.5 text-xs text-muted-foreground">${esc(p.state === 'approved' ? 'Approved' : 'Rejected')} by ${esc(p.decided_by || '—')}${p.decided_at ? ` · ${esc(new Date(String(p.decided_at).replace(' ', 'T')).toLocaleString())}` : ''}${p.decision_note ? ` · “${esc(p.decision_note)}”` : ''}</div>`;
@@ -563,13 +771,13 @@
             <div class="p-2 bg-background rounded-lg border ${P.sel.has(p.id) ? 'border-primary' : 'border-border'} transition-colors">
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
                     ${open ? `<input type="checkbox" class="w-4 h-4 rounded border-input cursor-pointer shrink-0" data-prop-sel="${attr(p.id)}" ${P.sel.has(p.id) ? 'checked' : ''} aria-label="Select ${attr(p.url)}">` : ''}
-                    <span class="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase tracking-wide whitespace-nowrap">${esc(SOURCE_NAMES[p.source] || p.source)}</span>
+                    ${p.source === 'catalog' ? '' : `<span class="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-700 uppercase tracking-wide whitespace-nowrap">${esc(SOURCE_NAMES[p.source] || p.source)}</span>`}
                     <div class="flex-1 min-w-0">
-                        <a href="${attr(p.url)}" target="_blank" rel="noopener" class="block text-sm text-foreground hover:underline truncate">${esc(p.title || p.url)}</a>
-                        <span class="block text-xs text-muted-foreground truncate" title="${attr([p.url, p.reason || p.note].filter(Boolean).join(' · '))}">${p.title ? `${esc(p.url)} · ` : ''}${headerHint(p)}</span>
+                        <a href="${attr(p.url)}" target="_blank" rel="noopener" class="block text-sm text-foreground hover:underline truncate" title="${attr(p.url)}">${esc(p.title || pageName(p.url))}</a>
+                        <span class="block text-xs text-muted-foreground truncate" title="${attr([p.url, p.reason || p.note].filter(Boolean).join(' · '))}">${[esc(shortUrl(p.url)), headerHint(p)].filter(Boolean).join(' · ')}</span>
                     </div>
                     ${open ? `${picker}
-                        <button type="button" class="px-3 py-1 rounded text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed" data-prop-approve="${attr(p.id)}" ${label ? '' : 'disabled title="Pick a product first"'}>Approve</button>
+                        <button type="button" class="px-3 py-1 rounded text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed" data-prop-approve="${attr(p.id)}" ${label ? '' : 'disabled title="Pick its product first"'}>Approve</button>
                         <button type="button" class="px-3 py-1 rounded text-xs font-medium text-muted-foreground hover:text-destructive" data-prop-reject="${attr(p.id)}">Reject</button>` : ''}
                 </div>
                 ${decided}
@@ -585,7 +793,8 @@
             byEsp[key].push(p);
         });
         if (!groups.length) {
-            return `<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No ${esc(S.prop.state)} proposals${S.prop.source ? ` from ${esc(SOURCE_NAMES[S.prop.source] || S.prop.source)}` : ''}.</div>`;
+            const what = { open: 'Nothing to review', approved: 'Nothing approved yet', rejected: 'Nothing rejected yet' }[S.prop.state];
+            return `<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">${esc(what)}${S.prop.source ? ` from "${esc(SOURCE_NAMES[S.prop.source] || S.prop.source)}"` : ''}.</div>`;
         }
         return groups.map(key => {
             const info = data.integrations[key] || { display_name: 'No integration', status: '', products: [], functions: [] };
@@ -593,14 +802,15 @@
             const openIds = rows.filter(p => p.state === 'open').map(p => p.id);
             const allSelected = openIds.length && openIds.every(id => S.prop.sel.has(id));
             const functions = info.functions && info.functions.length && rows.some(p => p.source === 'mechanics')
-                ? `<p class="text-xs text-muted-foreground mb-3"><span class="font-medium text-card-foreground">Partner functions the model found:</span> ${esc(info.functions.map(f => f.name).join(', '))}${info.help_centre ? ` · from ${esc(info.help_centre)}` : ''}</p>` : '';
+                ? `<p class="text-xs text-muted-foreground mb-3" title="${attr("The features its Yotpo guide uses. The yotpo.com import searched its help site for articles on them.")}">Help articles on: ${esc(info.functions.map(f => f.name).join(', '))}${info.help_centre ? ` · ${siteLink(info.help_centre)}` : ''}</p>` : '';
             return `
                 <div class="${card}">
                     <div class="flex flex-wrap items-center gap-2 mb-3">
                         ${openIds.length ? `<input type="checkbox" class="w-4 h-4 rounded border-input cursor-pointer" data-prop-group="${attr(key)}" ${allSelected ? 'checked' : ''} aria-label="Select all for ${attr(info.display_name)}">` : ''}
                         <h4 class="text-base font-semibold text-card-foreground">${esc(info.display_name)}</h4>
-                        <span class="text-sm text-muted-foreground">· ${esc(STATUS_NAMES[info.status] || '')}${info.products.length ? ` · ${esc(productsText(info.products))} in the catalog` : ''}</span>
-                        ${key ? `<button type="button" class="ml-auto text-sm text-muted-foreground hover:text-foreground" data-open-esp="${attr(key)}">Open integration</button>` : ''}
+                        ${info.status ? statusPill(info.status) : ''}
+                        ${info.products.length ? `<span class="text-xs text-muted-foreground">works with ${esc(productsText(info.products))}</span>` : ''}
+                        ${key ? `<button type="button" class="ml-auto text-sm text-muted-foreground hover:text-foreground" data-open-esp="${attr(key)}">Open →</button>` : ''}
                     </div>
                     ${functions}
                     <div class="space-y-2">${rows.map(proposalRowHTML).join('')}</div>
@@ -612,13 +822,13 @@
         if (!rows || !rows.length) return '';
         return `
             <div class="border-b border-border pb-6 mb-6">
-                <h3 class="text-lg font-semibold text-card-foreground mb-2">Partner Articles to Pick by Hand</h3>
-                <p class="text-sm text-muted-foreground mb-4">The import could not choose the partner's own articles for these integrations. Open one and add the articles on the functions its Yotpo guides use, with Add Link.</p>
+                <h3 class="text-lg font-semibold text-card-foreground mb-1">Help Articles to Add by Hand</h3>
+                <p class="text-sm text-muted-foreground mb-4">The yotpo.com import couldn't suggest these platforms' own help. Add it on each one's page, labelled Shared.</p>
                 <div class="${card} space-y-2">
                     ${rows.map(r => `
                         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 bg-background rounded-lg border border-border">
                             <span class="font-medium text-sm text-card-foreground w-40 shrink-0 truncate">${esc(r.display_name)}</span>
-                            <span class="flex-1 min-w-0 text-xs text-muted-foreground truncate" title="${attr(r.why || '')}">${esc(NEEDS_PERSON[r.kind])}${r.help_centre ? ` · ${esc(r.help_centre)}` : ''}${r.why ? ` · ${esc(r.why)}` : ''}</span>
+                            <span class="flex-1 min-w-0 text-xs text-muted-foreground truncate" title="${attr(r.help_centre || '')}">${esc(NEEDS_PERSON[r.kind] || '')}${r.help_centre ? `: ${siteLink(r.help_centre)}` : ''}</span>
                             <button type="button" class="${btnOutline} !text-xs" data-open-esp="${attr(r.esp)}">Open</button>
                         </div>`).join('')}
                 </div>
@@ -629,17 +839,17 @@
         if (!last) {
             return `
                 <div>
-                    <h3 class="text-lg font-semibold text-card-foreground mb-2">Last Catalog Import</h3>
-                    <p class="text-sm text-muted-foreground">No import has been applied yet. An owner runs <code class="font-mono">scripts/import_catalog.py</code>.</p>
+                    <h3 class="text-lg font-semibold text-card-foreground mb-1">The yotpo.com import</h3>
+                    <p class="text-sm text-muted-foreground">Reads yotpo.com/integrations, adds missing integrations and suggests their links. Not run yet. Leo runs it (<code class="font-mono">scripts/import_catalog.py</code>).</p>
                 </div>`;
         }
         const c = last.counts || {};
         return `
             <div>
-                <h3 class="text-lg font-semibold text-card-foreground mb-2">Last Catalog Import</h3>
-                <p class="text-sm text-muted-foreground mb-4">Applied ${esc(last.applied_at || '')} · ${esc(String(last.cards || 0))} catalog cards · ${esc(String(c.created || 0))} integrations created · ${esc(String(c.proposals || 0))} proposals added.</p>
+                <h3 class="text-lg font-semibold text-card-foreground mb-1">The yotpo.com import</h3>
+                <p class="text-sm text-muted-foreground mb-4">Reads yotpo.com/integrations, adds missing integrations and suggests the links above. Last run ${esc(last.applied_at || '')}: ${esc(String(last.cards || 0))} pages read, ${esc(String(c.created || 0))} integrations added, ${esc(String(c.proposals || 0))} links suggested.</p>
                 <details class="${card}">
-                    <summary class="text-sm text-muted-foreground hover:text-foreground cursor-pointer">View import report</summary>
+                    <summary class="text-sm text-muted-foreground hover:text-foreground cursor-pointer">Technical report (for developers)</summary>
                     <pre class="mt-3 text-xs font-mono bg-background border border-border rounded-lg p-3 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[32rem]">${esc(last.report || '')}</pre>
                 </details>
             </div>`;
@@ -656,7 +866,7 @@
                 getJSON('/admin/catalog-import')
             ]);
         } catch (error) {
-            box.innerHTML = `<div class="text-sm text-red-700">Could not load the proposals: ${esc(error.message)}</div>`;
+            box.innerHTML = `<div class="text-sm text-red-700">Could not load the suggested links: ${esc(error.message)}</div>`;
             return;
         }
         P.rows = data.proposals;
@@ -675,15 +885,15 @@
         const espName = P.esp ? (data.integrations[P.esp]?.display_name || P.esp) : '';
         box.innerHTML = `
             <div class="border-b border-border pb-6 mb-6">
-                <h3 class="text-lg font-semibold text-card-foreground mb-2">Document Proposals</h3>
-                <p class="text-sm text-muted-foreground mb-4">Links found by the catalog import. Nothing reaches the knowledge base until it is approved with a product label. A dashed label was pre-filled from the page's Yotpo header, or as Shared for a partner article: check it before approving. A rejected link is not proposed again.</p>
+                <h3 class="flex items-center gap-1.5 text-lg font-semibold text-card-foreground mb-1">Suggested Links ${info(HELP.suggested)}</h3>
+                <p class="text-sm text-muted-foreground mb-4">Open each link, pick its product, then Approve. Rejected links aren't suggested again.</p>
                 <div class="flex flex-wrap items-center gap-2 mb-4">
-                    <select class="${inputCls}" data-prop-filter="state" aria-label="State">
-                        ${['open', 'approved', 'rejected'].map(s => `<option value="${s}" ${P.state === s ? 'selected' : ''}>${s[0].toUpperCase() + s.slice(1)} (${data.counts[s] || 0})</option>`).join('')}
+                    <select class="${inputCls}" data-prop-filter="state" aria-label="Which links">
+                        ${[['open', 'To review'], ['approved', 'Approved'], ['rejected', 'Rejected']].map(([s, t]) => `<option value="${s}" ${P.state === s ? 'selected' : ''}>${t} (${data.counts[s] || 0})</option>`).join('')}
                     </select>
-                    <select class="${inputCls}" data-prop-filter="source" aria-label="Source">
-                        <option value="">All sources</option>
-                        ${Object.entries(SOURCE_NAMES).map(([v, t]) => `<option value="${v}" ${P.source === v ? 'selected' : ''}>${t}${data.sources[v] ? ` (${data.sources[v]})` : ''}</option>`).join('')}
+                    <select class="${inputCls}" data-prop-filter="source" aria-label="Where they came from">
+                        <option value="">From anywhere</option>
+                        ${Object.entries(SOURCE_NAMES).map(([v, t]) => `<option value="${v}" ${P.source === v ? 'selected' : ''}>${t} (${data.sources[v] || 0})</option>`).join('')}
                     </select>
                     ${P.esp ? `<span class="inline-flex items-center gap-2 text-sm bg-muted px-3 py-1 rounded-full">${esc(espName)} <button type="button" class="text-muted-foreground hover:text-foreground" data-clear-esp aria-label="Show every integration">✕</button></span>` : ''}
                     <span class="flex-1"></span>
@@ -706,7 +916,7 @@
         const needLabel = sel.filter(id => !P.labels[id]).length;
         bar.innerHTML = sel.length ? `
             <span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-medium text-sm">${sel.length} selected</span>
-            ${needLabel ? `<span class="text-xs text-amber-800">${needLabel} still need${needLabel === 1 ? 's' : ''} a label</span>` : ''}
+            ${needLabel ? `<span class="text-xs text-amber-800">${needLabel} still need${needLabel === 1 ? 's' : ''} a product picked</span>` : ''}
             <button type="button" class="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed" data-bulk-approve ${needLabel ? 'disabled' : ''}>Approve Selected</button>
             <button type="button" class="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-lg font-medium text-sm" data-bulk-reject>Reject Selected</button>` : '';
         bar.querySelector('[data-bulk-approve]')?.addEventListener('click', () => approve(sel));
@@ -782,10 +992,10 @@
                 .map(r => `${r.url || r.id} — ${r.error || r.warning}`);
             const queued = data.results.filter(r => r.queued).length;
             ids.forEach(id => P.sel.delete(id));
-            let message = `Approved ${data.approved} of ${items.length}.`;
-            if (queued) message += ` ${queued} queued for crawling.`;
-            else if (data.approved) message += ' Crawl them from the integration\'s page.';
-            if (problems.length) message += `\n\nNot approved or not queued:\n${problems.join('\n')}`;
+            let message = `Approved ${data.approved} of ${items.length}. They are now documents of their integration.`;
+            if (queued) message += ` ${queued} will be crawled automatically.`;
+            else if (data.approved) message += ' Open the integration and press Crawl Selected to crawl them.';
+            if (problems.length) message += `\n\nNeeds a look:\n${problems.join('\n')}`;
             alert(message);
         } catch (error) {
             alert(`Could not approve: ${error.message}`);
@@ -794,7 +1004,7 @@
     }
 
     async function reject(ids) {
-        const note = prompt(`Reject ${ids.length} link${ids.length === 1 ? '' : 's'}? They will not be proposed again.\n\nOptional note (why):`, '');
+        const note = prompt(`Reject ${plural(ids.length, 'link', 'links')}? ${ids.length === 1 ? 'It' : 'They'} won't be suggested again.\n\nWhy? (optional, for whoever looks later)`, '');
         if (note === null) return;
         try {
             await sendJSON('POST', '/admin/proposals/reject', { ids, note });

@@ -487,7 +487,10 @@ def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:
                            (MECHANICS_KEY, notes),
                            (REPORT_KEY, {'applied_at': time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime()),
                                          'cards': plan['snapshot']['cards'],
-                                         'counts': counts, 'report': render_report(plan)})):
+                                         'counts': counts,
+                                         # written by the dry run; this is what was applied
+                                         'report': render_report(plan).replace(
+                                             '# Catalog import: dry run', '# Catalog import: applied', 1)})):
             store.q("INSERT INTO app_settings (key, value) VALUES (%s, %s) "
                     "ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
                     (key, js(value)), fetch=False)
