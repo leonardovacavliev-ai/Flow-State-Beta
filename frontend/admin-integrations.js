@@ -13,22 +13,17 @@
 
 (function () {
     const PLATFORM_TYPES = ['messaging', 'storefront', 'service', 'data', 'content'];
-    // What the admin shows for each internal value. The words are chosen so
-    // nobody needs to know the code: plain, and never the same word for two
-    // different things (the database's 'listed' status and the plan's
-    // 'Listed' coverage tier both used to read "Listed").
+    // What the admin shows for each internal value: plain words, so nobody
+    // needs to know the code.
     const TYPE_NAMES = { messaging: 'Email & SMS', storefront: 'Store & checkout', service: 'Customer service', data: 'Data & automation', content: 'Reviews & content' };
-    const STATUS_NAMES = { active: 'In chat', listed: 'Not in chat yet', archived: 'Hidden' };
+    // Two states (Leo, 2026-10-15): in chat, or admin only. A row archived by
+    // older code reads "Not in chat" and is read-only until set to it.
+    const STATUS_NAMES = { active: 'In chat', listed: 'Not in chat', archived: 'Not in chat' };
     // One short line each: shown under the In chat? control and as tooltips
     const STATUS_HELP = {
         active: 'Anyone using the chat can pick it.',
-        listed: 'Not offered in chat. Get its documents ready first.',
-        archived: 'Removed from chat and from this list (filter for Hidden to find it). Its documents are kept.'
-    };
-    const TIER_NAMES = { basic: 'Ready', listed: 'Missing documents' };
-    const TIER_HELP = {
-        basic: 'It has the crawled documents the AI needs.',
-        listed: 'The AI lacks documents to answer well. Open it to see which.'
+        listed: 'Only admins see it, here. Prepare its documents before it goes into chat.',
+        archived: 'Archived by an older version: set it to Not in chat to work on its documents.'
     };
     const PRODUCT_NAMES = { loyalty: 'Loyalty', reviews: 'Reviews' };
     const SOURCE_KIND = { yotpo_support: 'Yotpo guide', yotpo_developer: 'Yotpo developer docs', partner: "Platform's own page", pasted: 'Pasted' };
@@ -60,10 +55,9 @@
     // The answers to "what is this?", one hover away (the ⓘ beside a label)
     const HELP = {
         crawls: "Crawling reads a document's page and saves its text for the AI. Only crawled documents are used.",
-        products: "Which Yotpo products it works with; unticked means it doesn't. They decide which documents it needs. The yotpo.com import ticks them from yotpo.com/integrations; change them if they're wrong.",
-        kind: 'Picks the instructions the AI follows for it, and which documents it needs. Only Email & SMS works in chat for now.',
-        inChat: 'In chat: anyone using the chat can pick it. Not in chat yet: not offered in chat while its documents are prepared. Hidden: removed from chat and from this list. Only an owner changes this.',
-        documentation: 'Ready: it has the crawled documents the AI needs. Missing documents: open it to see which.',
+        products: "Which Yotpo products it works with. Ticked automatically when it has a document labelled with that product; the yotpo.com import ticks them too. Tick the others by hand.",
+        kind: 'Picks the instructions the AI follows for it. Only Email & SMS works in chat for now.',
+        inChat: 'In chat: anyone using the chat can pick it. Not in chat: only admins see it, here. Only an owner changes this.',
         yotpoCom: 'Where yotpo.com/integrations lists it, and under which categories. The yotpo.com import links these.',
         documents: "What the AI reads about it. Each needs a product: Loyalty, Reviews, or Shared (the platform's own help, true for both).",
         suggested: 'Links the yotpo.com import found for each integration. None is used until you approve it.'
@@ -80,7 +74,7 @@
     const btnOutline = 'px-3 py-1 border border-input bg-background text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 
     const S = {
-        filters: { q: '', category: '', type: '', status: '', tier: '', flag: '' },
+        filters: { q: '', category: '', type: '', status: '', flag: '' },
         page: 1,
         open: null,            // the integration whose page is shown, or null for the list
         docPage: 1,
@@ -133,22 +127,126 @@
     };
 
     function stateBadge(state) {
-        return `<span class="text-xs font-medium px-2 py-0.5 rounded ${crawlStateStyle(state).badge} uppercase tracking-wide whitespace-nowrap" title="${attr(STATE_HELP[state] || '')}">${esc(statusLabel(state))}</span>`;
+        return `<span class="text-xs font-medium px-2 py-0.5 rounded ${crawlStateStyle(state).badge} uppercase tracking-wide whitespace-nowrap" ${tip(STATE_HELP[state])}>${esc(statusLabel(state))}</span>`;
     }
 
     function statusPill(status) {
         const tone = status === 'active' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-700';
-        return `<span class="text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap ${tone}" title="${attr(STATUS_HELP[status] || '')}">${esc(STATUS_NAMES[status] || status)}</span>`;
+        return `<span class="text-xs font-medium px-2 py-0.5 rounded whitespace-nowrap ${tone}" ${tip(STATUS_HELP[status])}>${esc(STATUS_NAMES[status] || status)}</span>`;
     }
 
-    function tierPill(tier) {
-        const tone = tier === 'basic' ? 'text-green-800' : 'text-amber-800';
-        return `<span class="whitespace-nowrap ${tone}" title="${attr(TIER_HELP[tier] || '')}">${esc(TIER_NAMES[tier] || tier)}</span>`;
+    // A product box. Ticked because it has documents with that label: locked,
+    // since unticking would be undone by those documents. Not `disabled` (the
+    // browser greys that out until it reads as unticked): a click is
+    // cancelled and shows why (wireTips)
+    function productBox(i, p, dataAttr) {
+        const fromDocs = (i.products_from_documents || []).includes(p);
+        return `
+            <label class="inline-flex items-center gap-1.5 mr-3 last:mr-0 text-sm text-card-foreground ${fromDocs ? 'cursor-help' : 'cursor-pointer'}" ${fromDocs ? tip(`Ticked because it has documents labelled ${PRODUCT_NAMES[p]}.`) : ''}>
+                <input type="checkbox" class="w-4 h-4 rounded border-input ${fromDocs ? 'cursor-help' : ''}" ${dataAttr}="${p}" data-esp="${attr(i.name)}" ${i.products.includes(p) ? 'checked' : ''} ${fromDocs ? 'data-locked="1" aria-disabled="true"' : ''} aria-label="${attr(`${i.display_name} works with ${PRODUCT_NAMES[p]}`)}">${PRODUCT_NAMES[p]}
+            </label>`;
     }
 
-    // A small ⓘ beside a label: the explanation is a hover (or focus) away
+    // An explanation shown in the admin's own popup (wireTips below), not the
+    // browser's title tooltip: that one appears late or never, and not on a
+    // click. Empty text adds nothing.
+    function tip(text) {
+        return text ? `data-tip="${attr(text)}"` : '';
+    }
+
+    // A small ⓘ beside a label: hover, focus or click it for the explanation
     function info(text) {
-        return `<span class="inline-flex items-center justify-center w-4 h-4 rounded-full border border-border text-[10px] leading-none font-semibold text-muted-foreground hover:text-foreground hover:border-foreground cursor-help align-middle select-none" tabindex="0" role="img" aria-label="${attr(text)}" title="${attr(text)}">i</span>`;
+        return `<button type="button" class="info-tip inline-flex items-center justify-center w-4 h-4 rounded-full border border-border text-[10px] leading-none font-semibold text-muted-foreground hover:text-foreground hover:border-foreground cursor-help align-middle select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring" ${tip(text)} aria-label="${attr(text)}">i</button>`;
+    }
+
+    // One popup for every [data-tip] in the admin panel. Hover or focus
+    // shows it; a click on an ⓘ keeps it open until a click elsewhere,
+    // Escape, or scrolling. Its text is set with textContent.
+    function wireTips() {
+        const modal = $('adminModal');
+        if (!modal || modal.dataset.tipsWired) return;
+        modal.dataset.tipsWired = '1';
+        const pop = document.createElement('div');
+        pop.id = 'adminTip';
+        pop.setAttribute('role', 'tooltip');
+        pop.className = 'hidden fixed max-w-xs rounded-md bg-gray-900 text-white text-xs leading-snug px-2.5 py-1.5 shadow-lg pointer-events-none';
+        pop.style.zIndex = '70';
+        document.body.appendChild(pop);
+        let shownFor = null;
+        let pinned = false;
+        let timer = null;
+
+        const place = (el) => {
+            const r = el.getBoundingClientRect();
+            const w = pop.offsetWidth;
+            const h = pop.offsetHeight;
+            const left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+            const below = r.bottom + 6;
+            pop.style.left = `${left}px`;
+            pop.style.top = `${below + h > window.innerHeight - 8 ? Math.max(8, r.top - h - 6) : below}px`;
+        };
+        const show = (el) => {
+            const text = el.getAttribute('data-tip');
+            if (!text) return;
+            pop.textContent = text;
+            pop.classList.remove('hidden');
+            place(el);
+            shownFor = el;
+            el.setAttribute('aria-describedby', 'adminTip');
+        };
+        const hide = () => {
+            clearTimeout(timer);
+            pop.classList.add('hidden');
+            shownFor?.removeAttribute('aria-describedby');
+            shownFor = null;
+            pinned = false;
+        };
+
+        modal.addEventListener('mouseover', (e) => {
+            const el = e.target.closest('[data-tip]');
+            if (!el || pinned || el === shownFor) return;
+            clearTimeout(timer);
+            timer = setTimeout(() => show(el), 120);
+        });
+        modal.addEventListener('mouseout', (e) => {
+            const el = e.target.closest('[data-tip]');
+            if (!el || pinned || el.contains(e.relatedTarget)) return;
+            clearTimeout(timer);
+            if (el === shownFor) hide();
+        });
+        modal.addEventListener('focusin', (e) => {
+            const el = e.target.closest('[data-tip]');
+            if (el && !pinned) show(el);
+        });
+        modal.addEventListener('focusout', (e) => {
+            if (!pinned && e.target.closest('[data-tip]') === shownFor) hide();
+        });
+        // Capture, so a click on an ⓘ inside a clickable row or a label
+        // doesn't also open the row or focus the field
+        modal.addEventListener('click', (e) => {
+            // A locked product tick: keep it ticked and say why
+            const locked = e.target.closest('label')?.querySelector('input[data-locked]');
+            if (locked && e.target.closest('label').hasAttribute('data-tip')) {
+                e.preventDefault();
+                e.stopPropagation();
+                show(e.target.closest('label'));
+                pinned = true;
+                return;
+            }
+            const el = e.target.closest('.info-tip');
+            if (!el) {
+                if (pinned) hide();
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            if (pinned && shownFor === el) return hide();
+            show(el);
+            pinned = true;
+        }, true);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && shownFor) hide(); });
+        modal.addEventListener('scroll', () => { if (shownFor) hide(); }, true);
+        window.addEventListener('resize', () => { if (shownFor) hide(); });
     }
 
     // A brief "Saved" beside what was just saved
@@ -263,7 +361,7 @@
         const dot = '<span class="text-muted-foreground" aria-hidden="true">·</span>';
         const parts = [`<span><span class="font-medium tabular-nums">${crawled}</span> crawled</span>`]
             .concat(counts.length
-                ? counts.map(s => `<span class="${s === 'failed' ? 'text-red-700' : ''}" ${s === 'pending' ? `title="${attr('Listed under To do as “not crawled”')}"` : ''}><span class="font-medium tabular-nums">${data.states[s]}</span> ${esc(STRIP_TEXT[s])}</span>`)
+                ? counts.map(s => `<span class="${s === 'failed' ? 'text-red-700' : ''}" ${s === 'pending' ? tip('Listed under To do as “not crawled”') : ''}><span class="font-medium tabular-nums">${data.states[s]}</span> ${esc(STRIP_TEXT[s])}</span>`)
                 : ['<span class="text-muted-foreground">nothing waiting</span>']);
         box.innerHTML = `
             <div class="${card} !py-3 mb-6">
@@ -345,8 +443,7 @@
                 <input id="intSearch" value="${attr(f.q)}" placeholder="Search" class="flex-1 min-w-[10rem] ${inputCls}" aria-label="Search integrations by name or category">
                 ${sel('category', 'Category', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]), 'w-36')}
                 ${sel('type', 'Kind of platform', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-40')}
-                ${sel('status', 'In chat?', Object.entries(STATUS_NAMES), 'w-32')}
-                ${sel('tier', 'Documentation', Object.entries(TIER_NAMES), 'w-40')}
+                ${sel('status', 'In chat?', [['active', STATUS_NAMES.active], ['listed', STATUS_NAMES.listed]], 'w-32')}
                 ${sel('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-32')}
             </div>
             <div id="intTable"></div>`;
@@ -363,10 +460,9 @@
             i.documents.unlabelled && `<span class="text-amber-800">${plural(i.documents.unlabelled, 'needs a product', 'need a product')}</span>`,
             i.failed && `<span class="text-red-700">${plural(i.failed, 'crawl failed', 'crawls failed')}</span>`,
             i.misses && `<span class="text-red-700">${plural(i.misses, 'page gone', 'pages gone')}</span>`,
-            waiting && `<span class="text-amber-800" title="${attr(STATE_HELP.pending)}">${waiting} not crawled</span>`,
+            waiting && `<span class="text-amber-800" ${tip(STATE_HELP.pending)}>${waiting} not crawled</span>`,
             !i.platform_type && '<span class="text-amber-800">set its kind</span>',
-            i.type_choices.length && `<span class="text-amber-800" title="${attr(`yotpo.com lists it under ${i.type_choices.map(t => TYPE_NAMES[t]).join(' and ')}`)}">confirm its kind</span>`,
-            i.tier !== 'basic' && !i.open_proposals && '<span class="text-amber-800">add documents</span>'
+            i.type_choices.length && `<span class="text-amber-800" ${tip(`yotpo.com lists it under ${i.type_choices.map(t => TYPE_NAMES[t]).join(' and ')}`)}>confirm its kind</span>`
         ].filter(Boolean);
         // one per line: the column is narrow
         return parts.join('<br>');
@@ -377,14 +473,11 @@
             <tr class="group border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer" data-open-int="${attr(i.name)}" tabindex="0">
                 <td class="py-2.5 px-3"><div class="font-medium text-card-foreground">${esc(i.display_name)}</div><div class="text-xs text-muted-foreground truncate max-w-[12rem]" title="${attr(i.category_names.join(' · '))}">${esc(i.category_names.join(' · '))}</div></td>
                 <td class="relative py-2.5 px-3 whitespace-nowrap cursor-default" data-products-cell>
-                    ${['loyalty', 'reviews'].map(p => `
-                        <label class="inline-flex items-center gap-1.5 mr-3 last:mr-0 text-sm text-card-foreground cursor-pointer">
-                            <input type="checkbox" class="w-4 h-4 rounded border-input" data-row-product="${p}" data-esp="${attr(i.name)}" ${i.products.includes(p) ? 'checked' : ''} aria-label="${attr(`${i.display_name} works with ${PRODUCT_NAMES[p]}`)}">${PRODUCT_NAMES[p]}
-                        </label>`).join('')}
+                    ${['loyalty', 'reviews'].map(p => productBox(i, p, 'data-row-product')).join('')}
                 </td>
                 <td class="py-2.5 px-3 whitespace-nowrap ${i.platform_type ? 'text-muted-foreground' : 'text-amber-800'}">${esc(TYPE_NAMES[i.platform_type] || 'Not set')}</td>
                 <td class="py-2.5 px-3">${statusPill(i.status)}</td>
-                <td class="py-2.5 px-3"><div>${tierPill(i.tier)}</div><div class="text-xs text-muted-foreground whitespace-nowrap">${plural(i.documents.total, 'document', 'documents')}</div></td>
+                <td class="py-2.5 px-3 text-right tabular-nums text-muted-foreground">${i.documents.total}</td>
                 <td class="py-2.5 px-3 text-xs min-w-[7rem]">${attentionHTML(i) || '<span class="text-muted-foreground">—</span>'}</td>
                 <td class="py-2.5 pr-3 text-muted-foreground group-hover:text-foreground" aria-hidden="true">›</td>
             </tr>`).join('');
@@ -394,7 +487,7 @@
                 <table class="w-full text-sm min-w-[680px]">
                     <thead><tr class="border-b border-border bg-muted">
                         ${head('Integration')}${head('Yotpo products', HELP.products)}${head('Kind of platform', HELP.kind)}
-                        ${head('In chat?', HELP.inChat)}${head('Documentation', HELP.documentation)}${head('To do')}<th class="w-4"></th>
+                        ${head('In chat?', HELP.inChat)}<th class="text-right ${th}">Documents</th>${head('To do')}<th class="w-4"></th>
                     </tr></thead>
                     <tbody>${rows || '<tr><td colspan="7" class="text-center py-8 text-muted-foreground">No integrations match these filters.</td></tr>'}</tbody>
                 </table>
@@ -447,8 +540,7 @@
         }));
     }
 
-    // A product tick in the list: saved at once, then the list redraws, since
-    // the products decide whether its documentation counts as ready
+    // A product tick in the list: saved at once, then the list redraws
     async function saveRowProducts(cb) {
         const cell = cb.closest('[data-products-cell]');
         const boxes = [...cell.querySelectorAll('[data-row-product]')];
@@ -520,7 +612,7 @@
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
                 ${readOnly ? '' : `<input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer shrink-0" data-esp="${attr(name)}" value="${attr(link.url)}" aria-label="Tick ${attr(link.url)}">`}
                 ${stateBadge(link.status)}
-                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="Its text is not saved in the database yet. Crawl it once (Crawl Selected) to save a copy.">no backup</span>' : ''}
+                ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" data-tip="Its text is not saved in the database yet. Crawl it once (Crawl Selected) to save a copy.">no backup</span>' : ''}
                 <div class="flex-1 min-w-0">
                     <a href="${attr(link.url)}" target="_blank" rel="noopener" class="block text-sm text-foreground hover:text-primary hover:underline truncate" title="${attr(link.url)}">${esc(link.title || pageName(link.url))}</a>
                     <span class="block text-xs text-muted-foreground truncate" title="${attr(link.url)}">${esc([shortUrl(link.url), meta].filter(Boolean).join(' · '))}</span>
@@ -537,7 +629,7 @@
         const linked = i.catalog_cards.length > 0;
         // "In chat" is offered only for the kinds whose instructions exist
         const canChat = (i.in_chat_types || ['messaging']).includes(i.platform_type);
-        const statusButtons = ['active', 'listed', 'archived'].map(s => {
+        const statusButtons = ['active', 'listed'].map(s => {
             const blocked = s === 'active' && !canChat && i.status !== 'active';
             const why = blocked ? 'Only Email & SMS platforms can be in chat for now.' : STATUS_HELP[s];
             return `
@@ -554,7 +646,7 @@
         const typeNote = !i.platform_type
             ? note('Not set yet: pick the closest kind.')
             : i.type_choices.length
-            ? note(`<span title="${attr(kindsText)}">A guess: its yotpo.com categories fit more than one kind.</span>
+            ? note(`<span class="cursor-help underline decoration-dotted" ${tip(kindsText)}>A guess: its yotpo.com categories fit more than one kind.</span>
                    <button type="button" class="mt-1.5 block px-3 py-1 rounded-md bg-background border border-amber-400 font-medium text-amber-900 hover:bg-amber-100" data-keep-type>Confirm ${esc(TYPE_NAMES[i.platform_type])}</button>`)
             : '';
         const kindHelp = HELP.kind + (i.type_set_by && !i.type_choices.length
@@ -578,8 +670,7 @@
                 </div>
                 <div>
                     ${label('Yotpo products', HELP.products, 'products')}
-                    <div class="flex gap-4 text-sm">${['loyalty', 'reviews'].map(p => `<label class="flex items-center gap-2"><input type="checkbox" class="w-4 h-4 rounded" data-product="${p}" ${i.products.includes(p) ? 'checked' : ''}>${PRODUCT_NAMES[p]}</label>`).join('')}</div>
-                    ${i.products.length ? '' : muted('None ticked yet, so a guide for either product counts.')}
+                    <div class="flex text-sm">${['loyalty', 'reviews'].map(p => productBox(i, p, 'data-product')).join('')}</div>
                 </div>
                 <div>
                     ${label('On yotpo.com', HELP.yotpoCom)}
@@ -591,38 +682,15 @@
             </div>`;
     }
 
-    // What the AI needs before it can answer well about an integration, as a
-    // checklist from the counts the tier is computed from (coverage_tier).
-    // It names the labels, because that is what is counted.
-    function coverageHTML(i) {
-        const m = i.mechanics;
-        const wanted = i.products.filter(p => PRODUCT_NAMES[p]);
-        const products = (wanted.length ? wanted : ['loyalty', 'reviews']).map(p => PRODUCT_NAMES[p]).join(' or ');
-        const guides = (wanted.length ? wanted : ['loyalty', 'reviews']).reduce((n, p) => n + (i.indexed[p] || 0), 0);
-        const needsMechanics = i.platform_type === 'messaging';
-        const shared = i.indexed.shared || 0;
-        const ready = i.tier === 'basic';
-        const count = (n) => n ? ` <span class="text-muted-foreground">(${n})</span>` : '';
-        const item = (ok, text, tip, optional = false) => `<li class="flex gap-2" title="${attr(tip)}"><span class="${ok ? 'text-green-700' : optional ? 'text-muted-foreground' : 'text-red-700'} font-bold w-3 shrink-0">${ok ? '✓' : optional ? '○' : '✗'}</span><span>${text}</span></li>`;
-        const searchedFor = m && m.functions && m.functions.length ? ` The yotpo.com import searched its help site for: ${m.functions.map(f => f.name).join(', ')}.` : '';
-        const helpSite = !shared ? helpSiteHTML(m) : '';
+    // Under its documents: what to do next, only when there is something
+    function nextStepsHTML(i, docsTotal) {
+        const helpSite = helpSiteHTML(i.mechanics);
         const lines = [
-            !i.platform_type && '<p class="text-xs text-muted-foreground">Set its kind of platform to see everything it needs.</p>',
-            !ready && i.status === 'active' && '<p class="text-xs text-amber-800">In chat already: answers may be thin until each ✗ is added.</p>',
-            !guides && !i.open_proposals && `<p class="text-xs text-card-foreground">Nothing suggested: find its guide on support.yotpo.com and add the link.</p>`,
+            !docsTotal && !i.open_proposals && i.status !== 'archived'
+                && '<p class="text-xs text-muted-foreground">Nothing suggested for it: find its guide on support.yotpo.com and add the link above.</p>',
             helpSite && `<p class="text-xs text-amber-800">${helpSite}</p>`
         ].filter(Boolean).join('');
-        return `
-            <div class="${card}">
-                <h4 class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground mb-3">Documentation: ${tierPill(i.tier)} ${info(`${HELP.documentation} Only crawled documents count.`)}</h4>
-                <ul class="space-y-1.5 text-xs text-card-foreground">
-                    ${item(guides > 0, `Yotpo guide, labelled ${esc(products)}${count(guides)}`, "Usually Yotpo's setup guide for it.")}
-                    ${item(shared > 0, `${needsMechanics ? "Platform's" : 'Optional: platform\'s'} own help, labelled Shared${count(shared)}`,
-                        `Its help articles on the features the Yotpo guide uses, such as how its flows or triggers work.${searchedFor}`, !needsMechanics)}
-                </ul>
-                ${lines ? `<div class="mt-3 space-y-2">${lines}</div>` : ''}
-                ${i.open_proposals ? `<button type="button" class="mt-3 ${btnPrimary} !px-3 !py-1.5" data-review-proposals>Review ${plural(i.open_proposals, 'suggested link', 'suggested links')} →</button>` : ''}
-            </div>`;
+        return lines ? `<div class="mt-3 space-y-2">${lines}</div>` : '';
     }
 
     async function loadDetail() {
@@ -661,23 +729,25 @@
                         <div class="flex flex-wrap items-center gap-2 mb-3">
                             <h4 class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">Documents (${docs.total}) ${info(HELP.documents)}</h4>
                             ${docs.total ? '<span class="unlabelled-count"></span>' : ''}
-                            ${docs.total && i.status !== 'archived' ? '<span class="ml-auto text-xs text-muted-foreground">Tick documents to crawl or delete them.</span>' : ''}
+                            ${i.open_proposals
+                                ? `<button type="button" class="ml-auto ${btnPrimary} !px-3 !py-1" data-review-proposals>Review ${plural(i.open_proposals, 'suggested link', 'suggested links')} →</button>`
+                                : docs.total && i.status !== 'archived' ? '<span class="ml-auto text-xs text-muted-foreground">Tick documents to crawl or delete them.</span>' : ''}
                         </div>
                         <div class="space-y-2 mb-4" id="links-${attr(name)}">
                             ${rows || '<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No documents yet.</div>'}
                         </div>
-                        ${i.status === 'archived' ? '<p class="text-sm text-muted-foreground">Hidden, so its documents can\'t be changed. An owner can set it to Not in chat yet.</p>' : `
+                        ${i.status === 'archived' ? '<p class="text-sm text-muted-foreground">Archived by an older version, so its documents can\'t be changed. An owner can set it to Not in chat.</p>' : `
                         <div class="flex gap-2">
                             <input type="text" placeholder="Paste a link to add" id="newLink-${attr(name)}" class="flex-1 min-w-0 ${inputCls}" aria-label="New link URL">
                             ${newLinkProductHTML(`newLinkProduct-${name}`)}
                             <button type="button" class="${btnPrimary}" data-add-link>Add Link</button>
                         </div>
                         <p id="newLinkFlag-${attr(name)}" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>`}
+                        ${nextStepsHTML(i, docs.total)}
                         ${pager(docs.total, docs.page, docs.per_page, 'docs')}
                     </div>
                 </div>
                 <div class="space-y-4">
-                    ${coverageHTML(i)}
                     ${factsHTML(i)}
                 </div>
             </div>`;
@@ -717,8 +787,7 @@
             const status = b.dataset.setStatus;
             if (status === i.status) return;
             const question = status === 'active' ? `Put ${i.display_name} in chat? Everyone using the chat will be able to pick it.`
-                : status === 'archived' ? `Hide ${i.display_name}? It disappears from chat and from these lists. Its documents are kept.`
-                : `Set ${i.display_name} to "Not in chat yet"?${i.status === 'active' ? ' People will no longer be able to pick it in chat.' : ''}`;
+                : `Set ${i.display_name} to "Not in chat"?${i.status === 'active' ? ' People will no longer be able to pick it in chat.' : ''}`;
             if (!confirm(question)) return;
             patch(name, { status }, { sidebar: true });
         }));
@@ -760,9 +829,9 @@
         const tone = !label ? 'border-amber-400 text-amber-800' : prefilled ? 'border-dashed border-ring' : 'border-input';
         const said = p.suggested_label === 'loyalty' || p.suggested_label === 'reviews'
             ? ` The page says it is about ${PRODUCT_NAMES[p.suggested_label]}.` : '';
-        const tip = `${PRODUCT_LABEL_HELP}${said}${prefilled ? ' Filled in for you (dashed): check it.' : ''}`;
+        const pickerTip = `${PRODUCT_LABEL_HELP}${said}${prefilled ? ' Filled in for you (dashed): check it.' : ''}`;
         const picker = `
-            <select class="w-28 shrink-0 text-xs px-2 py-1 rounded bg-background cursor-pointer border ${tone}" data-prop-label="${attr(p.id)}" aria-label="Yotpo product for ${attr(p.url)}" title="${attr(tip)}">
+            <select class="w-28 shrink-0 text-xs px-2 py-1 rounded bg-background cursor-pointer border ${tone}" data-prop-label="${attr(p.id)}" aria-label="Yotpo product for ${attr(p.url)}" title="${attr(pickerTip)}">
                 <option value="" ${!label ? 'selected' : ''} disabled>Pick product</option>
                 ${Object.entries(PRODUCT_LABELS).map(([v, t]) => `<option value="${v}" ${label === v ? 'selected' : ''}>${t}</option>`).join('')}
             </select>`;
@@ -802,7 +871,7 @@
             const openIds = rows.filter(p => p.state === 'open').map(p => p.id);
             const allSelected = openIds.length && openIds.every(id => S.prop.sel.has(id));
             const functions = info.functions && info.functions.length && rows.some(p => p.source === 'mechanics')
-                ? `<p class="text-xs text-muted-foreground mb-3" title="${attr("The features its Yotpo guide uses. The yotpo.com import searched its help site for articles on them.")}">Help articles on: ${esc(info.functions.map(f => f.name).join(', '))}${info.help_centre ? ` · ${siteLink(info.help_centre)}` : ''}</p>` : '';
+                ? `<p class="text-xs text-muted-foreground mb-3" ${tip("The features its Yotpo guide uses. The yotpo.com import searched its help site for articles on them.")}>Help articles on: ${esc(info.functions.map(f => f.name).join(', '))}${info.help_centre ? ` · ${siteLink(info.help_centre)}` : ''}</p>` : '';
             return `
                 <div class="${card}">
                     <div class="flex flex-wrap items-center gap-2 mb-3">
@@ -1033,5 +1102,6 @@
         loadCrawlSummary();
     }
 
+    wireTips();
     window.AdminIntegrations = { reload, loadProposals, watchCrawls, openIntegration };
 })();

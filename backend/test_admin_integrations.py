@@ -173,22 +173,13 @@ def make_client(db, use_async):
 
 # ---------- pure ----------
 
-def test_coverage_tier():
-    t = air.coverage_tier
-    assert t('messaging', ['loyalty'], 1, 0, 0) == 'listed'      # no mechanics document
-    assert t('messaging', ['loyalty'], 1, 0, 1) == 'basic'
-    assert t('storefront', ['loyalty'], 0, 1, 0) == 'listed'     # Reviews guide, Loyalty in the catalog
-    assert t('storefront', ['loyalty', 'reviews'], 0, 1, 0) == 'basic'
-    assert t('data', [], 0, 1, 0) == 'basic'                     # created by hand: any product
-    assert t('service', ['reviews'], 0, 0, 5) == 'listed'        # mechanics alone are not a guide
-
-
 def test_patch_validation():
     cur = {'status': 'listed', 'platform_type': 'storefront'}
     v = air.validate_patch
     assert v({'status': 'active'}, cur, True)[2] == 409          # no storefront prompt yet
     assert v({'status': 'active', 'platform_type': 'messaging'}, cur, True)[1] is None
-    assert v({'status': 'archived'}, cur, False)[2] == 403       # editors can't change status
+    assert v({'status': 'archived'}, cur, True)[2] == 400        # two states only (Leo, 2026-10-15)
+    assert v({'status': 'active', 'platform_type': 'messaging'}, cur, False)[2] == 403   # editors can't change status
     assert v({'status': 'listed'}, cur, False)[1] is None        # unchanged status is not a change
     assert v({'name': 'x'}, cur, True)[2] == 400
     assert v({}, cur, True)[2] == 400
@@ -252,19 +243,26 @@ def check_list_pages_and_filters(c, db, ids):
     assert found('q=help+desk') == ['gorgias']                   # category labels are searched
     assert found('category=subscription-recurring-billing') == ['recharge']
     assert found('type=storefront') == ['recharge', 'tapcart']
-    assert found('status=archived') == ['old_partner']
-    assert found('tier=basic') == ['klaviyo', 'listrak', 'tapcart']
+    assert c.get('/api/admin/integrations?status=archived').status_code == 400
+    assert 'old_partner' in found('')                             # archived by older code: still listed
     assert found('flag=unlabelled') == ['klaviyo']
     assert found('flag=failed') == ['klaviyo']
     assert found('flag=proposals') == ['gorgias', 'recharge']
     assert found('flag=misses') == ['listrak']
     assert found('flag=mixed_types') == ['gorgias', 'klaviyo']
-    assert found('status=active&tier=listed') == ['drip', 'omnisend']
+    assert found('status=active') == ['drip', 'klaviyo', 'listrak', 'omnisend']
+    assert air.effective_products([], 0, 2) == ['reviews']
+    assert air.effective_products(['reviews'], 1, 0) == ['loyalty', 'reviews']
+    assert air.effective_products(['loyalty'], 0, 0) == ['loyalty']
     assert r['facets']['flags']['proposals'] == 2
     cats = {f['slug']: f for f in r['facets']['categories']}
     assert cats['help-desk-crm']['name'] == 'Help Desk & CRM' and cats['other']['count'] == 56
     assert c.get('/api/admin/integrations?type=email').status_code == 400
     assert c.get('/api/admin/integrations?per_page=0').status_code == 400
+    rc = c.get('/api/admin/integrations?q=recharge').get_json()['integrations'][0]
+    assert rc['products'] == ['loyalty', 'reviews'] and rc['products_from_documents'] == ['reviews']
+    gor = c.get('/api/admin/integrations?q=gorgias').get_json()['integrations'][0]
+    assert gor['products_from_documents'] == []           # no documents: only what is ticked
     k = c.get('/api/admin/integrations?q=klaviyo').get_json()['integrations'][0]
     assert k['documents'] == {'total': 4, 'loyalty': 1, 'reviews': 0, 'shared': 2, 'unlabelled': 1}
     assert k['type_choices'] == ['data', 'messaging'] and k['failed'] == 1 and k['not_crawled'] == 0
@@ -273,7 +271,7 @@ def check_list_pages_and_filters(c, db, ids):
 def check_detail(c, db, ids):
     r = c.get('/api/admin/integrations/gorgias')
     body = r.get_json()['integration']
-    assert r.status_code == 200 and body['tier'] == 'listed' and body['open_proposals'] == 3
+    assert r.status_code == 200 and 'tier' not in body and body['open_proposals'] == 3
     assert [x['url'] for x in body['catalog_cards']] == [
         'https://www.yotpo.com/integrations/gorgias/', 'https://www.yotpo.com/integrations/gorgias-loyalty/']
     assert body['mechanics']['functions'] == [{'name': 'Macros'}]
@@ -287,7 +285,7 @@ def check_patch(c, db, ids):
         r = c.patch('/api/admin/integrations/klaviyo', json={'platform_type': 'messaging'})
         body = r.get_json()['integration']
         assert r.status_code == 200 and body['type_choices'] == [] and body['type_set_by'] == 'leo@yotpo.com'
-        assert c.patch('/api/admin/integrations/gorgias', json={'status': 'archived'}).status_code == 403
+        assert c.patch('/api/admin/integrations/gorgias', json={'status': 'active'}).status_code == 403
         r = c.patch('/api/admin/integrations/gorgias', json={'display_name': 'Gorgias ', 'products': ['reviews']})
         assert r.status_code == 200 and r.get_json()['integration']['display_name'] == 'Gorgias'
         as_user('owner@yotpo.com', owners='owner@yotpo.com')
