@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Configurable Conversation Sidebar</title>
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Configurable Conversation Sidebar","acceptedAnswer":{"@type":"Answer","text":"The right-side conversation sidebar can become overwhelming, especially if you have lots of different integrations.\nThis article explains how you can customize the sidebar as either an agent or an admin customizing it for the entire organization. \nPersonalize it (agents)\nIf admins allow it, open any conversation and select Customize in the top right corner of the sidebar.\nIf any section is hidden, you'll be able to quickly access these from the bottom of the sidebar\n\nWithin the customization view, you can drag cards to reorder or use the eye icon to show/hide them. \nClick Back in the top left corner of the sidebar when you're finished. Your changes only affect you.\n\nSet it up (admins)\nThis section of the feature is only available on the Prime plan\nYou can enforce the Sidebar looks for your entire organisation with this feature. It also allows you to create conditional visibility of cards based on various parameters as well\nGo to Settings &gt; Customization &gt; Conversation sidebar. You'll see every card in one list.\nDrag cards up or down to set the order.\nFor each card, choose Always visible, Conditionally visible, or Always hide.\nPick Conditionally visible to show a card only for certain conversations — based on queue, tag, or custom attribute.\nTurn on Allow agents to personalize their sidebar if you want agents to reorder and hide cards for themselves. Their choices then override your defaults.\nHit Save when you're done.\n\n"}}],"@context":"http://schema.org","@type":"FAQPage","name":"Configurable Conversation Sidebar","headline":"Configurable Conversation Sidebar","author":{"@type":"Person","name":"Nicolas Van","image":"https://www.gravatar.com/avatar/cdf424262bb38ad98f100861f0a7804a?e=niv@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/%2B/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar","image":null,"mainEntityOfPage":"https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar","dateCreated":"2026-07-16","datePublished":"2026-10-05","dateModified":"2026-10-05"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

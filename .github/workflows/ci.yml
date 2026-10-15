@@ -81,6 +81,14 @@ jobs:
         env: { HF_HUB_OFFLINE: '1' }
         run: python backend/test_integrations_schema.py
 
+      - name: Yotpo guide header
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_doc_header.py
+
+      - name: Catalog import
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_catalog_import.py
+
       - name: Import smoke test
         working-directory: backend
         env:

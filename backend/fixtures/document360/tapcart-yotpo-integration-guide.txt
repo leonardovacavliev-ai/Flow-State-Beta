@@ -1,0 +1,122 @@
+Products
+
+Reviews
+
+Loyalty & Referrals
+
+Visual UGC
+
+####### Supported plans
+
+Free, Starter, Pro, Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus
+
+####### Supported plans
+
+Change this text for SMS & Email
+
+####### eCommerce Platform
+
+Change this text for SMS & Email
+
+####### Supported plans
+
+Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus
+
+####### Supported plans
+
+Free, Pro, Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus
+
+### Integration Overview
+
+The Tapcart integration with Yotpo Reviews, Loyalty & Referrals, and Visual UGC enables brands to deliver a seamless and engaging mobile shopping experience. Allowing customers to interact with reviews, visual UGC, and loyalty programs directly from your mobile app helps increase engagement, conversions, and customer lifetime value.
+
+- Loyalty & Referrals:Give your customers the best mobile shopping experience by providing them with the ability to easily earn, track, and redeem rewards right in the mobile app.
+- Reviews:Add product reviews directly to the mobile app PDPs to enable customers to shop with confidence.Collect more influential reviews from shoppers directly from within the app.
+- Visual UGC:Display an album of shoppable images on your mobile app homepage. Add product-specific UGC galleries on mobile app product details pages.
+
+### About Tapcart
+
+Tapcart is aShopify Plus Certified App Partnerwith thousands of the world’s fastest-growing Shopify brands. With Tapcart, your brand can launch a world-class mobile shopping app that increases conversion and retention with no coding needed.
+
+Having issues with the integration?
+
+Contact Tapcart support for assistance athelp@tapcart.co.
+
+### Integrating Yotpo Loyalty & Referrals with Tapcart
+
+Note
+
+The Yotpo Loyalty experience in Tapcart supports bothClassic and New Customer Accountson Shopify.
+
+Before you begin, you’ll need yourYotpo API Key and GUID.
+
+1. Open your Shopify admin and click theAppstab.
+2. Find the app titledLoyalty & Referrals by Yotpo.
+3. Click theSettingstab.
+4. On theTapcart Yotpo Loyalty integration page, copy and paste your API Key and GUID values into the relevant fields.
+5. Customize the Loyalty page on the mobile app within Tapcart.
+
+In Tapcart’s App Studio, you need to configure and publish your Loyalty screens:
+
+- Loyalty Center: This is the main page shoppers can access from their Account screen.
+- Loyalty Rewards: It displays a list of redeemable rewards.
+- Loyalty Redemption: It allows shoppers to confirm and apply a reward to their cart.
+- Loyalty History: It shows a ledger of earned and redeemed points.To make loyalty details easily accessible, add links to the Loyalty Center from your Account Hub, navigation menu, or home page.
+
+Note
+
+- Supported in-app ways to earn:Points for Purchases,New Member Reward,Birthday/Anniversary, and App download/Push notification opt-in viaCustom Action earning rules.
+- Supported redemption types: Fixed/percentage discounts, variable amount discounts, free shipping, and free product rewards.
+- Not supported: Combination tier thresholds at this time.
+- Subscription productsadded via ReChargecan't currently be purchased using discounts/gift cards in Tapcart. This includes any rewards from a loyalty provider.
+
+You can manage your Yotpo Loyalty & Referrals integration from theIntegrationstab of your Tapcart Dashboard. Learn more about configuring your app’s loyalty experience inTapcart’s Yotpo Loyalty integration guide.
+
+### Integrating Yotpo Reviews with Tapcart
+
+Before you begin, you’ll need your Yotpo app key. If you’re not sure how to find it, seethis article.
+
+1. In your Tapcart Merchant dashboard, go to theYotpo Reviews integration page.
+2. Add your Yotpo app key to the relevant field.Learn more about this integration in theTapcart help article.
+
+Yotpo will work instantly in the app and requires no backend installation.
+
+### Integrating Yotpo Visual UGC with Tapcart
+
+Before you begin, you’ll need your Yotpo app key. If you’re not sure how to find it, seethis article.
+
+1. In your Tapcart Merchant dashboard, go to theYotpo Visual UGC integration page.
+2. In the relevant field, add your Yotpo app key and the name of the Yotpo album you want to display on your mobile app homepage.
+3. Add the Yotpo UGC blocks to your mobile app homepage and/or product details page, as relevant.Note
+
+The Yotpo UGC block will only appear on product detail pages that have published content tied to that product. Learn more about this integration in theTapcart help article.
+
+### FAQ
+
+Will purchases that were made in the mobile app be included in Yotpo’s “Points for Purchase” earning rule?
+
+Yes.
+
+Can purchases that were made in the mobile app be eligible for bonus points?
+
+No. Orders placed in the app and on the website are treated the same way.
+
+Will customer accounts created through the mobile app count for Yotpo’s “New Member Reward” rule?
+
+Yes, since the account is created in the eCommerce platform.
+
+Which other Yotpo earning rules can be completed on the mobile app?
+
+The mobile app links to your Yotpo rewards page on a mobile browser, so all available ways to earn on-site will also be interactive in the mobile app.

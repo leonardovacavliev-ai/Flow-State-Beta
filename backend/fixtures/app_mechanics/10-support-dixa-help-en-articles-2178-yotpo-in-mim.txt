@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Yotpo in Mim</title>
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Yotpo in Mim","acceptedAnswer":{"@type":"Answer","text":"You can use Yotpo in Mim, making it easier to work with Loyalty Tiers and points balance.\nSetup\nGo to Settings &gt; AI agents, open the agent and switch to the Tools tab.\nAdd a tool, choose Yotpo under the integration options, and click Next.\nFill in the tool form:Name: a unique name, for example “Yotpo loyalty status”.\nDescription: what the tool does and when to use it. The agent reads this text when deciding whether to call the tool, so write it for the agent. Example: “Look up the customer’s Yotpo loyalty status by email or phone: points balance, VIP tier, store credit and referrals.”\nCredential to connect with: the Yotpo credentials configuration, the same one used for the conversation card. Create one with the + button if none exists.\nPlatform action: Get customer profile, Get loyalty status or Get review summary. One tool per action.\nFor each input field pick how the value is resolved:Let your AI agent decide a value: the agent fills the field from the conversation. Recommended for the email address and phone number.\nSet a specific value for this field: a fixed value for every call.\nLet your AI agent select a value from one of the choices: the agent picks from a list you define.\nEnable the tool with Enable this tool to run in your AI agent and save.\nThere is no automatic “Contact email” default in the agent tool form. The agent supplies the email itself, so the instructions below matter.\nCustom instructions and procedures\nGlobal rules belong in the agent’s Custom instructions. Multi-step flows belong in Procedures. Suggested text:\nCustom instructions:\nWhen a Yotpo tool needs an email address or phone number, use the customer’s email on the conversation first. Only ask the customer for it when it is missing. Phone numbers must be in international E.164 format, for example +4512345678. If a Yotpo tool returns empty values, tell the customer you could not find their account and ask them to confirm the email address they use in the store.\nProcedure “Loyalty points question”:\nCall Get loyalty status with the customer’s email.\nTell the customer their pointsBalance and, if pointsExpireDate is set, when the points expire. Mention creditBalanceFormatted if it is not zero.\nIf isOptIn is false, explain that they are not enrolled in the loyalty program and how to join.\nProcedure “Unhappy reviewer”:\nCall Get review summary with the customer’s email.\nIf lastStarRating is 2 or lower, apologise for the experience and hand the conversation over to the retention queue instead of continuing.\nData usage\nInputs (all three actions)\nNameLabelRequiredDefaultDescriptionemailEmail addressOne of email or phoneContact emailUsed first when setphonePhone numberOne of email or phoneContact phoneUsed when no email address is given, in E.164 format, e.g. +4512345678\nOutputs: Get customer profile\nNameDescriptionTypeexternalIdExternal id (the customer’s id in the connected store)string or nullfirstNameFirst namestring or nulllastNameLast namestring or nullemailEmail addressstring or nullphoneNumberPhone numberstring or nullgenderGenderstring or nullaccountCreatedAtAccount created atstring or nullaccountUpdatedAtAccount updated atstring or null\nOutputs: Get loyalty status\nNameDescriptionTypepointsBalancePoints balanceinteger or nullpointsEarnedPoints earnedinteger or nullvipTierNameVIP tier (the name of the customer’s VIP tier, for example “Gold”)string or nullvipEntryDateVIP tier entry datestring or nullvipExpirationDateVIP tier expiration datestring or nulltotalRedemptionsTotal redemptionsinteger or nulltotalPointsRedeemedTotal points redeemedinteger or nullcreditBalanceAmountStore credit balancenumber or nullcreditBalanceFormattedStore credit balance (formatted in the customer’s currency, for example “0 kr.”)string or nullisOptInOpted in to loyalty programboolean or nulloptInDateOpted in atstring or nullpointsExpireDatePoints expire datestring or nulllastSeenAtLast seen atstring or nullsuccessfulReferralsSuccessful referralsinteger or nullisReferredByOtherCustomerReferred by another customerboolean or nullreferredByCustomerReferred by (the customer who referred this customer)string or nullhasStoreAccountHas store accountboolean or null\nOutputs: Get review summary\nNameDescriptionTypetotalReviewsTotal reviewsinteger or nullavgProductRatingAverage product ratingnumber or nullavgSiteRatingAverage site ratingnumber or nulltotalAvgRatingTotal average ratingnumber or nulltotalAvgSentimentTotal average sentiment (average sentiment across the customer’s reviews, between 0 and 1)number or nulllastStarRatingLast star ratinginteger or nulllastReviewDateLast review datestring or nulllastSentimentLast sentiment (sentiment score of the last review, between 0 and 1)number or nulltopTopicsTop topics (comma-separated topics the customer writes about most)string or null"}}],"@context":"http://schema.org","@type":"FAQPage","name":"Yotpo in Mim","headline":"Yotpo in Mim","author":{"@type":"Person","name":"Villars Gimm","image":"https://www.gravatar.com/avatar/494ce5e29c2c5af8b9a56bbbea8f4a0b?e=vgi@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/Villars%2BGimm/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/2178-yotpo-in-mim","image":null,"mainEntityOfPage":"https://support.dixa.help/en/articles/2178-yotpo-in-mim","dateCreated":"2026-10-06","datePublished":"2026-10-06","dateModified":"2026-10-06"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

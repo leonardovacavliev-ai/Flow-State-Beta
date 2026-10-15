@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://support.dixa.help/sitemap.xml
+Sitemap: https://support.dixa.help/en/sitemap.xml

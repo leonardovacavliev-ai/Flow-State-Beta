@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head prefix="og: http://ogp.me/ns#">
+<title>Yotpo in Automations</title>
+
+
+
+
+
+
+<script type="application/ld+json">{"mainEntity":[{"@type":"Question","name":"Yotpo in Automations","acceptedAnswer":{"@type":"Answer","text":"With the built-in native platform actions in Dixa Automations, you can use your Yotpo data directly in your flows. Use your existing native Yotpo integration(s), set up through the conversation cards, to trigger workflows based on information such as loyalty tier, points balance, review activity, or active subscriptions.\nTo find the Yotpo platform action node, go to Settings &gt; Automations and either edit an existing automation or create a new one from scratch.\nIn the flow, you will see a node called \"Platform action\".\nChoose Yotpo and click Next.\nYou can connect to an existing integration by selecting it from the drop-down, or create a new one by clicking the + sign and log into your Yotpo account.\nIn the Action drop-down, you can choose between four options:\nGet customer profile: retrieves the customer's Yotpo profile details. Every action looks the customer up by email address, or by phone number when no email is given. Both fields are pre-filled with the Contact email and Contact phone variables. At least one must be set. The phone number must be in E.164 format, for example +4512345678.\nGet loyalty status: retrieves the customer's loyalty information, such as vipTierName, pointsBalance, totalPointsRedeemed, and more.\nGet review summary: retrieves an overview of the customer's review activity, such as totalReviews, totalAvgRating and more.\nEach action gives you a list of variables for different use cases. Select the variables that fit what you want the automation to do.\nWhen no Yotpo customer matches the email or phone, the action succeeds with all variables empty.\nSave the platform action. The variables for the action you selected are available as flow variables. You can use them in, for example, Conditions, Add message, HTTP(S) requests, or to update custom attributes.\nData explanation\nUse this section to understand which data you can expect to receive from the platform action.\nInputs (all three actions)\nNameLabelRequiredDefaultDescriptionemailEmail addressOne of email or phoneContact emailUsed first when setphonePhone numberOne of email or phoneContact phoneUsed when no email address is given, in E.164 format, e.g. +4512345678\nOutputs: Get customer profile\nNameDescriptionTypeexternalIdExternal id (the customer’s id in the connected store)string or nullfirstNameFirst namestring or nulllastNameLast namestring or nullemailEmail addressstring or nullphoneNumberPhone numberstring or nullgenderGenderstring or nullaccountCreatedAtAccount created atstring or nullaccountUpdatedAtAccount updated atstring or null\nOutputs: Get loyalty status\nNameDescriptionTypepointsBalancePoints balanceinteger or nullpointsEarnedPoints earnedinteger or nullvipTierNameVIP tier (the name of the customer’s VIP tier, for example “Gold”)string or nullvipEntryDateVIP tier entry datestring or nullvipExpirationDateVIP tier expiration datestring or nulltotalRedemptionsTotal redemptionsinteger or nulltotalPointsRedeemedTotal points redeemedinteger or nullcreditBalanceAmountStore credit balancenumber or nullcreditBalanceFormattedStore credit balance (formatted in the customer’s currency, for example “0 kr.”)string or nullisOptInOpted in to loyalty programboolean or nulloptInDateOpted in atstring or nullpointsExpireDatePoints expire datestring or nulllastSeenAtLast seen atstring or nullsuccessfulReferralsSuccessful referralsinteger or nullisReferredByOtherCustomerReferred by another customerboolean or nullreferredByCustomerReferred by (the customer who referred this customer)string or nullhasStoreAccountHas store accountboolean or null\nOutputs: Get review summary\nNameDescriptionTypetotalReviewsTotal reviewsinteger or nullavgProductRatingAverage product ratingnumber or nullavgSiteRatingAverage site ratingnumber or nulltotalAvgRatingTotal average ratingnumber or nulltotalAvgSentimentTotal average sentiment (average sentiment across the customer’s reviews, between 0 and 1)number or nulllastStarRatingLast star ratinginteger or nulllastReviewDateLast review datestring or nulllastSentimentLast sentiment (sentiment score of the last review, between 0 and 1)number or nulltopTopicsTop topics (comma-separated topics the customer writes about most)string or null\n\nExample use cases\nVIP routing: Use Get loyalty status with a Condition on loyalty tier to send top-tier members to a priority queue.\nReview-aware replies: Use Get review summary to spot customers who recently left a low rating and route them to a team that can follow up.\nPoints questions: Get loyalty status and an Add message node to answer “how many points do I have?” with pointsBalance and pointsExpireDate."}}],"@context":"http://schema.org","@type":"FAQPage","name":"Yotpo in Automations","headline":"Yotpo in Automations","author":{"@type":"Person","name":"Villars Gimm","image":"https://www.gravatar.com/avatar/494ce5e29c2c5af8b9a56bbbea8f4a0b?e=vgi@dixa.com&s=300&d=https%3A%2F%2Fui-avatars.com%2Fapi%2F/Villars%2BGimm/300/69D59A/FFF/2/0.40"},"copyrightHolder":{"@type":"Organization","name":"Dixa"},"publisher":{"@type":"Organization","name":"Dixa"},"url":"https://support.dixa.help/en/articles/2169-yotpo-in-automations","image":"https://cdn.elev.io/file/uploads/bP8axng15Bzb8NCSAOOFluXDyKi3k_IrUOsdxhg_XbQ/BhiBxk17OM6-ODmITJvEH42WqSC8GESfdEBCZRFE9GI/Klaviyocover3-8zw.png","mainEntityOfPage":"https://support.dixa.help/en/articles/2169-yotpo-in-automations","dateCreated":"2026-09-29","datePublished":"2026-10-06","dateModified":"2026-10-06"}</script>
+
+
+
+
+
+
+<!-- <script
+      src="https://js.sentry-cdn.com/7fb0ca92ae2d4dc49fffbe1b145e4511.min.js"
+      crossorigin="anonymous"
+    ></script> -->
+
+
+
+</head>
+<body class="logged-out article-page">
+<div id="kb-target">
+<div class="elevio-kb-wrapper">
+
+</div>
+</div>
+
+
+</body>
+</html>
+<html></html>

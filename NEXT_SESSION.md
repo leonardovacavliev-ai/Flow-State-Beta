@@ -1,6 +1,6 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13, at the end of the first v2 build session. Read this first, then
+Written 2026-10-13 after the first v2 build session; updated 2026-10-14 after the second (C1.2). Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
 
@@ -22,6 +22,12 @@ Production data steps Leo ran on 2026-10-13:
   `other_webhook`. The dashboard recomputes its daily aggregates on its next load.
 
 **Open:**
+- **C1.2 (branch `v2/c1-2-catalog-import`)**: header parser, catalog import, and the **partner mechanics
+  articles** Leo asked for on 2026-10-14 (source `mechanics`): a model reads the integration's own
+  documents, lists the partner functions it touches, and confirms each article by reading it;
+  blocked help centres go to a person; a person approves each integration's final list (C1.4). Nothing is
+  written to production by this branch. Waiting for Leo to read
+  `docs/integrations/catalog_dry_run.md`; then merge when CI is green. `--apply` stays C1.9.
 - **PR #4 (C0.4 sources)**: `docs/integrations/messaging_sources.md`, the help links for the 13
   missing email/SMS platforms. It waits for Leo to read the "Flags for Leo" and approve the links.
   After he approves, merge it. Then Leo creates the platforms in the admin panel, and you do the
@@ -49,18 +55,12 @@ Production data steps Leo ran on 2026-10-13:
 
 ## 3. Next work, in order
 
-1. **C1.2: Document360 header parser + catalog import (dry run).** This is the next `todo`; its
-   dependency C1.1 is done. Branch `v2/c1-2-catalog-import` from `main`. Notes:
-   - Fixtures come from live pages (six support.yotpo.com guides, the catalog page, 4 detail
-     pages, a sitemap slice). Fetching them is read-only. Save the raw HTML and generate the
-     expected text with the crawler's own `_extract_text`.
-   - **`KNOWN_MATCHES` in the roadmap misses two live integrations:** `bloomreach` and
-     `brevo_pushowl` exist in production `esps` (12 rows incl. `global`). Map them to their catalog
-     slugs too, or the import proposes duplicates. Record it as a deviation.
-   - `normalize_url` changes only http(s) URLs (see `backend/urls.py`); `local://…` names are left
-     alone.
-   - Nothing is written in this checkpoint. The live dry-run report goes in the PR for Leo to read.
-     `--apply` is C1.9.
+1. **Finish C1.2**: once Leo has read the dry-run report, merge (CI green, diff reviewed), then
+   mark it done in the roadmap. If he adds help centres to `scripts/help_centres.json`, re-run the
+   dry run (`--cache` makes it quick) and update the report. To re-run:
+   `DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=<copy from eval/seed_local_db.py> python3
+   scripts/import_catalog.py --cache <dir> --plan <file> --report <file>`. A full run from an
+   empty cache takes about 45 minutes (1 request/s per host).
 2. **Then, in parallel** (each its own branch, once C1.2 is merged where needed): C1.3 refresh
    pipeline, C1.4 admin (needs C1.2's proposals), C1.5 chat picker, C1.6 Reviews readiness, C1.7
    prompts by type. C1.8 waits for C1.3. C1.4 and C1.5 now have a design prototype; see §5.
@@ -120,6 +120,10 @@ sides failed.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
+- **Partner mechanics: Leo's design, keep it.** No hand-made topic lists and no human picking,
+  except where a help centre blocks automated reading. The model lists the functions from the
+  integration's own documents and confirms articles by reading them; a person approves the final
+  list. A dry run needs `GEMINI_API_KEY`; tests use a fake model. Two runs can differ slightly.
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
 - **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the

@@ -170,11 +170,14 @@ three others 1 each.
 | catalog-linked Yotpo guides | ~100 | 400 |
 | partner-hosted integration articles | ~80 | 250 |
 | mechanics documentation for the 13 new messaging platforms | ~40 | 200–600 |
-| **total** | **~300** | **≈ 1,200–2,000** |
+| partner mechanics articles (added 2026-10-14; dry run: 268 proposals) | ~270 | ~700–800 |
+| **total** | **~570** | **≈ 1,900–2,800** |
 
 ### Two consequences
 
-1. Most integrations will rest on one ~500-word guide. Thin coverage will be the normal case.
+1. Most integrations will rest on one ~500-word guide. Thin coverage will be the normal case. The
+   partner mechanics articles (§4.3, added 2026-10-14) add a few pages on how the partner's side of
+   each integration works.
 2. A corpus of ~300 documents does not justify automated discovery machinery. A re-runnable import
    into a proposals inbox plus human labelling does the job. Labelling ~200 new documents is a few
    hours of owner time; it is not a pipeline problem.
@@ -444,6 +447,43 @@ admin when the catalog changes:
      match is proposed with a note. Six of the seven dead links resolve this way.
    - Partner-hosted documentation-like links become proposals; homepages and shortlinks are skipped.
 3. **Pre-fill suggested labels from the Yotpo header only** (below).
+4. **Find the partner's own articles on the functions the integration touches**, by model, with a
+   person approving each integration's final list (added 2026-10-14, Leo; next heading).
+
+**Partner mechanics** (added 2026-10-14, Leo). A Yotpo guide explains how to connect the
+integration; it does not explain how the partner's side behaves. So the import also finds the
+partner's own articles on **every partner function the integration touches**, the way Leo chose
+the email platforms' articles (Klaviyo's flow triggers and profile properties, Recharge's
+"Managing subscription discount codes"). Leo's design, per integration
+(`backend/app_mechanics.py`, `backend/mechanics_ai.py`, the app's default model, Gemini Flash):
+1. **Read what Yotpo and the partner wrote about the integration**: the Yotpo guides, the partner
+   pages about Yotpo the catalog links, and the partner help centre's own articles that mention
+   Yotpo.
+2. **The model lists the functions**: every partner function Yotpo sends data into, takes data
+   from, or that a merchant uses to act on it, each with what Yotpo does there and searches for it.
+3. **Code searches the partner's help centre** for each function: Zendesk's search API, or, for
+   centres without one, the model picks from the centre's list of titles (pages, `llms.txt`,
+   sitemap) the ones worth reading.
+4. **The model confirms by reading**: code fetches every candidate, and the model accepts only
+   articles whose text explains one of the functions (at most 2 per function). It answers with
+   candidate numbers, so it cannot add a link; a broken answer adds nothing.
+5. **A person approves the final list** per integration in the admin (C1.4): source `mechanics`,
+   label pre-filled `shared`, note = function and the model's reason. One click for the list, or
+   per article.
+
+**Blocked help centres go to a person.** A bot check, 401/403/429/503, or articles that show no
+text without a browser: the integration is listed as "needs a person", and the model is not asked
+to guess. Zendesk centres are the exception: their search API returns article text even when their
+pages show a bot check (Cordial). The crawler also now reads an article's JSON-LD text when its
+visible text is an empty shell (Dixa), so those pages can be crawled at all.
+
+**Finding the help centre**: an admin override (`scripts/help_centres.json`); a documentation link
+on the catalog detail page; a link inside the Yotpo guide; the help link on the partner's
+homepage; probing `help.`/`support.`/`docs.`/`knowledge.` of the partner's domain. A host counts
+only when it carries the app's name; names are never guessed into domains (Rule, Target, Drip).
+
+**Bounded**: one help centre per integration, at most 20 articles read, one request per second per
+host; three model calls per integration. Not a crawler.
 
 **Daily sitemap job** (in the worker's scheduler):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,

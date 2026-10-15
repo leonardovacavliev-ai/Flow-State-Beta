@@ -172,7 +172,7 @@ Not part of the suite:
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
-| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | todo | |
+| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | doing | branch `v2/c1-2-catalog-import`; adds partner mechanics articles (Leo, 2026-10-14); waiting for Leo to read `docs/integrations/catalog_dry_run.md` |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
@@ -555,7 +555,7 @@ human reads before anything is written.
 - Appendix B of the plan (measurement method).
 
 **Tasks**
-- [ ] **Fixtures** (`backend/fixtures/document360/`): save the raw HTML of these Yotpo guides:
+- [x] **Fixtures** (`backend/fixtures/document360/`): save the raw HTML of these Yotpo guides:
   - `recharge-integration-guide-for-yotpo-loyalty-referrals`
   - `gorgias-integration-guide-for-reviews-and-loyalty-referrals` (has "Change this text for …"
     leftovers)
@@ -565,55 +565,55 @@ human reads before anything is written.
   - `google-seller-ratings`
 
   Generate the expected text with the crawler's own `_extract_text`, not by hand.
-- [ ] **`backend/doc_header.py`:** `parse_header(text) → {products: set, plans: list,
+- [x] **`backend/doc_header.py`:** `parse_header(text) → {products: set, plans: list,
   platforms: list}`, read from the first ~1,500 characters of stored content.
   - "Loyalty" and "Loyalty & Referrals" → `loyalty`.
   - "Reviews" and "Visual UGC" → `reviews`.
   - "SMS & Email" and "Subscriptions" → ignored (I9).
   - "Change this text for …" lines → ignored.
   - A plans line must never be read as a product.
-- [ ] **`doc_header.suggested_label(text)`** → `loyalty` | `reviews` | `None`. It returns `None`
+- [x] **`doc_header.suggested_label(text)`** → `loyalty` | `reviews` | `None`. It returns `None`
   when both products appear (8 of 94 guides) or none.
   - `product_labels.header_label` delegates to it.
   - The admin picker keeps working, and now shows no pre-fill for both-product headers.
-- [ ] **Catalog fixtures** (`backend/fixtures/catalog/`):
+- [x] **Catalog fixtures** (`backend/fixtures/catalog/`):
   - a trimmed copy of the catalog page: ~15 cards covering pairs (`gorgias`/`gorgias-loyalty`),
     multi-category cards, `dixa` (product tag `reviews`, not `reviews-ugc`), and Shopify;
   - 4 detail pages: one with a Yotpo guide, one partner-only, one with nothing, one with a
     trailing-space href;
   - a 30-URL slice of `sitemap-en.xml`.
-- [ ] **`scripts/import_catalog.py`:**
-  - [ ] **Fetch:** `https://www.yotpo.com/integrations/`, or `--html <file>`. Parse each
+- [x] **`scripts/import_catalog.py`:**
+  - [x] **Fetch:** `https://www.yotpo.com/integrations/`, or `--html <file>`. Parse each
     `div.integration-card`: `data-products`, `data-categories`, `href`, `h3` title, description.
     Normalise product tags: `reviews-ugc` and `reviews` → `reviews`; `loyalty` → `loyalty`.
-  - [ ] **Guard:**
+  - [x] **Guard:**
     - Compare against the snapshot in `app_settings` key `catalog_last_import` (card count and
       slugs).
     - Fewer than 90% of the previous cards, or zero categories → abort, write nothing, exit 2.
-  - [ ] **Group** cards into integrations:
+  - [x] **Group** cards into integrations:
     - by slug base (strip `-loyalty`);
     - by explicit `KNOWN_MATCHES`, which maps existing `esps.name` values to catalog slugs
       (klaviyo, attentive, dotdigital, emarsys, listrak, ometria, omnisend, postscript, plus C0.4's
       13);
     - new integrations get `name = slug_base.replace('-', '_')`;
     - unresolvable name clashes are listed for Leo.
-  - [ ] **Detail pages:**
+  - [x] **Detail pages:**
     - Fetch each at 1 request/s, with the crawler's headers.
     - Extract `support.yotpo.com/docs/*` and `develop.yotpo.com/*` links; otherwise
       documentation-like partner links.
     - Normalise every href (`normalize_url`; the trailing space is a real case).
-  - [ ] **Dead links:**
+  - [x] **Dead links:**
     - Check each Yotpo link.
     - On 404, look in the sitemap for a slug sharing the first two stem words.
     - A match → proposal with note `renamed from <old>`. No match → listed as gone.
-  - [ ] **Report** (markdown, stdout and `--report <path>`):
+  - [x] **Report** (markdown, stdout and `--report <path>`):
     - integrations to create, grouped by default type;
     - type conflicts (expect ~25);
     - proposals by source;
     - renamed, gone, and pages with nothing;
     - removed cards;
     - existing integrations whose catalog fields would change.
-  - [ ] **`--apply`:**
+  - [x] **`--apply`:**
     - Insert new integrations as `status='listed'` with `catalog_slugs`, `categories`, `products`,
       `catalog_description` and the default `platform_type`.
     - Update catalog fields on existing ones, but never `status`, `name`, `display_name`, or an
@@ -622,14 +622,29 @@ human reads before anything is written.
       (rejections are remembered).
     - Store the snapshot.
     - Never delete anything.
-- [ ] **`backend/test_catalog_import.py`:**
+- [x] **Partner mechanics** (added 2026-10-14, Leo's design; plan §4.3, decision log):
+  - `backend/app_mechanics.py`: find the partner's help centre (override file, catalog link, guide
+    link, the partner homepage's help link, then `help.`/`support.`/`docs.`/`knowledge.` probes;
+    the host must carry the app's name); read the partner's own Yotpo articles; search for each
+    function (Zendesk API, or the model's pick from the centre's titles); read every candidate.
+  - `backend/mechanics_ai.py`: the model lists the partner functions from the Yotpo guides and
+    partner Yotpo pages, shortlists titles where there is no search API, and accepts only articles
+    whose text explains a function. Numbers only, checked; a failure adds nothing.
+  - Blocked centres (bot check, 401/403/429/503, no text without a browser) are listed for a
+    person; Zendesk centres are read through their API.
+  - `crawler._extract_text` falls back to JSON-LD article text when a page's visible text is an
+    empty shell (under 200 characters).
+  - Proposals with source `mechanics`, label pre-filled `shared`, note = function and reason; a
+    person approves each integration's final list (C1.4).
+  - `scripts/help_centres.json`: admin overrides. `--no-mechanics`, `--ai-model` on the script.
+- [x] **`backend/test_catalog_import.py`:**
   - parsing the fixtures;
   - grouping;
   - the guard aborts on a shrunken page;
   - href normalisation;
   - renamed-slug lookup;
   - `--apply` on SQLite is idempotent (a second run creates nothing).
-- [ ] **`backend/test_doc_header.py`:** every fixture, including Zendesk returning `None` and
+- [x] **`backend/test_doc_header.py`:** every fixture, including Zendesk returning `None` and
   Tapcart's products resolving to both.
 
 **Deliverables:** `doc_header.py`, `scripts/import_catalog.py`, fixtures, tests, and a dry-run
@@ -646,6 +661,42 @@ report from the live catalog (read-only) attached to the PR.
 - 🛑 Leo reads the report. **No `--apply` here**: that is C1.9.
 
 **Rollback:** nothing is written in this checkpoint.
+
+**Deviations (2026-10-14)**
+- **Partner mechanics added** (Leo, this session), in three versions: general "Welcome to the
+  app" articles (rejected by Leo); topic lists with word matching (off target where words
+  overlap); then Leo's design above, where the model reads the integration's own documents, lists
+  the functions and confirms each article by reading it, blocked centres go to a person, and a
+  person approves each final list. Final dry run: the model listed functions for
+  111 integrations and accepted 272 articles for 65 of them (268 proposals after duplicates);
+  39 help centres could not be read automatically (bot check, login, moved, or built in the
+  browser) and go to a person; for 13 the model read the candidates and accepted none; 37 have
+  no help centre found. 256 model calls, ~980k input tokens, no failures after the retry.
+- **Live dry run** (`docs/integrations/catalog_dry_run.md`), against the live catalog and partner
+  sites, with the knowledge-base rows read from a read-only copy of production
+  (`eval/seed_local_db.py`), never production itself. Against the plan's figures:
+  154 integrations (154); Yotpo guides 88 proposed + 15 already in the knowledge base (~101);
+  renamed 6 (6); gone 1, Yieldify (1); pages with nothing documentary 13 (14); partner pages 135
+  (~58–83: this also counts partner pages on detail pages that have a Yotpo guide, and partner pages
+  whose address names Yotpo); type conflicts 18 among the integrations to create (~25 in all).
+- **`--apply` writes a saved plan** (`--plan`), never a fresh fetch, so what Leo reads is what is
+  written. A plan made with `--only` is refused.
+- **The Zendesk guide now names "Reviews"** in its header; the plan expected no product line. The
+  "no product" case is tested on a short synthetic header instead.
+- **Renamed guides need the partner's name.** Two leading stem words alone matched 13 guides for
+  `integrating-yotpo-loyalty-referrals-with-optimove`. The lookup keeps matches whose slug carries
+  the partner's name, then falls back to a slug with the name and "integration"/"guide"
+  (`builder-integration-guide` → `builderio-integration-guide`).
+- **`KNOWN_MATCHES`** adds `bloomreach` (no catalog card today) and `brevo_pushowl`, and C0.4's
+  13 under the names C0.4 plans. If C1.9 runs before C0.4's platforms are created, the import
+  creates them as `listed`; C0.4 then activates those rows instead of creating new ones.
+- **Import links:** `utm_*` parameters are dropped, and Yotpo's own guides are always `https`
+  (Bold Commerce links one over `http`). `reamaze-2` is named `reamaze`.
+- **Fixtures are trimmed:** scripts, styles, SVG and `data-*` attributes removed (1.4 MB → 50 KB a
+  guide). `test_doc_header.py` checks that the crawler's text is unchanged by the trim.
+- **A link proposed for two integrations** stays with the first (the URL is unique in
+  `document_proposals`); the report lists the 7 cases (e.g. Shopify's intro articles for
+  `shopify_flow`, `shopify_plus`).
 
 ### C1.3 Refresh pipeline
 
@@ -748,7 +799,12 @@ Management, whose N+1 fetch-and-render cannot scale.
     `products`. Changing `status` is **owner-only**.
   - [ ] `GET /api/admin/integrations/<name>/documents?page=`: paginated
     `crawl_queue.list_document_states`.
-  - [ ] `GET /api/admin/proposals?esp=&source=&state=open&page=`.
+  - [ ] `GET /api/admin/proposals?esp=&source=&state=open&page=`. Sources are `catalog`,
+    `sitemap`, `manual` and `mechanics` (the partner's own articles on the functions the
+    integration touches, C1.2). `mechanics` proposals are shown per integration as one list, with
+    the functions the model found and each article's function and reason; an admin approves the
+    final list in one click or per article. Integrations whose help centre blocked automated
+    reading are listed for an admin to pick articles by hand.
   - [ ] `POST /api/admin/proposals/approve {items: [{id, product}]}`:
     - a product is required per item;
     - `add_document(…, product=…)` then `enqueue_crawl_job`;
@@ -1072,7 +1128,10 @@ separate from the code changes.
 After C1.1–C1.8 are deployed, in this order:
 
 1. [ ] Run `scripts/normalize_esp_keys.py --apply` (C1.1).
-2. [ ] Run `scripts/import_catalog.py` as a dry run, read the report, then `--apply`.
+2. [ ] Run `scripts/import_catalog.py --plan <file> --report <file>` as a dry run, read the
+   report (add missing help centres to `scripts/help_centres.json` and re-run), then
+   `--apply --plan <file>`. If C0.4's platforms do not exist yet, the import creates them as
+   `listed` under the same names: activate those rows instead of creating them again.
 3. [ ] Resolve the ~25 platform-type conflicts in the Integrations tab.
 4. [ ] In the Proposals inbox, approve and label documents per document; reject homepages; paste
    blocked pages.
@@ -1131,9 +1190,14 @@ Every wave runs these steps for its platform type.
 | W2 | dev → 🛑 | Claude drafts 10 trap cases from the type's documents (stored content, read-only), each built on a documented limitation where the obvious answer is wrong. Leo validates `expected` and `fails_if`. |
 | W3 | dev | `trap_eval.py run`. First make every `must_contain` pass: fix content or retrieval, not the prompt. Then `sheet`. |
 | W4 | 🛑 Leo | Score the sheet. If the rule fails, revise the prompt (W1) and re-run, up to 3 rounds; then stop and decide together. If a type keeps failing, try the other configured providers on the same 10 questions before rewriting more. |
-| W5 | 🛑 Leo | Content for the type: proposals approved and labelled, blocked pages pasted, platform types confirmed. |
+| W5 | 🛑 Leo | Content for the type: proposals approved and labelled (incl. the partner mechanics articles, source `mechanics`), blocked pages pasted, platform types confirmed. |
 | W6 | dev → 🛑 | `scripts/activate_integrations.py --type <t>` (dry run lists Basic-tier integrations to activate, and the ones staying `listed` with the reason). Leo runs `--apply`. Created in C2.1; it also supports `--deactivate`. |
 | W7 | dev | One week later: errors (Sentry), thin answers per integration, thumbs (after C2.5). Write findings in this file; fix list as follow-up PRs. Update §2 and §10. |
+
+**Watch in W3:** the partner mechanics articles share Query A's 10 chunks with the Yotpo guide
+(Query B, today's mechanics query, is off for the new types). If a trap case fails because they
+pushed the guide out, turn Query B on for that type or cap them (a measured change, recorded
+here), rather than dropping them.
 
 **Gate to activate:**
 - the W4 rule passes and is recorded;
@@ -1332,6 +1396,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
+| Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
 ---
 
@@ -1351,3 +1416,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C1.1 | Schema, key validation, URL identity, chunk counts, both scripts, tests (PR #3); production URL check found 3 rows, fix script prepared | Claude Code |
 | 2026-10-13 | C1.1 | Merged and deployed (#3); Leo applied the URL fix and the key rename; live checks OK: done | Claude Code |
 | 2026-10-13 | — | NEXT_SESSION.md: hand-off agenda for the next session | Claude Code |
+| 2026-10-14 | C1.2 | Header parser, catalog import (dry run by default, `--apply` from a saved plan), partner mechanics articles (Leo's request), fixtures, tests, live dry-run report | Claude Code |

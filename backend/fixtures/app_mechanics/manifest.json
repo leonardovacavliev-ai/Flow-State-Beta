@@ -1,0 +1,117 @@
+{
+ "pages": {
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=yotpo&locale=en-us&per_page=10": {
+   "file": "00-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=yotpo&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20discount%20codes&locale=en-us&per_page=10": {
+   "file": "01-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=subscription%20discount%20codes&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=shopify%20order%20tags&locale=en-us&per_page=10": {
+   "file": "02-support-getrecharge-com-api-v2-help-center-articles-search-j.txt",
+   "status": 200,
+   "url": "https://support.getrecharge.com/api/v2/help_center/articles/search.json?query=shopify%20order%20tags&locale=en-us&per_page=10",
+   "content_type": "application/json; charset=utf-8"
+  },
+  "https://support.dixa.help/en": {
+   "file": "03-support-dixa-help-en.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/llms.txt": {
+   "file": "04-support-dixa-help-llms-txt.txt",
+   "status": 502,
+   "url": "https://support.dixa.help/llms.txt",
+   "content_type": "text/html"
+  },
+  "https://support.dixa.help/robots.txt": {
+   "file": "05-support-dixa-help-robots-txt.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/robots.txt",
+   "content_type": "text/plain; charset=utf-8"
+  },
+  "https://support.dixa.help/en/sitemap.xml": {
+   "file": "06-support-dixa-help-en-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/sitemap.xml",
+   "content_type": "application/xml"
+  },
+  "https://support.dixa.help/sitemap.xml": {
+   "file": "07-support-dixa-help-sitemap-xml.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/sitemap.xml",
+   "content_type": "application/xml"
+  },
+  "https://support.dixa.help/en/articles/2145-yotpo-reviews": {
+   "file": "08-support-dixa-help-en-articles-2145-yotpo-reviews.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/2145-yotpo-reviews",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en/articles/2169-yotpo-in-automations": {
+   "file": "09-support-dixa-help-en-articles-2169-yotpo-in-automations.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/2169-yotpo-in-automations",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en/articles/2178-yotpo-in-mim": {
+   "file": "10-support-dixa-help-en-articles-2178-yotpo-in-mim.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/2178-yotpo-in-mim",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar": {
+   "file": "11-support-dixa-help-en-articles-2148-configurable-conversation.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en/articles/1953-linking-conversations": {
+   "file": "12-support-dixa-help-en-articles-1953-linking-conversations.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/1953-linking-conversations",
+   "content_type": "text/html; charset=utf-8"
+  },
+  "https://support.dixa.help/en/articles/2084-conversation-redaction": {
+   "file": "13-support-dixa-help-en-articles-2084-conversation-redaction.txt",
+   "status": 200,
+   "url": "https://support.dixa.help/en/articles/2084-conversation-redaction",
+   "content_type": "text/html; charset=utf-8"
+  }
+ },
+ "expected": {
+  "recharge": {
+   "help_centre": "https://support.getrecharge.com/hc/en-us",
+   "method": "zendesk-search",
+   "accepted": [
+    "https://support.getrecharge.com/hc/en-us/articles/360034748173-Managing-subscription-discount-codes",
+    "https://support.getrecharge.com/hc/en-us/articles/360008829873-Using-Shopify-order-and-customer-tags"
+   ],
+   "checked": 8,
+   "sources": [
+    "Yotpo guide",
+    "Recharge help centre: Migrate from Yotpo to Recharge",
+    "Recharge help centre: Supported apps and integrations"
+   ]
+  },
+  "dixa": {
+   "help_centre": "https://support.dixa.help/en",
+   "method": "sitemap",
+   "accepted": [
+    "https://support.dixa.help/en/articles/2148-configurable-conversation-sidebar"
+   ],
+   "checked": 3,
+   "sources": [
+    "Dixa help centre: Yotpo reviews",
+    "Dixa help centre: Yotpo in automations",
+    "Dixa help centre: Yotpo in mim"
+   ]
+  }
+ }
+}
