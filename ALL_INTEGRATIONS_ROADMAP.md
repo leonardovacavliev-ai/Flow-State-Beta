@@ -406,8 +406,7 @@ and pastes any that are blocked.
 **Acceptance**
 - `audit_product_labels.py` is OK.
 - `retrieval_recall.py` still passes the existing Klaviyo cases.
-- Every new platform has ≥ 1 integration guide and ≥ 1 mechanics document, both indexed. This is
-  the Basic tier for `messaging`.
+- Every new platform has ≥ 1 integration guide and ≥ 1 mechanics document, both indexed.
 
 ---
 
@@ -908,18 +907,29 @@ Management, whose N+1 fetch-and-render cannot scale.
 
   | in code and this map | on screen |
   |---|---|
-  | status `active` / `listed` / `archived` | In chat? — **In chat** / **Not in chat yet** / **Hidden** |
-  | coverage tier Basic / Listed | Documentation — **Ready** / **Missing documents**, with a ✓/✗ checklist of what's needed |
+  | status `active` / `listed` | In chat? — **In chat** / **Not in chat** (`archived` is no longer offered, below) |
   | `platform_type` messaging / storefront / service / data / content | Kind of platform — **Email & SMS** / **Store & checkout** / **Customer service** / **Data & automation** / **Reviews & content** |
-  | `products` | Yotpo products it works with (tick boxes in the list too) |
+  | `products` | Yotpo products it works with (tick boxes in the list too; ticked automatically from documents, below) |
   | catalog cards | Its pages on yotpo.com/integrations |
   | proposals (sources catalog / sitemap / manual / mechanics) | **Suggested Links** (From yotpo.com / New Yotpo article / Added by hand / Platform help article) |
   | mechanics functions | the platform's features its Yotpo guide uses |
   | owner / editor | Owner access / Editor access |
 
-  Every empty field says why it is empty and what fills it. The Documentation box lists what is
-  counted, by label, with ✓/✗, and says what to do when nothing was suggested or the platform's help
-  site couldn't be read.
+  Every empty field says why it is empty and what fills it. Explanations open from a small "i"
+  (hover, focus or click; the browser's own title tooltip proved unreliable).
+- **No coverage tier** (Leo, 2026-10-15: "completely unreliable… root it out"). The Basic / Listed
+  tier of plan §4.1 ("Ready / Missing documents" on screen) is gone from the admin and the API:
+  no column, filter, checklist or to-do. What decides that an integration goes into chat is Leo's
+  judgement, helped by its documents list and Suggested Links.
+- **Two states** (Leo, 2026-10-15): an integration is in chat (front and back end) or not in chat
+  (admin only); it is never hidden from the admin. The admin can't set `archived` any more; a row
+  archived by older code (none in production on 2026-10-15) shows as "Not in chat", read-only until
+  set to it. Removing for good is deleting.
+- **Products follow the documents** (Leo, 2026-10-15): Loyalty / Reviews count as ticked whenever
+  the integration has a document with that label (Shared doesn't count). Computed on read
+  (`admin_integrations_routes.effective_products`), never stored, so every existing integration is
+  pre-filled with no backfill; those boxes are locked in the admin. C1.5's `/api/integrations` uses
+  the same rule.
 - **Nothing is ticked in advance any more** (Integrations and Global Knowledge). Failed and
   never-crawled links used to be pre-ticked, which showed "5 selected · Delete Selected" before the
   admin had chosen anything. The admin ticks what to crawl.
@@ -944,7 +954,8 @@ hack and the hardcoded Klaviyo assumptions go away. Messaging users see no diffe
 **Tasks**
 - [ ] **`GET /api/integrations`** (public):
   - `active` and `listed` integrations: `name`, `display_name`, `platform_type`, `categories`,
-    `products`, `status`, `tier`, `catalog_url`;
+    `products` (the effective rule: `admin_integrations_routes.effective_products`), `status`,
+    `catalog_url` (no tier: C1.4 Deviations);
   - in-process cache (60 s) with an `ETag`.
 - [ ] **`frontend/integration-picker.js`:**
   - a searchable combobox (type-ahead over display names), grouped by category;
@@ -1265,7 +1276,8 @@ After C1.1–C1.8 are deployed, in this order:
 **Claude Code then runs read-only and reports:**
 - `audit_product_labels.py` (OK);
 - `retrieval_recall.py` (no regression);
-- per type, the count of integrations at Basic vs Listed, from `/api/admin/integrations`.
+- per type, how many integrations are in chat and not, and which have no Loyalty or Reviews
+  document yet, from `/api/admin/integrations`.
 
 ### Stage 1 exit gate
 
@@ -1316,7 +1328,7 @@ Every wave runs these steps for its platform type.
 | W3 | dev | `trap_eval.py run`. First make every `must_contain` pass: fix content or retrieval, not the prompt. Then `sheet`. |
 | W4 | 🛑 Leo | Score the sheet. If the rule fails, revise the prompt (W1) and re-run, up to 3 rounds; then stop and decide together. If a type keeps failing, try the other configured providers on the same 10 questions before rewriting more. |
 | W5 | 🛑 Leo | Content for the type: proposals approved and labelled (incl. the partner mechanics articles, source `mechanics`), blocked pages pasted, platform types confirmed. |
-| W6 | dev → 🛑 | `scripts/activate_integrations.py --type <t>` (dry run lists Basic-tier integrations to activate, and the ones staying `listed` with the reason). Leo runs `--apply`. Created in C2.1; it also supports `--deactivate`. |
+| W6 | dev → 🛑 | `scripts/activate_integrations.py --type <t>` (dry run lists the integrations Leo chose to activate, each with its labelled documents, and the ones staying `listed` with the reason). Leo runs `--apply`. Created in C2.1; it also supports `--deactivate`. |
 | W7 | dev | One week later: errors (Sentry), thin answers per integration, thumbs (after C2.5). Write findings in this file; fix list as follow-up PRs. Update §2 and §10. |
 
 **Watch in W3:** the partner mechanics articles share Query A's 10 chunks with the Yotpo guide
@@ -1498,8 +1510,8 @@ C1.8 already did the work, so this is configuration only.
 
 ## 8. Definition of done: v2 is finalised when
 
-- [ ] Every catalog integration (Loyalty or Reviews) is either `active` at Basic tier or better, or
-  `listed` with a recorded reason (no guide, gone, or content blocked).
+- [ ] Every catalog integration (Loyalty or Reviews) is either in chat, or not in chat with a
+  recorded reason (no guide, gone, or content blocked).
 - [ ] All five platform types are live, each with Leo's final prompt and welcome copy.
 - [ ] Every non-messaging type passed its trap rule; results are in `eval/results/`.
 - [ ] The messaging prompt is byte-identical to v1's (test), unless C2.7 deliberately changed the
@@ -1535,6 +1547,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
+| No coverage tier; two states (in chat / not in chat); products follow the documents (Leo, 2026-10-15) | C1.4 Deviations; plan §4.1's tier is dropped |
 | New links keep coming after the first import: the import is re-run by hand every 1–2 months (R1), and any integration can be searched on demand with "Find links" (Leo, 2026-10-15) | C1.10 and R1; still no scheduled discovery: everything found is a suggestion a person approves |
 | Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
@@ -1561,5 +1574,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
 | 2026-10-15 | C0.4 | Leo approved the sources; PR #4 merged | Claude Code |
 | 2026-10-15 | C1.4 | Integrations and Proposals tabs, crawl summary, owner/editor roles, listed integrations documentable; independent review, findings fixed; practice import into a local SQLite copy (no model calls) | Claude Code |
+| 2026-10-15 | C1.4 | Leo: the "i" popups work on hover, focus and click; coverage tier removed; Hidden merged into Not in chat; products ticked from documents | Claude Code |
 | 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |
