@@ -359,6 +359,9 @@ prompt has passed its trap questions.
   settings), even where the URL says "shopify". Otherwise Flow State becomes a general Yotpo help
   bot competing with support.yotpo.com.
 
+**Coverage tiers were dropped on 2026-10-15** (Leo: unreliable and unnecessary; roadmap C1.4
+Deviations). Kept below for the record.
+
 **Coverage, computed from documents only.** Eval results stay in files, so they are a separate,
 manually maintained flag.
 

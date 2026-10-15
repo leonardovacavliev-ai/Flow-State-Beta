@@ -26,8 +26,9 @@ from integration_types import (PLATFORM_TYPES, TYPE_LABELS, CATEGORY_DEFAULT_TYP
 
 PER_PAGE = 50
 MAX_PER_PAGE = 200
-STATUSES = ('active', 'listed', 'archived')
-TIERS = ('basic', 'listed')
+# What an admin can set (Leo, 2026-10-15: in chat, or admin only). Rows
+# archived by older code stay readable and can be set to either.
+STATUSES = ('active', 'listed')
 FLAGS = ('unlabelled', 'failed', 'proposals', 'misses', 'mixed_types')
 CATALOG_PRODUCTS = ('loyalty', 'reviews')
 PROPOSAL_STATES = ('open', 'approved', 'rejected')
@@ -46,19 +47,12 @@ ACTIVE_JOBS_SHOWN = 50
 CATALOG_MECHANICS_KEY = 'catalog_mechanics'
 CATALOG_REPORT_KEY = 'catalog_last_report'
 
-# Indexed: crawled, and the last index wrote chunks. vector_count is NULL on
-# documents indexed before it was recorded (C1.1); those count as indexed,
-# since they were in search results then and nothing has removed them.
-_INDEXED = "crawl_status = 'completed' AND (vector_count IS NULL OR vector_count > 0)"
-
 SUMMARY_SQL = f"""
     SELECT e.id, e.name, e.display_name, e.status, e.platform_type, e.categories,
            e.products, e.catalog_slugs, e.platform_type_set_by,
            COALESCE(d.total, 0), COALESCE(d.loyalty, 0), COALESCE(d.reviews, 0),
            COALESCE(d.shared, 0), COALESCE(d.unlabelled, 0), COALESCE(d.failed, 0),
-           COALESCE(d.misses, 0), COALESCE(d.indexed_loyalty, 0),
-           COALESCE(d.indexed_reviews, 0), COALESCE(d.indexed_shared, 0),
-           COALESCE(p.open_count, 0), COALESCE(d.not_crawled, 0)
+           COALESCE(d.misses, 0), COALESCE(p.open_count, 0), COALESCE(d.not_crawled, 0)
     FROM esps e
     LEFT JOIN (
         SELECT esp_id, COUNT(*) AS total,
@@ -68,9 +62,6 @@ SUMMARY_SQL = f"""
                SUM(CASE WHEN product IS NULL THEN 1 ELSE 0 END) AS unlabelled,
                SUM(CASE WHEN crawl_status = 'failed' THEN 1 ELSE 0 END) AS failed,
                SUM(CASE WHEN consecutive_misses >= {MISS_LIMIT} THEN 1 ELSE 0 END) AS misses,
-               SUM(CASE WHEN product = 'loyalty' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_loyalty,
-               SUM(CASE WHEN product = 'reviews' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_reviews,
-               SUM(CASE WHEN product = 'shared' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_shared,
                SUM(CASE WHEN crawl_status IS NULL OR crawl_status NOT IN ('completed', 'failed')
                         THEN 1 ELSE 0 END) AS not_crawled
         FROM esp_documents
@@ -100,32 +91,23 @@ def canonical_uuid(value) -> Optional[str]:
         return None
 
 
-def coverage_tier(platform_type: Optional[str], products: List[str], indexed_loyalty: int,
-                  indexed_reviews: int, indexed_shared: int) -> str:
-    """'basic' or 'listed', from documents only (plan §4.1).
-
-    Basic: at least one labelled, indexed guide for a Yotpo product the
-    catalog lists for the integration (any product when the catalog lists
-    none, as for integrations created by hand). Messaging also needs a
-    `shared` document, the platform's own mechanics: the checklist depends
-    on them.
-    """
-    wanted = [p for p in products if p in CATALOG_PRODUCTS] or list(CATALOG_PRODUCTS)
-    guides = sum(n for p, n in (('loyalty', indexed_loyalty), ('reviews', indexed_reviews))
-                 if p in wanted)
-    if not guides:
-        return 'listed'
-    if platform_type == 'messaging' and not indexed_shared:
-        return 'listed'
-    return 'basic'
+def effective_products(stored: List[str], loyalty_docs: int, reviews_docs: int) -> List[str]:
+    """The Yotpo products an integration works with: the ones ticked (by an
+    admin or the catalog import) plus any it has a document labelled with
+    (Leo, 2026-10-15). Shared documents don't count: every platform's own
+    help is Shared. Computed, never stored, so it stays right as labels change
+    and needs no backfill. /api/integrations (C1.5) should use the same rule."""
+    have = {'loyalty': loyalty_docs, 'reviews': reviews_docs}
+    return [p for p in CATALOG_PRODUCTS if p in (stored or []) or have[p] > 0]
 
 
 def summary_row(row) -> Dict:
     """One SUMMARY_SQL row as the list shows it."""
     (esp_id, name, display_name, status, platform_type, categories, products, slugs,
      type_set_by, total, loyalty, reviews, shared, unlabelled, failed, misses,
-     indexed_loyalty, indexed_reviews, indexed_shared, open_proposals, not_crawled) = row
-    categories, products = _json_list(categories), _json_list(products)
+     open_proposals, not_crawled) = row
+    categories, stored = _json_list(categories), _json_list(products)
+    products = effective_products(stored, int(loyalty), int(reviews))
     types = category_types(categories)
     return {
         'id': str(esp_id),
@@ -136,6 +118,9 @@ def summary_row(row) -> Dict:
         'categories': categories,
         'category_names': [category_name(c) for c in categories],
         'products': products,
+        # ticked because it has documents with that label: can't be unticked
+        'products_from_documents': [p for p in CATALOG_PRODUCTS
+                                    if {'loyalty': int(loyalty), 'reviews': int(reviews)}[p] > 0],
         'catalog_slugs': _json_list(slugs),
         'documents': {'total': int(total), 'loyalty': int(loyalty), 'reviews': int(reviews),
                       'shared': int(shared), 'unlabelled': int(unlabelled)},
@@ -143,11 +128,6 @@ def summary_row(row) -> Dict:
         'not_crawled': int(not_crawled),
         'misses': int(misses),
         'open_proposals': int(open_proposals),
-        'tier': coverage_tier(platform_type, products, int(indexed_loyalty),
-                              int(indexed_reviews), int(indexed_shared)),
-        # loaded documents with chunks in search, by label: what the tier counts
-        'indexed': {'loyalty': int(indexed_loyalty), 'reviews': int(indexed_reviews),
-                    'shared': int(indexed_shared)},
         # Categories that default to different types, until an admin picks one
         'type_choices': types if len(types) > 1 and not type_set_by else [],
         'type_set_by': type_set_by,
@@ -160,7 +140,7 @@ def summary_row(row) -> Dict:
 
 
 def matches(item: Dict, q: str = '', category: str = '', ptype: str = '', status: str = '',
-            tier: str = '', flag: str = '') -> bool:
+            flag: str = '') -> bool:
     """The list's filters. q searches the name, display name and category labels."""
     if q:
         hay = ' '.join([item['name'], item['display_name']] + item['category_names']).lower()
@@ -171,8 +151,6 @@ def matches(item: Dict, q: str = '', category: str = '', ptype: str = '', status
     if ptype and item['platform_type'] != ptype:
         return False
     if status and item['status'] != status:
-        return False
-    if tier and item['tier'] != tier:
         return False
     if flag == 'unlabelled' and not item['documents']['unlabelled']:
         return False
@@ -488,7 +466,7 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
 
     @app.route('/api/admin/integrations', methods=['GET'])
     def admin_list_integrations():
-        """GET ?q=&category=&type=&status=&tier=&flag=&page=&per_page=
+        """GET ?q=&category=&type=&status=&flag=&page=&per_page=
 
         One summary query for every integration; filters and pages in Python.
         `facets` counts the whole list, so the filters can say how many match.
@@ -500,8 +478,8 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
         if problem:
             return jsonify({'error': problem}), 400
         args = {k: (request.args.get(k) or '').strip() for k in
-                ('q', 'category', 'type', 'status', 'tier', 'flag')}
-        for key, allowed in (('type', PLATFORM_TYPES), ('status', STATUSES), ('tier', TIERS),
+                ('q', 'category', 'type', 'status', 'flag')}
+        for key, allowed in (('type', PLATFORM_TYPES), ('status', STATUSES),
                              ('flag', FLAGS)):
             if args[key] and args[key] not in allowed:
                 return jsonify({'error': f"{key} must be one of: {', '.join(allowed)}"}), 400
@@ -520,7 +498,7 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
             'open_proposals': sum(i['open_proposals'] for i in items),
         }
         found = [i for i in items if matches(i, args['q'], args['category'], args['type'],
-                                             args['status'], args['tier'], args['flag'])]
+                                             args['status'], args['flag'])]
         return jsonify({'integrations': paginate(found, page, per_page), 'total': len(found),
                         'page': page, 'per_page': per_page, 'facets': facets})
 
@@ -629,7 +607,11 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
         rows = d.execute_query(f"""
             SELECT p.id, p.url, p.source, p.suggested_label, p.state, p.note, p.title,
                    p.partner_function, p.reason, p.decision_note, p.created_at,
-                   p.decided_by, p.decided_at, e.name, e.display_name, e.status, e.products
+                   p.decided_by, p.decided_at, e.name, e.display_name, e.status, e.products,
+                   (SELECT COUNT(*) FROM esp_documents d WHERE d.esp_id = e.id
+                     AND d.product = 'loyalty' AND d.retired_at IS NULL),
+                   (SELECT COUNT(*) FROM esp_documents d WHERE d.esp_id = e.id
+                     AND d.product = 'reviews' AND d.retired_at IS NULL)
             FROM document_proposals p
             LEFT JOIN esps e ON e.id = p.esp_id
             WHERE {cond}
@@ -652,7 +634,7 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
                 m = mechanics.get(r[13]) or {}
                 integrations[r[13]] = {
                     'display_name': r[14] or r[13], 'status': r[15],
-                    'products': _json_list(r[16]),
+                    'products': effective_products(_json_list(r[16]), int(r[17] or 0), int(r[18] or 0)),
                     'functions': m.get('functions') or [],
                     'help_centre': m.get('help_centre'),
                 }
