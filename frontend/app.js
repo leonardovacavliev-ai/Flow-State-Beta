@@ -2765,6 +2765,7 @@ async function loadGeneralSettings() {
     await Promise.all([
         loadAIModelConfig(),
         loadSystemPrompt(),
+        loadPreviewIntegrations(),
         loadAuditLog()
     ]);
 }
@@ -2834,21 +2835,127 @@ function updateModelOptions(provider, selectedModel = null) {
     });
 }
 
+// Prompts by kind of platform (C1.7). The server keeps one prompt per
+// platform type; Email & SMS (messaging) is the one chat has always used.
+const PROMPT_TYPE_LABELS = {
+    messaging: 'Email & SMS',
+    storefront: 'Store & checkout',
+    service: 'Customer service',
+    data: 'Data & automation',
+    content: 'Reviews & content'
+};
+
+function selectedPromptType() {
+    return document.getElementById('promptPlatformType').value || 'messaging';
+}
+
+function promptTypeLabel(type) {
+    return PROMPT_TYPE_LABELS[type] || type;
+}
+
+function showPromptWarnings(warnings) {
+    const box = document.getElementById('promptWarnings');
+    const list = warnings || [];
+    box.innerHTML = list.map(w => `<p>⚠️ ${escapeHtml(w)}</p>`).join('');
+    box.classList.toggle('hidden', list.length === 0);
+}
+
 async function loadSystemPrompt() {
+    const type = selectedPromptType();
     try {
-        const response = await fetch(`${API_URL}/admin/settings/system-prompt`, { headers: adminHeaders() });
+        const response = await fetch(`${API_URL}/admin/settings/system-prompt?platform_type=${encodeURIComponent(type)}`, { headers: adminHeaders() });
         const data = await response.json();
 
         if (data.error) {
             console.error('Error loading system prompt:', data.error);
             return;
         }
+        if (type !== selectedPromptType()) return;   // the picker moved on meanwhile
+
+        const select = document.getElementById('promptPlatformType');
+        if (Array.isArray(data.types) && select.options.length !== data.types.length) {
+            select.innerHTML = data.types.map(t =>
+                `<option value="${escapeAttr(t.value)}">${escapeHtml(t.label)}</option>`).join('');
+            select.value = type;
+        }
 
         document.getElementById('systemPrompt').value = data.system_prompt;
+        const note = document.getElementById('promptTypeNote');
+        note.textContent = data.stored === false
+            ? `Nothing has been saved for ${promptTypeLabel(type)} yet: this is the draft that ships with the app, and it is what chat uses for this kind. Saving stores it.`
+            : '';
+        note.classList.toggle('hidden', data.stored !== false);
+        showPromptWarnings(data.warnings);
     } catch (error) {
         console.error('Error loading system prompt:', error);
     }
 }
+
+// The Preview picker lists integrations of the selected kind, in chat or not
+async function loadPreviewIntegrations() {
+    const type = selectedPromptType();
+    const select = document.getElementById('previewIntegration');
+    try {
+        const response = await fetch(`${API_URL}/admin/integrations?type=${encodeURIComponent(type)}&per_page=200`, { headers: adminHeaders() });
+        const data = await response.json();
+        if (type !== selectedPromptType()) return;
+        const items = data.integrations || [];
+        select.innerHTML = items.length
+            ? items.map(i => `<option value="${escapeAttr(i.name)}">${escapeHtml(i.display_name)}${i.status === 'active' ? '' : ' (not in chat)'}</option>`).join('')
+            : `<option value="">No ${escapeHtml(promptTypeLabel(type))} integrations</option>`;
+    } catch (error) {
+        console.error('Error loading integrations for the preview:', error);
+        select.innerHTML = '<option value="">Could not load integrations</option>';
+    }
+}
+
+document.getElementById('promptPlatformType').addEventListener('change', () => {
+    document.getElementById('promptPreview').classList.add('hidden');
+    loadSystemPrompt();
+    loadPreviewIntegrations();
+});
+
+document.getElementById('previewPromptBtn').addEventListener('click', async () => {
+    const esp = document.getElementById('previewIntegration').value;
+    const product = document.getElementById('previewProduct').value;
+    const out = document.getElementById('promptPreview');
+    if (!esp) {
+        alert('Pick an integration to preview');
+        return;
+    }
+    out.classList.remove('hidden');
+    out.innerHTML = '<p class="text-xs text-muted-foreground">Loading preview…</p>';
+    try {
+        const response = await fetch(`${API_URL}/admin/settings/prompt-preview`, {
+            method: 'POST',
+            headers: adminHeaders(),
+            body: JSON.stringify({ esp, product })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+            out.innerHTML = `<p class="text-xs text-red-600">${escapeHtml(data.error || 'Could not build the preview')}</p>`;
+            return;
+        }
+        const pre = (text) => `<pre class="p-3 bg-background rounded border border-border font-mono text-xs whitespace-pre-wrap break-words max-h-96 overflow-y-auto">${escapeHtml(text)}</pre>`;
+        const productName = data.product === 'reviews' ? 'Reviews' : 'Loyalty';
+        out.innerHTML = `
+            <p class="text-xs text-muted-foreground">
+                ${escapeHtml(data.display_name)} · ${escapeHtml(data.type_label)} · ${escapeHtml(productName)}
+                · ${data.status === 'active' ? 'In chat' : 'Not in chat'}
+                ${data.stored === false ? ' · using the shipped draft' : ''}
+            </p>
+            <div>
+                <p class="text-xs font-medium text-card-foreground mb-1">Integration facts (top of the documentation the model reads)</p>
+                ${data.facts_block ? pre(data.facts_block) : '<p class="text-xs text-muted-foreground">Not sent for Email &amp; SMS integrations: their context stays as it was.</p>'}
+            </div>
+            <div>
+                <p class="text-xs font-medium text-card-foreground mb-1">System prompt</p>
+                ${pre(data.system_prompt)}
+            </div>`;
+    } catch (error) {
+        out.innerHTML = `<p class="text-xs text-red-600">${escapeHtml('Could not build the preview: ' + error.message)}</p>`;
+    }
+});
 
 async function loadAuditLog() {
     try {
@@ -2878,12 +2985,12 @@ async function loadAuditLog() {
                 <div class="border-b border-border p-4 hover:bg-muted/30 transition-colors">
                     <div class="flex items-start justify-between mb-2">
                         <div>
-                            <div class="font-medium text-card-foreground text-sm">${escapeHtml(entry.description)}</div>
+                            <div class="font-medium text-card-foreground text-sm">${escapeHtml(entry.description)}${entry.platform_type ? ` <span class="ml-1 px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs font-normal">${escapeHtml(promptTypeLabel(entry.platform_type))}</span>` : ''}</div>
                             <div class="text-xs text-muted-foreground mt-1">
                                 by ${escapeHtml(entry.user_email)} • ${timestamp}
                             </div>
                         </div>
-                        <button class="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="restoreFromBackup(${actualIndex}, '${entry.timestamp}')" title="Put the settings back as they were just before this change">
+                        <button class="px-3 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="restoreFromBackup(${actualIndex}, '${escapeAttr(entry.timestamp)}', '${escapeAttr(entry.platform_type || '')}')" title="Put the settings back as they were just before this change">
                             Undo this change
                         </button>
                     </div>
@@ -2989,6 +3096,7 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
 document.getElementById('updatePromptBtn').addEventListener('click', async () => {
     const systemPrompt = document.getElementById('systemPrompt').value;
     const userEmail = document.getElementById('promptChangeEmail').value;
+    const platformType = selectedPromptType();
 
     if (!userEmail) {
         alert('Please enter your email address for the audit trail');
@@ -3000,7 +3108,7 @@ document.getElementById('updatePromptBtn').addEventListener('click', async () =>
         return;
     }
 
-    if (!confirm('Are you sure you want to update the system prompt? This will affect all users immediately.')) {
+    if (!confirm(`Save the ${promptTypeLabel(platformType)} system prompt? Chats about ${promptTypeLabel(platformType)} integrations use it immediately.`)) {
         return;
     }
 
@@ -3010,14 +3118,16 @@ document.getElementById('updatePromptBtn').addEventListener('click', async () =>
             headers: adminHeaders(),
             body: JSON.stringify({
                 system_prompt: systemPrompt,
-                user_email: userEmail
+                user_email: userEmail,
+                platform_type: platformType
             })
         });
 
         const data = await response.json();
 
         if (data.success) {
-            alert(data.warning ? `System prompt saved.\n\nNote: ${data.warning}` : 'System prompt updated successfully!');
+            const notes = (data.warnings || (data.warning ? [data.warning] : [])).join('\n\n');
+            alert(notes ? `System prompt saved.\n\nNote: ${notes}` : 'System prompt updated successfully!');
             document.getElementById('promptChangeEmail').value = '';
             await loadGeneralSettings();
         } else {
@@ -3029,14 +3139,19 @@ document.getElementById('updatePromptBtn').addEventListener('click', async () =>
 });
 
 // Restore from backup
-async function restoreFromBackup(auditIndex, timestamp) {
+async function restoreFromBackup(auditIndex, timestamp, platformType) {
     const userEmail = prompt('Enter your email address to confirm restoration:');
 
     if (!userEmail) {
         return;
     }
 
-    if (!confirm(`Put the settings back as they were just BEFORE the change made at ${new Date(timestamp).toLocaleString()}? This replaces the current model and system prompt.`)) {
+    // An entry for one kind's prompt puts back only that prompt; older
+    // entries put back the model and the Email & SMS prompt, as before.
+    const what = platformType
+        ? `This replaces the current ${promptTypeLabel(platformType)} system prompt only.`
+        : 'This replaces the current model and the Email & SMS system prompt.';
+    if (!confirm(`Put the settings back as they were just BEFORE the change made at ${new Date(timestamp).toLocaleString()}? ${what}`)) {
         return;
     }
 
@@ -3053,7 +3168,8 @@ async function restoreFromBackup(auditIndex, timestamp) {
         const data = await response.json();
 
         if (data.success) {
-            alert(data.warning ? `Configuration restored.\n\nNote: ${data.warning}` : 'Configuration restored successfully!');
+            const notes = (data.warnings || (data.warning ? [data.warning] : [])).join('\n\n');
+            alert(notes ? `Configuration restored.\n\nNote: ${notes}` : 'Configuration restored successfully!');
             await loadGeneralSettings();
         } else {
             alert('Error: ' + (data.error || 'Unknown error'));

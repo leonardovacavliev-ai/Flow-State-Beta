@@ -263,18 +263,28 @@ class ESPManager:
             'doc_count': row[10],
         } for row in rows]
 
-    def is_active_integration(self, name: str) -> bool:
-        """True when `name` is the key of an active integration.
+    def _active(self) -> Dict[str, Optional[str]]:
+        """Active integrations' keys -> platform_type.
 
-        Cached for ACTIVE_CACHE_SECONDS: chat calls this on every message.
+        Cached for ACTIVE_CACHE_SECONDS: chat asks on every message. Setting
+        _active_names to None makes the next call reload.
         """
         now = time.monotonic()
         if self._active_names is None or now - self._active_loaded_at > ACTIVE_CACHE_SECONDS:
             rows = self.db.execute_query(
-                "SELECT name FROM esps WHERE status = 'active'", fetch=True) or []
-            self._active_names = frozenset(row[0] for row in rows)
+                "SELECT name, platform_type FROM esps WHERE status = 'active'", fetch=True) or []
+            self._active_names = {row[0]: row[1] for row in rows}
             self._active_loaded_at = now
-        return name in self._active_names
+        return self._active_names
+
+    def is_active_integration(self, name: str) -> bool:
+        """True when `name` is the key of an active integration."""
+        return name in self._active()
+
+    def active_platform_type(self, name: str) -> Optional[str]:
+        """The platform type of an active integration; None when it is not
+        active or has no type (the hidden 'global' row)."""
+        return self._active().get(name)
 
     def update_esp(self, esp_id: str, display_name: str = None,
                    description: str = None) -> bool:

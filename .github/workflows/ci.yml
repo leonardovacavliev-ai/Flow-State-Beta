@@ -93,6 +93,10 @@ jobs:
         env: { HF_HUB_OFFLINE: '1' }
         run: python backend/test_admin_integrations.py
 
+      - name: Prompts by platform type
+        env: { HF_HUB_OFFLINE: '1' }
+        run: python backend/test_prompts_by_type.py
+
       - name: Import smoke test
         working-directory: backend
         env:

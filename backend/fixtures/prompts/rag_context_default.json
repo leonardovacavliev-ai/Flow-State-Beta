@@ -1,0 +1,244 @@
+[
+ {
+  "context": "# Relevant Documentation:\n\n## Platform Mechanics (read these first — they determine whether a setup works, not just what it is called):\n### Source 1: triggers\nESP: rich\nURL: https://help.rich.test/triggers\ntriggers part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79\n\n### Source 2: delays\nESP: rich\nURL: https://help.rich.test/delays\ndelays part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79 w80 w81 w82 w83 w84 w85 w86 w87 w88 w89\n\n## ESP-Specific Knowledge:\n### Source 3: heading\nESP: rich\nURL: https://help.rich.test/heading\nheading part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11\n\nheading part 1: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39\n\n### Source 4: props\nESP: rich\nURL: https://help.rich.test/props\nprops part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69\n\n### Source 5: guide\nESP: rich\nURL: https://support.yotpo.com/docs/rich\nguide part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74\n\n### Source 6: pasted\nESP: rich\nURL: local://rich/notes\npasted part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64\n\n## Global Knowledge:\n### Source 7: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n",
+  "metadatas": [
+   {
+    "esp": "rich",
+    "filename": "triggers",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/triggers",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "delays",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/delays",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "heading",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/heading",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "props",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/props",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "guide",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://support.yotpo.com/docs/rich",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "pasted",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "local://rich/notes",
+    "product": "loyalty"
+   },
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ },
+ {
+  "context": "# Relevant Documentation:\n\n## Platform Mechanics (read these first — they determine whether a setup works, not just what it is called):\n### Source 1: triggers\nESP: rich\nURL: https://help.rich.test/triggers\ntriggers part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79\n\n### Source 2: delays\nESP: rich\nURL: https://help.rich.test/delays\ndelays part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79 w80 w81 w82 w83 w84 w85 w86 w87 w88 w89\n\n## ESP-Specific Knowledge:\n### Source 3: heading\nESP: rich\nURL: https://help.rich.test/heading\nheading part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11\n\nheading part 1: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39\n\n### Source 4: props\nESP: rich\nURL: https://help.rich.test/props\nprops part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69\n\n### Source 5: guide\nESP: rich\nURL: https://support.yotpo.com/docs/rich\nguide part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74\n\n### Source 6: pasted\nESP: rich\nURL: local://rich/notes\npasted part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64\n\n## Global Knowledge:\n### Source 7: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n",
+  "metadatas": [
+   {
+    "esp": "rich",
+    "filename": "triggers",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/triggers",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "delays",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/delays",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "heading",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/heading",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "props",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/props",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "guide",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://support.yotpo.com/docs/rich",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "pasted",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "local://rich/notes",
+    "product": "loyalty"
+   },
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ },
+ {
+  "context": "# Relevant Documentation:\n\n## ESP-Specific Knowledge:\n### Source 1: only\nESP: thin\nURL: https://help.thin.test/only\nonly part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69\n\n## Global Knowledge:\n### Source 2: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n",
+  "metadatas": [
+   {
+    "esp": "thin",
+    "filename": "only",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.thin.test/only",
+    "product": "loyalty"
+   },
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ },
+ {
+  "context": "# Relevant Documentation:\n\n## Global Knowledge:\n### Source 1: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n",
+  "metadatas": [
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ },
+ {
+  "context": "# Relevant Documentation:\n\nNo specific documentation found. Provide general guidance based on ESP best practices.\n\n",
+  "metadatas": []
+ },
+ {
+  "context": "## Coverage note\nThe user is asking about Yotpo Reviews, and Flow State has no Yotpo Reviews documentation for Rich Mail. Say so plainly and do not answer from Yotpo Loyalty & Referrals sources.\n\n# Relevant Documentation:\n\n## Platform Mechanics (read these first — they determine whether a setup works, not just what it is called):\n### Source 1: triggers\nESP: rich\nURL: https://help.rich.test/triggers\ntriggers part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79\n\n### Source 2: delays\nESP: rich\nURL: https://help.rich.test/delays\ndelays part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74 w75 w76 w77 w78 w79 w80 w81 w82 w83 w84 w85 w86 w87 w88 w89\n\n## ESP-Specific Knowledge:\n### Source 3: heading\nESP: rich\nURL: https://help.rich.test/heading\nheading part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11\n\nheading part 1: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39\n\n### Source 4: props\nESP: rich\nURL: https://help.rich.test/props\nprops part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69\n\n### Source 5: guide\nESP: rich\nURL: https://support.yotpo.com/docs/rich\nguide part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69 w70 w71 w72 w73 w74\n\n### Source 6: pasted\nESP: rich\nURL: local://rich/notes\npasted part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64\n\n## Global Knowledge:\n### Source 7: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n",
+  "metadatas": [
+   {
+    "esp": "rich",
+    "filename": "triggers",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/triggers",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "delays",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/delays",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "heading",
+    "chunk_index": 0,
+    "total_chunks": 2,
+    "source_url": "https://help.rich.test/heading",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "props",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.rich.test/props",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "guide",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://support.yotpo.com/docs/rich",
+    "product": "loyalty"
+   },
+   {
+    "esp": "rich",
+    "filename": "pasted",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "local://rich/notes",
+    "product": "loyalty"
+   },
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ },
+ {
+  "context": "## Coverage note\nFlow State has no Yotpo Reviews documentation for thin. If the user is asking about Yotpo Reviews, say so plainly and do not answer from Loyalty sources.\n\n# Relevant Documentation:\n\n## ESP-Specific Knowledge:\n### Source 1: only\nESP: thin\nURL: https://help.thin.test/only\nonly part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65 w66 w67 w68 w69\n\n## Global Knowledge:\n### Source 2: program\nType: Global Knowledge Base\nURL: https://help.global.test/program\nprogram part 0: w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 w16 w17 w18 w19 w20 w21 w22 w23 w24 w25 w26 w27 w28 w29 w30 w31 w32 w33 w34 w35 w36 w37 w38 w39 w40 w41 w42 w43 w44 w45 w46 w47 w48 w49 w50 w51 w52 w53 w54 w55 w56 w57 w58 w59 w60 w61 w62 w63 w64 w65\n\n\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n",
+  "metadatas": [
+   {
+    "esp": "thin",
+    "filename": "only",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.thin.test/only",
+    "product": "loyalty"
+   },
+   {
+    "esp": "global",
+    "filename": "program",
+    "chunk_index": 0,
+    "total_chunks": 1,
+    "source_url": "https://help.global.test/program",
+    "product": "loyalty"
+   }
+  ]
+ }
+]

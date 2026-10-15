@@ -75,16 +75,19 @@ def owner_denied():
 # Initialize configuration manager
 config_manager = ConfigManager(BASE_PATH)
 
+def build_ai_client(provider, model_name):
+    """An AIClient holding every platform type's prompt (C1.7). Rebuilt
+    whenever the model, a key or any prompt changes, so all five reload."""
+    prompts = config_manager.get_all_system_prompts()
+    return AIClient(provider, model_name, prompts['messaging'], prompts=prompts)
+
+
 # Initialize AI client based on config
 config = config_manager.get_config()
 ai_model_config = config.get('ai_model', {})
-system_prompt = config.get('system_prompt', '')
 
-ai_client = AIClient(
-    provider=ai_model_config.get('provider', 'gemini'),
-    model_name=ai_model_config.get('model_name', 'gemini-flash-latest'),
-    system_prompt=system_prompt
-)
+ai_client = build_ai_client(ai_model_config.get('provider', 'gemini'),
+                            ai_model_config.get('model_name', 'gemini-flash-latest'))
 
 # Register Google account authentication routes.
 # Nothing is gated behind these yet -- admin still uses the password path
@@ -248,6 +251,20 @@ def _is_active_integration(key):
         return True
 
 
+def _chat_platform_type(key):
+    """Which prompt answers for this integration: its platform_type, from
+    the same cached read as _is_active_integration. messaging when it has
+    none or the database can't say -- today's behaviour."""
+    try:
+        from esp_manager import get_esp_manager
+        from integration_types import PLATFORM_TYPES
+        platform_type = get_esp_manager().active_platform_type(key)
+        return platform_type if platform_type in PLATFORM_TYPES else 'messaging'
+    except Exception as e:
+        print(f"[CHAT] Could not read the platform type of '{key}': {e}")
+        return 'messaging'
+
+
 @app.route('/api/esp/select', methods=['POST'])
 def select_esp():
     """Track ESP selection"""
@@ -355,11 +372,31 @@ def chat():
     # shared documents (rag_context.CHAT_SEARCH_PRODUCTS).
     esp_key = esp.lower().replace('/', '_') if esp else 'klaviyo'
     uncovered = product == 'reviews' and not has_reviews_coverage(esp_key)
+    esp_display = esp_display_name(esp_key) if uncovered else None
+
+    # The prompt for the integration's platform type (C1.7). Integrations
+    # that are not email/SMS also get the facts block and source headers
+    # that name the integration; messaging's context is unchanged (I2, I3).
+    platform_type = _chat_platform_type(esp_key)
+    type_options = {}
+    if platform_type != 'messaging':
+        facts = None
+        try:
+            from adapters.database.db_manager import get_database_adapter
+            from integration_facts import load_facts
+            facts = load_facts(get_database_adapter(), esp_key)
+        except Exception as e:
+            print(f"[CHAT] Could not read the facts of '{esp_key}': {e}")
+        type_options = {'integration_facts': facts['block'] if facts else None,
+                        'source_style': 'integration', 'platform_type': platform_type}
+        esp_display = (facts or {}).get('display_name') or esp_display or esp_key
+
     rag = build_rag_context(vectorizer, message, esp, conversation_history,
                             product=product,
                             reviews_coverage=False if uncovered else None,
-                            esp_display=esp_display_name(esp_key) if uncovered else None,
-                            search_products=chat_search_products(product))
+                            esp_display=esp_display,
+                            search_products=chat_search_products(product),
+                            **type_options)
     context = rag.context
     search_results = {'metadatas': [rag.metadatas] if rag.metadatas else []}
 
@@ -369,7 +406,8 @@ def chat():
             message=message,
             context=context,
             conversation_history=conversation_history,
-            product=product
+            product=product,
+            platform_type=platform_type
         )
 
         # Add assistant message to session history
@@ -629,8 +667,7 @@ def update_ai_model_config():
 
         # Reinitialize AI client with new config
         global ai_client
-        system_prompt = config_manager.get_system_prompt()
-        ai_client = AIClient(provider, model_name, system_prompt)
+        ai_client = build_ai_client(provider, model_name)
 
         return jsonify({
             'success': True,
@@ -666,12 +703,7 @@ def update_api_key():
             global ai_client
             current_config = config_manager.get_model_config()
             if current_config.get('provider') == provider:
-                system_prompt = config_manager.get_system_prompt()
-                ai_client = AIClient(
-                    provider,
-                    current_config.get('model_name'),
-                    system_prompt
-                )
+                ai_client = build_ai_client(provider, current_config.get('model_name'))
 
             return jsonify({
                 'success': True,
@@ -694,21 +726,80 @@ def check_api_status():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def _prompt_type_arg(data=None):
+    """(platform_type, error response) from ?platform_type= or the JSON
+    body; messaging when absent, so a page from before C1.7 still works."""
+    from integration_types import PLATFORM_TYPES
+    value = request.args.get('platform_type') or (data or {}).get('platform_type') or 'messaging'
+    if value not in PLATFORM_TYPES:
+        return None, (jsonify({'error': f"platform_type must be one of: {', '.join(PLATFORM_TYPES)}"}), 400)
+    return value, None
+
+
+def _active_count(platform_type):
+    """How many integrations of this type are in chat."""
+    from adapters.database.db_manager import get_database_adapter
+    rows = get_database_adapter().execute_query(
+        "SELECT COUNT(*) FROM esps WHERE status = 'active' AND platform_type = %s",
+        (platform_type,), fetch=True)
+    return int(rows[0][0]) if rows else 0
+
+
+def prompt_warnings(platform_type, prompt, stored=True):
+    """What the prompt editor should point out about one type's prompt."""
+    from integration_types import TYPE_LABELS
+    from prompt_blocks import COMMON_RULES
+    from prompt_template import product_warning
+    warnings = []
+    if platform_type != 'messaging' and COMMON_RULES not in prompt:
+        warnings.append("This prompt no longer contains the common rules (exact names, screens "
+                        "and menus, credentials, where each step happens, native or workaround) "
+                        "word for word. Every prompt except Email & SMS is meant to carry them "
+                        "unchanged; the reference text is in backend/prompt_blocks.py.")
+    if not stored:
+        try:
+            active = _active_count(platform_type)
+        except Exception as e:
+            print(f"[SETTINGS] Could not count active integrations: {e}")
+            active = 0
+        if active:
+            warnings.append(f"{active} {TYPE_LABELS[platform_type]} integration"
+                            f"{'s are' if active != 1 else ' is'} in chat, answered by the shipped "
+                            "draft: no prompt has been saved for this kind of platform yet.")
+    product = product_warning(prompt)
+    if product:
+        warnings.append(product)
+    return warnings
+
+
 @app.route('/api/admin/settings/system-prompt', methods=['GET'])
 def get_system_prompt():
-    """Get current system prompt (admin only)"""
+    """GET ?platform_type= (default messaging): that type's prompt (admin only)"""
     denied = owner_denied()
     if denied:
         return denied
+    platform_type, bad = _prompt_type_arg()
+    if bad:
+        return bad
     try:
-        prompt = config_manager.get_system_prompt()
-        return jsonify({'system_prompt': prompt})
+        from integration_types import PLATFORM_TYPES, TYPE_LABELS
+        prompt = config_manager.get_system_prompt(platform_type)
+        stored = config_manager.has_stored_prompt(platform_type)
+        return jsonify({
+            'system_prompt': prompt,
+            'platform_type': platform_type,
+            # False while the type runs on its shipped draft
+            'stored': stored,
+            'types': [{'value': t, 'label': TYPE_LABELS[t]} for t in PLATFORM_TYPES],
+            'warnings': prompt_warnings(platform_type, prompt, stored),
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/settings/system-prompt', methods=['POST'])
 def update_system_prompt():
-    """Update system prompt"""
+    """Update one platform type's system prompt (?platform_type= or in the
+    body; default messaging)"""
     data = request.json
     new_prompt = data.get('system_prompt', '')
     user_email = data.get('user_email', '')
@@ -716,6 +807,10 @@ def update_system_prompt():
     denied = owner_denied()
     if denied:
         return denied
+
+    platform_type, bad = _prompt_type_arg(data)
+    if bad:
+        return bad
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -732,23 +827,62 @@ def update_system_prompt():
                         'placeholder_errors': prompt_errors}), 400
 
     try:
-        updated_prompt = config_manager.update_system_prompt(new_prompt, user_email)
+        updated_prompt = config_manager.update_system_prompt(new_prompt, user_email, platform_type)
 
         # Reinitialize AI client with new prompt
         global ai_client
         model_config = config_manager.get_model_config()
-        ai_client = AIClient(
-            model_config.get('provider'),
-            model_config.get('model_name'),
-            updated_prompt
-        )
+        ai_client = build_ai_client(model_config.get('provider'), model_config.get('model_name'))
 
-        from prompt_template import product_warning
-        body = {'success': True, 'system_prompt': updated_prompt}
-        warning = product_warning(updated_prompt)
-        if warning:
-            body['warning'] = warning
+        body = {'success': True, 'system_prompt': updated_prompt, 'platform_type': platform_type}
+        warnings = prompt_warnings(platform_type, updated_prompt)
+        if warnings:
+            body['warnings'] = warnings
+            body['warning'] = ' '.join(warnings)   # what the page before C1.7 shows
         return jsonify(body)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/settings/prompt-preview', methods=['POST'])
+def prompt_preview():
+    """{esp, product}: the system prompt and facts block chat would send for
+    this integration and product (owner only). Works for listed
+    integrations too, so a prompt can be read before its wave."""
+    denied = owner_denied()
+    if denied:
+        return denied
+    data = request.get_json(silent=True) or {}
+    name = integration_key(data.get('esp') or '')
+    if not name:
+        return jsonify({'error': 'Pick an integration'}), 400
+    try:
+        from adapters.database.db_manager import get_database_adapter
+        from esp_manager import get_esp_manager
+        from integration_facts import load_facts
+        from integration_types import TYPE_LABELS
+        from product_labels import chat_product
+        from prompt_template import render
+        row = get_esp_manager().get_esp_by_name(name)
+        if not row or name == 'global':
+            return jsonify({'error': 'No such integration'}), 404
+        facts = load_facts(get_database_adapter(), name, use_cache=False)
+        platform_type = (facts or {}).get('platform_type')
+        if not platform_type:
+            return jsonify({'error': f"{row['display_name']} has no kind of platform yet. Set it in "
+                                     "the Integrations tab first."}), 400
+        product = chat_product(data.get('product'))
+        return jsonify({
+            'esp': name,
+            'display_name': row['display_name'],
+            'status': row['status'],
+            'platform_type': platform_type,
+            'type_label': TYPE_LABELS.get(platform_type, platform_type),
+            'product': product,
+            'stored': config_manager.has_stored_prompt(platform_type),
+            'system_prompt': render(config_manager.get_system_prompt(platform_type), product),
+            # Email & SMS chats don't get the block yet (plan §4.6.5)
+            'facts_block': facts['block'] if platform_type != 'messaging' else None,
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -781,24 +915,25 @@ def restore_from_backup():
         return jsonify({'error': 'User email is required for audit trail'}), 400
 
     try:
+        # Which prompt the entry changed; read before restoring, which adds
+        # an entry and so shifts negative indexes
+        log = config_manager.get_audit_log()
+        entry = log[audit_index] if isinstance(audit_index, int) and -len(log) <= audit_index < len(log) else {}
+        platform_type = entry.get('platform_type') or 'messaging'
+
         restored_config = config_manager.restore_from_backup(audit_index, user_email)
 
-        # Reinitialize AI client with restored config
+        # Reinitialize AI client with restored config: all five prompts
         global ai_client
         model_config = restored_config.get('ai_model', {})
-        system_prompt = restored_config.get('system_prompt', '')
-        ai_client = AIClient(
-            model_config.get('provider'),
-            model_config.get('model_name'),
-            system_prompt
-        )
+        ai_client = build_ai_client(model_config.get('provider'), model_config.get('model_name'))
 
-        from prompt_template import product_warning
         body = {'success': True, 'restored_config': restored_config,
-                'status': ai_client.check_status()}
-        warning = product_warning(system_prompt)
-        if warning:
-            body['warning'] = warning
+                'platform_type': platform_type, 'status': ai_client.check_status()}
+        warnings = prompt_warnings(platform_type, config_manager.get_system_prompt(platform_type))
+        if warnings:
+            body['warnings'] = warnings
+            body['warning'] = ' '.join(warnings)
         return jsonify(body)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
