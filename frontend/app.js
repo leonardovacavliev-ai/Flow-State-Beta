@@ -1214,6 +1214,7 @@ async function openAdminPanel() {
         });
         const data = await response.json();
         if (!data.valid) return;
+        applyAdminRole(data.role);
 
         authPane.style.display = 'none';
         panelPane.style.display = 'block';
@@ -1246,38 +1247,49 @@ if (window.Auth) {
 }
 syncAdminButtonVisibility();
 
+// Editors manage documents, labels and proposals; owners also settings,
+// Refresh All, the debug view and an integration's status. Cosmetic like the
+// Admin button: the server enforces it (auth.current_admin_role).
+function applyAdminRole(role) {
+    window.adminRole = role;
+    const owner = role === 'owner';
+    document.querySelectorAll('.owner-only').forEach(el => el.classList.toggle('hidden', !owner));
+    const label = document.getElementById('adminRoleLabel');
+    if (label) label.textContent = owner ? 'Owner' : 'Editor';
+    const settingsShown = !document.getElementById('generalSettingsTab').classList.contains('hidden');
+    if (!owner && settingsShown) showAdminTab('usage-analytics');
+}
+
+const ADMIN_TAB_CONTENT = {
+    'usage-analytics': ['usageAnalyticsTab', () => loadAnalytics()],
+    'integrations': ['espManagementTab', () => loadESPManagement()],
+    'proposals': ['proposalsTab', () => window.AdminIntegrations && window.AdminIntegrations.loadProposals()],
+    'general-settings': ['generalSettingsTab', () => loadGeneralSettings()]
+};
+
+function showAdminTab(targetTab) {
+    const entry = ADMIN_TAB_CONTENT[targetTab];
+    if (!entry) return;
+    document.querySelectorAll('.admin-tab').forEach(t => {
+        const active = t.dataset.tab === targetTab;
+        t.classList.toggle('active', active);
+        t.classList.toggle('border-primary', active);
+        t.classList.toggle('text-primary', active);
+        t.classList.toggle('border-transparent', !active);
+        t.classList.toggle('text-muted-foreground', !active);
+    });
+    document.querySelectorAll('.admin-tab-content').forEach(content => content.classList.add('hidden'));
+    document.getElementById(entry[0]).classList.remove('hidden');
+    entry[1]();
+    // Selections on a hidden tab no longer count (see visibleChecked)
+    updateGlobalBulkActions();
+}
+
 function initializeAdminTabs() {
-    const tabs = document.querySelectorAll('.admin-tab');
     const timeRangeSelect = document.getElementById('analyticsTimeRange');
 
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.tab;
-
-            // Update tab styles
-            tabs.forEach(t => {
-                t.classList.remove('active', 'border-primary', 'text-primary');
-                t.classList.add('border-transparent', 'text-muted-foreground');
-            });
-            tab.classList.add('active', 'border-primary', 'text-primary');
-            tab.classList.remove('border-transparent', 'text-muted-foreground');
-
-            // Show/hide content
-            document.querySelectorAll('.admin-tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-
-            if (targetTab === 'esp-management') {
-                document.getElementById('espManagementTab').classList.remove('hidden');
-                loadESPManagement();
-            } else if (targetTab === 'usage-analytics') {
-                document.getElementById('usageAnalyticsTab').classList.remove('hidden');
-                loadAnalytics();
-            } else if (targetTab === 'general-settings') {
-                document.getElementById('generalSettingsTab').classList.remove('hidden');
-                loadGeneralSettings();
-            }
-        });
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => showAdminTab(tab.dataset.tab));
     });
 
     // Time range change handler
@@ -1832,145 +1844,26 @@ function wireProductPickers(scope) {
     updateUnlabelledCount(scope);
 }
 
+// The Integrations tab (admin-integrations.js) and Global Knowledge. Every
+// link action (add, crawl, paste, delete, label) calls this to redraw.
 async function loadESPManagement() {
-    try {
-        const response = await fetch(`${API_URL}/admin/esps`);
-        const data = await response.json();
-
-        const container = document.getElementById('espManagement');
-        container.innerHTML = '';
-
-        // Fetch all ESP links in parallel (performance optimization)
-        const espPromises = data.esps.map(async esp => {
-            const linksResponse = await fetch(`${API_URL}/admin/esp/${esp.name}/links`, { headers: adminHeaders() });
-            const linksData = await linksResponse.json();
-            return { esp, links: linksData.links };
-        });
-
-        const espResults = await Promise.all(espPromises);
-
-        // Render all ESPs
-        for (const { esp, links: linksData } of espResults) {
-            const espDiv = document.createElement('div');
-            espDiv.className = 'bg-muted/50 rounded-lg p-4 border border-border';
-
-            const displayName = esp.display_name || esp.name;
-
-            // Build links HTML
-            let linksHTML = '';
-            if (linksData && linksData.length > 0) {
-                linksHTML = linksData.map(link => {
-                    const style = crawlStateStyle(link.status);
-
-                    return `
-                    <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
-                        <input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer" data-esp="${escapeAttr(esp.name)}" value="${escapeAttr(link.url)}" ${(isCrawlCandidate(link) || link.needs_backfill) ? 'checked' : ''}>
-                        <span class="text-xs font-medium px-2 py-0.5 rounded ${style.badge} uppercase tracking-wide">${escapeHtml(statusLabel(link.status))}</span>
-                        ${link.needs_backfill ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="No content backup in the database — run Crawl Selected once to store a copy (re-crawls, or backs up the saved copy if the site blocks crawling)">no backup</span>' : ''}
-                        <div class="flex-1 min-w-0">
-                            <a href="${escapeAttr(link.url)}" target="_blank" class="block text-sm text-foreground hover:text-primary hover:underline truncate">${escapeHtml(link.url)}</a>
-                            ${linkDetailHTML(link)}
-                        </div>
-                        ${productPickerHTML(esp.name, link)}
-                        ${isCrawlCandidate(link) ? `
-                            <button onclick="openPasteModal('${escapeAttr(esp.name)}', '${escapeAttr(link.url.replace(/'/g, "\\'"))}', false)" class="px-3 py-1 bg-primary/10 text-primary border border-primary rounded text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-colors whitespace-nowrap" title="Paste content manually">
-                                📋 Paste Content
-                            </button>
-                        ` : ''}
-                    </div>
-                `;
-                }).join('');
-            } else {
-                linksHTML = '<div class="text-center py-8 text-muted-foreground text-sm italic border-2 border-dashed border-border rounded-lg">No links added yet. Add a link below to get started.</div>';
-            }
-
-            espDiv.innerHTML = `
-                <h4 class="text-base font-semibold text-card-foreground mb-3 flex items-center gap-2">
-                    <span>${escapeHtml(displayName)} (${esp.doc_count} documents)</span>
-                    <span class="unlabelled-count"></span>
-                    <button type="button" class="esp-rename-btn text-muted-foreground hover:text-primary transition-colors" data-esp="${escapeAttr(esp.name)}" data-display-name="${escapeAttr(displayName)}" title="Rename ${escapeAttr(displayName)}" aria-label="Rename ${escapeAttr(displayName)}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 20h9"></path>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                        </svg>
-                    </button>
-                </h4>
-                <div class="space-y-2 mb-4" id="links-${esp.name}">
-                    ${linksHTML}
-                </div>
-                <div class="flex gap-2">
-                    <input type="text" placeholder="Add new link URL" id="newLink-${esp.name}" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                    ${newLinkProductHTML(`newLinkProduct-${esp.name}`)}
-                    <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addLink('${esp.name}')">Add Link</button>
-                </div>
-                <p id="newLinkFlag-${esp.name}" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>
-            `;
-
-            container.appendChild(espDiv);
-
-            const renameBtn = espDiv.querySelector('.esp-rename-btn');
-            if (renameBtn) {
-                renameBtn.addEventListener('click', () => {
-                    renameESP(renameBtn.dataset.esp, renameBtn.dataset.displayName);
-                });
-            }
-
-            wireProductPickers(espDiv);
-            wireDuplicateLinkCheck(espDiv.querySelector(`#newLink-${CSS.escape(esp.name)}`), esp.name);
-            espDiv.querySelector('.new-link-product')?.addEventListener('change', () => {
-                const flag = document.getElementById(`newLinkFlag-${esp.name}`);
-                if (flag && flag.textContent === PICK_PRODUCT_MESSAGE) setLinkFlag(esp.name, null);
-            });
-
-            // Add checkbox change listeners for global bulk actions
-            const checkboxes = espDiv.querySelectorAll('.link-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    updateGlobalBulkActions();
-                });
-            });
-        }
-
-        // Initial check for global bulk actions
-        updateGlobalBulkActions();
-
-    } catch (error) {
-        console.error('Error loading ESP management:', error);
-    }
+    await Promise.all([
+        window.AdminIntegrations ? window.AdminIntegrations.reload() : Promise.resolve(),
+        loadGlobalKnowledge()
+    ]);
 }
 
-// Rename an ESP's display name. The internal name stays put -- it keys the
-// vectors, docs folder and analytics -- so only the label users see changes.
-async function renameESP(espName, currentDisplayName) {
-    const newName = prompt(`Rename "${currentDisplayName}":`, currentDisplayName);
-
-    if (newName === null) return;                     // cancelled
-    const trimmed = newName.trim();
-    if (!trimmed || trimmed === currentDisplayName) return;
-
-    try {
-        const response = await fetch(`${API_URL}/admin/esp/${espName}/rename`, {
-            method: 'POST',
-            headers: adminHeaders(),
-            body: JSON.stringify({ display_name: trimmed })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            await loadESPManagement();
-            await reloadSidebar();
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    } catch (error) {
-        alert('Error renaming ESP: ' + error.message);
-    }
+// Checked boxes the admin can see. An integration's page hides the Global
+// Knowledge list, and a tab hides the others: what is out of sight is never
+// crawled or deleted. "Drawn on the page" rather than a .hidden ancestor:
+// #adminPanel keeps its .hidden class and is shown by an inline style.
+function visibleChecked(selector) {
+    return [...document.querySelectorAll(`${selector}:checked`)].filter(cb => cb.getClientRects().length > 0);
 }
 
 function updateGlobalBulkActions() {
-    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
-    const globalKnowledgeCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+    const espCheckboxes = visibleChecked('.link-checkbox');
+    const globalKnowledgeCheckboxes = visibleChecked('.global-link-checkbox');
     const totalChecked = espCheckboxes.length + globalKnowledgeCheckboxes.length;
 
     const globalActions = document.getElementById('globalBulkActions');
@@ -2014,8 +1907,8 @@ async function checkAsyncCrawlSupport() {
 checkAsyncCrawlSupport();
 
 async function crawlAllSelected() {
-    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
-    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+    const espCheckboxes = visibleChecked('.link-checkbox');
+    const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     if (espCheckboxes.length === 0 && globalCheckboxes.length === 0) {
         alert('Please select at least one link to crawl');
@@ -2038,7 +1931,20 @@ async function crawlAllSelected() {
 // which used to wipe the progress panel — errors and all — 1.5s after a
 // crawl finished. A tracker still polling from an earlier crawl is stopped
 // first so it can't keep writing into the panel.
+//
+// A batch larger than TRACKER_MAX_JOBS (Refresh All) is followed in the
+// Integrations tab's Crawls strip instead, which polls one summary
+// (GET /api/admin/crawl-summary) rather than posting every job id each tick.
+const TRACKER_MAX_JOBS = 50;
+
 function startCrawlTracker(jobIds) {
+    if (jobIds.length > TRACKER_MAX_JOBS && window.AdminIntegrations) {
+        if (window.activeCrawlTracker) window.activeCrawlTracker.dismiss();
+        window.AdminIntegrations.watchCrawls();
+        alert(`Queued ${jobIds.length} crawls. Follow them in the Crawls strip at the top of the Integrations tab; "Details" lists each site and the crawls running now.`);
+        return;
+    }
+    window.AdminIntegrations?.watchCrawls();
     let progressContainer = document.getElementById('crawl-progress-container');
     if (!progressContainer) {
         const espManagement = document.getElementById('espManagement');
@@ -2062,8 +1968,8 @@ function startCrawlTracker(jobIds) {
 }
 
 async function crawlAllSelectedAsync() {
-    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
-    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+    const espCheckboxes = visibleChecked('.link-checkbox');
+    const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     // Group URLs by ESP
     const espGroups = {};
@@ -2218,8 +2124,8 @@ async function crawlAllSelectedAsync() {
 }
 
 async function crawlAllSelectedSync() {
-    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
-    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+    const espCheckboxes = visibleChecked('.link-checkbox');
+    const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     // Get the crawl button and add loading state
     const crawlButtons = document.querySelectorAll('button[onclick="crawlAllSelected()"]');
@@ -2356,8 +2262,8 @@ async function crawlAllSelectedSync() {
 }
 
 async function deleteAllSelected() {
-    const espCheckboxes = document.querySelectorAll('.link-checkbox:checked');
-    const globalCheckboxes = document.querySelectorAll('.global-link-checkbox:checked');
+    const espCheckboxes = visibleChecked('.link-checkbox');
+    const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     if (espCheckboxes.length === 0 && globalCheckboxes.length === 0) {
         alert('Please select at least one link to delete');
@@ -2563,7 +2469,7 @@ document.getElementById('createESPBtn').addEventListener('click', async () => {
         const data = await response.json();
 
         if (data.success) {
-            alert('ESP created successfully!');
+            alert('Integration created. It is active, as an email/SMS (Messaging) integration.');
             document.getElementById('newESPName').value = '';
             await loadESPManagement();
             await reloadSidebar(); // Dynamically reload sidebar
@@ -2571,7 +2477,7 @@ document.getElementById('createESPBtn').addEventListener('click', async () => {
             alert('Error: ' + (data.error || 'Unknown error'));
         }
     } catch (error) {
-        alert('Error creating ESP: ' + error.message);
+        alert('Error creating the integration: ' + error.message);
     }
 });
 
@@ -3259,12 +3165,4 @@ document.getElementById('newGlobalKnowledgeProduct')?.addEventListener('change',
     if (flag && flag.textContent === PICK_PRODUCT_MESSAGE) setGlobalLinkFlag(null);
 });
 
-// Update loadESPManagement to also load global knowledge (in parallel for better performance)
-const originalLoadESPManagement = loadESPManagement;
-loadESPManagement = async function() {
-    // Load ESPs and Global Knowledge in parallel instead of sequentially
-    await Promise.all([
-        originalLoadESPManagement(),
-        loadGlobalKnowledge()
-    ]);
-};
+

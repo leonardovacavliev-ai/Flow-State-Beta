@@ -276,7 +276,8 @@ class SQLiteAdapter(DatabaseAdapter):
             # JSON, like vector_ids.
             for column, definition in (('catalog_slugs', 'TEXT'), ('categories', 'TEXT'),
                                        ('products', 'TEXT'), ('platform_type', 'TEXT'),
-                                       ('catalog_description', 'TEXT')):
+                                       ('catalog_description', 'TEXT'),
+                                       ('platform_type_set_by', 'TEXT')):
                 self._add_column_if_missing(cursor, 'esps', column, definition)
             for column, definition in (('title', 'TEXT'), ('source_kind', 'TEXT'),
                                        ('supported_plans', 'TEXT'), ('supported_platforms', 'TEXT'),
@@ -299,6 +300,8 @@ class SQLiteAdapter(DatabaseAdapter):
                 )
             """)
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_proposals_state_esp ON document_proposals(state, esp_id)")
+            for column in ('title', 'partner_function', 'reason', 'decision_note'):
+                self._add_column_if_missing(cursor, 'document_proposals', column, 'TEXT')
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp_esp ON messages(timestamp, esp)")
             seed_platform_types(cursor)
 

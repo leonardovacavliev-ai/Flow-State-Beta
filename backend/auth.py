@@ -292,6 +292,41 @@ def admin_request_ok() -> bool:
     return current_user_is_admin() or _password_fallback_ok()
 
 
+def owner_emails() -> set:
+    """ADMIN_OWNER_EMAILS, lowercased. Read per call, like ADMIN_PASSWORD, so
+    a changed variable needs no code path of its own (and tests can set it)."""
+    raw = os.environ.get('ADMIN_OWNER_EMAILS', '')
+    return {e.strip().lower() for e in raw.split(',') if e.strip()}
+
+
+def current_admin_role() -> Optional[str]:
+    """'owner' | 'editor' for an admin, None for anyone else.
+
+    Editors manage documents, labels and proposals. Owners also change
+    settings, Refresh All, rebuild vectors, the debug views and an
+    integration's status. With ADMIN_OWNER_EMAILS unset every admin is an
+    owner, which is how admin worked before roles. The break-glass password
+    is an owner: it exists for when sign-in itself is broken.
+    """
+    if current_user_is_admin():
+        owners = owner_emails()
+        if not owners:
+            return 'owner'
+        email = ((current_user() or {}).get('email') or '').lower()
+        return 'owner' if email in owners else 'editor'
+    if _password_fallback_ok():
+        return 'owner'
+    return None
+
+
+def owner_request_ok() -> bool:
+    """Boolean form of the owner check, like admin_request_ok."""
+    return current_admin_role() == 'owner'
+
+
+OWNER_ONLY_ERROR = 'This needs an owner account. Ask an owner (ADMIN_OWNER_EMAILS) to make this change.'
+
+
 def require_admin(fn):
     """403 unless the caller is a verified @<ADMIN_EMAIL_DOMAIN> account.
 

@@ -39,6 +39,9 @@ and to older code, I4), updates catalog fields on existing ones (never
 status, name, display name or an already-set type), inserts proposals
 (skipping URLs that are already documents or proposals in any state:
 rejections are remembered), stores the catalog snapshot, and deletes nothing.
+It also stores what the admin's Proposals tab shows: each mechanics
+article's title, function and reason on its proposal, the per-integration
+notes (functions found, help centre, why nothing was found) and the report.
 Safe to run twice: the second run changes nothing.
 
 The guard: fewer than 90% of the last import's cards, or no categories ->
@@ -182,7 +185,10 @@ class Store:
         return {r[0]: r[1] for r in self.q("SELECT url, state FROM document_proposals")}
 
     def snapshot(self) -> Optional[Dict]:
-        rows = self.q("SELECT value FROM app_settings WHERE key = %s", (ci.SNAPSHOT_KEY,))
+        return self.setting(ci.SNAPSHOT_KEY)
+
+    def setting(self, key) -> Optional[Dict]:
+        rows = self.q("SELECT value FROM app_settings WHERE key = %s", (key,))
         if not rows or not rows[0][0]:
             return None
         try:
@@ -379,6 +385,29 @@ def _catalog_changes(current: Dict, row: Dict) -> Dict:
 
 # ---------- applying ----------
 
+# What the admin shows from the import (backend/admin_integrations_routes.py)
+MECHANICS_KEY = 'catalog_mechanics'
+REPORT_KEY = 'catalog_last_report'
+
+
+def _accepted_articles(plan: Dict) -> Dict[str, Dict]:
+    """url -> the accepted mechanics article (title, function, reason)."""
+    return {a['url']: a for m in plan.get('mechanics', {}).values()
+            for a in m.get('accepted') or []}
+
+
+def mechanics_notes(plan: Dict) -> Dict[str, Dict]:
+    """Per integration, what the partner-articles search found: the
+    functions the model listed, the help centre, and why nothing was found.
+    The Proposals tab shows it beside each integration's list."""
+    return {name: {'help_centre': m.get('help_centre'), 'found_via': m.get('found_via'),
+                   'functions': [{'name': f.get('name'), 'yotpo_role': f.get('yotpo_role')}
+                                 for f in m.get('functions') or [] if isinstance(f, dict)],
+                   'blocked': bool(m.get('blocked')), 'problem': m.get('problem'),
+                   'accepted': len(m.get('accepted') or [])}
+            for name, m in plan.get('mechanics', {}).items()}
+
+
 def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:
     """Write a saved plan in one transaction. Re-checks every row against the
     database as it is now, so a second run, or a row added since the dry run,
@@ -396,6 +425,7 @@ def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:
         raise SystemExit(f'Not applied: {problem}')
 
     counts = {'created': 0, 'updated': 0, 'proposals': 0, 'skipped': 0}
+    articles = _accepted_articles(plan)
     existing = store.integrations()
     documents = store.document_urls()
     proposed = store.proposal_urls()
@@ -440,15 +470,27 @@ def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:
             if not esp or p['url'] in documents or p['url'] in proposed:
                 counts['skipped'] += 1
                 continue
-            store.q("INSERT INTO document_proposals (id, esp_id, url, source, suggested_label, state, note) "
-                    "VALUES (%s, %s, %s, %s, %s, 'open', %s) ON CONFLICT (url) DO NOTHING",
+            art = articles.get(p['url']) if p['source'] == 'mechanics' else None
+            store.q("INSERT INTO document_proposals (id, esp_id, url, source, suggested_label, state, "
+                    "note, title, partner_function, reason) "
+                    "VALUES (%s, %s, %s, %s, %s, 'open', %s, %s, %s, %s) ON CONFLICT (url) DO NOTHING",
                     (str(uuid.uuid4()), esp['id'], p['url'], p['source'], p['suggested_label'],
-                     p['note']), fetch=False)
+                     p['note'], (art or {}).get('title'), (art or {}).get('function'),
+                     (art or {}).get('reason')), fetch=False)
             proposed[p['url']] = 'open'
             counts['proposals'] += 1
-        store.q("INSERT INTO app_settings (key, value) VALUES (%s, %s) "
-                "ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
-                (ci.SNAPSHOT_KEY, js(plan['snapshot'])), fetch=False)
+        # Merged per integration: a plan made with --no-mechanics has none, and
+        # must not wipe the notes of the last run that looked
+        notes = store.setting(MECHANICS_KEY) or {}
+        notes.update(mechanics_notes(plan))
+        for key, value in ((ci.SNAPSHOT_KEY, plan['snapshot']),
+                           (MECHANICS_KEY, notes),
+                           (REPORT_KEY, {'applied_at': time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime()),
+                                         'cards': plan['snapshot']['cards'],
+                                         'counts': counts, 'report': render_report(plan)})):
+            store.q("INSERT INTO app_settings (key, value) VALUES (%s, %s) "
+                    "ON CONFLICT (key) DO UPDATE SET value = excluded.value, updated_at = CURRENT_TIMESTAMP",
+                    (key, js(value)), fetch=False)
         store.conn.commit()
     except Exception:
         store.conn.rollback()

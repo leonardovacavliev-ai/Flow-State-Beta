@@ -380,6 +380,9 @@ class PostgresAdapter(DatabaseAdapter):
                 ('products', 'JSONB'),
                 ('platform_type', 'VARCHAR(20)'),
                 ('catalog_description', 'TEXT'),
+                # who chose platform_type in the admin; NULL while it is the
+                # catalog's default or the boot seed's
+                ('platform_type_set_by', 'TEXT'),
             ])
             # - title, source_kind, supported_*: from the Document360 header
             # - vector_count: chunks written at the last index, so a document
@@ -415,6 +418,17 @@ class PostgresAdapter(DatabaseAdapter):
             """)
             if not self._index_exists(cursor, 'idx_proposals_state_esp'):
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_proposals_state_esp ON document_proposals(state, esp_id)")
+            # What the admin inbox shows beside a proposal (C1.4):
+            # - title, partner_function, reason: a mechanics article's title,
+            #   the partner function it explains and why the model accepted it
+            # - decision_note: the admin's note on a rejection; `note` keeps
+            #   what the import said
+            self._add_missing_columns(cursor, 'document_proposals', [
+                ('title', 'TEXT'),
+                ('partner_function', 'TEXT'),
+                ('reason', 'TEXT'),
+                ('decision_note', 'TEXT'),
+            ])
             # Serves per-integration analytics over a time range
             if not self._index_exists(cursor, 'idx_messages_timestamp_esp'):
                 cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp_esp ON messages(timestamp, esp)")

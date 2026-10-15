@@ -421,7 +421,8 @@
                             </button>
                         </div>
 
-                        <button id="closeAdmin" class="text-muted-foreground hover:text-foreground transition-colors">
+                        <span id="adminRoleLabel" class="text-xs text-muted-foreground" title="Set by ADMIN_OWNER_EMAILS. Editors manage documents, labels and proposals; owners also settings, Refresh All and an integration's status."></span>
+                        <button id="closeAdmin" class="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
                                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -438,7 +439,7 @@
                             <div class="flex-1 max-w-sm space-y-4">
                                 <div class="mb-4 p-4 bg-muted/50 rounded-lg border border-border">
                                     <p class="text-sm text-card-foreground leading-relaxed mb-2">
-                                        This admin panel is used to add new Email Service Providers (ESPs) and update the documentation sources for existing ones.
+                                        This admin panel is used to add integrations and update their documentation sources.
                                     </p>
                                     <p class="text-sm font-semibold text-destructive leading-relaxed">
                                         All changes are applied immediately and affect all users.
@@ -463,14 +464,17 @@
                 <div id="adminPanel" class="p-6 hidden">
                     <!-- Admin Navigation Tabs -->
                     <div class="mb-6 border-b border-border">
-                        <div class="flex gap-4">
+                        <div class="flex gap-4 whitespace-nowrap overflow-x-auto">
                             <button class="admin-tab active px-4 py-2 font-medium text-sm border-b-2 border-primary text-primary" data-tab="usage-analytics">
                                 Usage Analytics
                             </button>
-                            <button class="admin-tab px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="esp-management">
-                                ESP Management
+                            <button class="admin-tab px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="integrations">
+                                Integrations
                             </button>
-                            <button class="admin-tab px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="general-settings">
+                            <button class="admin-tab px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="proposals">
+                                Proposals <span id="proposalsTabCount" class="text-muted-foreground font-normal"></span>
+                            </button>
+                            <button class="admin-tab owner-only px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="general-settings">
                                 General Settings
                             </button>
                         </div>
@@ -592,12 +596,12 @@
 
                             <!-- ESP Breakdown Table -->
                             <div class="bg-muted/50 rounded-lg p-4 border border-border mb-6">
-                                <h4 class="text-base font-semibold text-card-foreground mb-4">Usage by ESP</h4>
+                                <h4 class="text-base font-semibold text-card-foreground mb-4">Usage by integration</h4>
                                 <div class="overflow-x-auto">
                                     <table class="w-full text-sm">
                                         <thead>
                                             <tr class="border-b border-border">
-                                                <th class="text-left py-2 px-3 font-medium text-muted-foreground">ESP</th>
+                                                <th class="text-left py-2 px-3 font-medium text-muted-foreground">Integration</th>
                                                 <th class="text-right py-2 px-3 font-medium text-muted-foreground">Conversations</th>
                                             </tr>
                                         </thead>
@@ -632,17 +636,19 @@
                         </div>
                     </div>
 
-                    <!-- ESP Management Tab -->
+                    <!-- Integrations Tab (was ESP Management): admin-integrations.js -->
                     <div id="espManagementTab" class="admin-tab-content hidden">
+                        <div id="crawlSummary"></div>
                         <div class="space-y-8">
                             <div class="border-b border-border pb-6">
-                                <h3 class="text-lg font-semibold text-card-foreground mb-4">Manage ESPs</h3>
-                                <div id="espManagement" class="space-y-4"></div>
+                                <h3 id="manageIntegrationsTitle" class="text-lg font-semibold text-card-foreground mb-4">Manage Integrations</h3>
+                                <div id="espManagement"></div>
                             </div>
 
+                            <div id="integrationsListOnly" class="space-y-8">
                             <div class="border-b border-border pb-6">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-4">Global Knowledge Base</h3>
-                                <p class="text-sm text-muted-foreground mb-4">Manage global knowledge sources that apply across all ESPs (loyalty best practices, general email marketing guidance, etc.)</p>
+                                <p class="text-sm text-muted-foreground mb-4">Manage global knowledge sources that apply across all integrations (loyalty best practices, general email marketing guidance, etc.)</p>
                                 <div class="bg-muted/50 rounded-lg p-4 border border-border">
                                     <div class="space-y-2 mb-4" id="globalKnowledgeLinks">
                                         <!-- Global knowledge links will be loaded here -->
@@ -661,17 +667,18 @@
                                 </div>
                             </div>
 
-                            <div class="border-b border-border pb-6">
-                                <h3 class="text-lg font-semibold text-card-foreground mb-4">Create New ESP</h3>
+                            <div class="border-b border-border pb-6 owner-only">
+                                <h3 class="text-lg font-semibold text-card-foreground mb-2">Create New Integration</h3>
+                                <p class="text-sm text-muted-foreground mb-4">For an email or SMS platform that is not in the catalog. It goes into chat at once, answered by the Messaging prompt.</p>
                                 <div class="flex gap-3 max-w-xl">
-                                    <input type="text" id="newESPName" placeholder="ESP Name" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                    <input type="text" id="newESPName" placeholder="Integration name" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                                     <button id="createESPBtn" class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">
-                                        Create ESP
+                                        Create Integration
                                     </button>
                                 </div>
                             </div>
 
-                            <div>
+                            <div class="owner-only">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-2">Refresh All Documentation</h3>
                                 <p class="text-sm text-muted-foreground mb-4">Re-crawl all links and update the knowledge base</p>
                                 <button id="refreshAllBtn" class="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium text-sm hover:bg-destructive/90 transition-colors">
@@ -680,12 +687,18 @@
                             </div>
 
                             <!-- Debug: View Pinecone Sample -->
-                            <div class="mt-6">
+                            <div class="mt-6 owner-only">
                                 <button onclick="window.open('/api/admin/debug/pinecone-sample', '_blank')" class="px-3 py-1.5 bg-gray-400 text-white rounded text-xs hover:bg-gray-500 transition-colors">
                                     Debug: View Pinecone Sample
                                 </button>
                             </div>
+                            </div>
                         </div>
+                    </div>
+
+                    <!-- Proposals Tab: admin-integrations.js -->
+                    <div id="proposalsTab" class="admin-tab-content hidden">
+                        <div id="proposalsAdmin"></div>
                     </div>
 
                     <!-- General Settings Tab -->
@@ -862,7 +875,8 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=product-labels-1"></script>
+    <script src="app.js?v=admin-integrations-1"></script>
+    <script src="admin-integrations.js?v=admin-integrations-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>
 </html>
