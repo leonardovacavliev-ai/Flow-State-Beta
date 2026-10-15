@@ -83,7 +83,8 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
    DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=/private/tmp/<scratch>/seed.db python3 scripts/import_catalog.py --cache /private/tmp/<scratch>/cache --plan /private/tmp/<scratch>/plan.json --report /private/tmp/<scratch>/report.md
    ```
    From an empty cache this takes **well over an hour** (1 request/s per host, ~1,500 pages) and
-   ~250 model calls (~1M tokens, under a dollar). Run it in the background. Then copy the report
+   ~250 model calls (~1M tokens). **Ask Leo first** (§5: it spends the live chat's Gemini
+   credit). Run it in the background. Then copy the report
    to `docs/integrations/catalog_dry_run.md`.
 
 ## 4. Procedures that worked
@@ -154,6 +155,11 @@ touches the database code; fixing Actions (billing or settings) is his.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
+- **The catalog dry run spends the live chat's Gemini credit.** `.env`'s `GEMINI_API_KEY` is
+  production's, on a prepaid balance. The 2026-10-14/15 dry runs (~2.3M tokens) emptied it and
+  live chat failed with 429 "prepayment credits are depleted" until Leo topped it up. Don't run
+  the mechanics dry run (or anything else that calls Gemini at volume) without Leo's OK, and ask
+  him for a separate development key first.
 - **GitHub restricted the account once (found 2026-10-15).** Railway failed with "couldn't find
   the repo", Actions showed 0 runs ever, and `https://api.github.com/users/leonardovacavliev-ai`
   returned 404 to everyone else. Leo had it lifted the same day. If a deploy fails at "Snapshot
