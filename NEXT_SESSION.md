@@ -1,7 +1,7 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2)
-and the third (C0.4 merge, C1.4).
+Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2),
+the third (C0.4 merge, C1.4) and the fourth (C1.7, not yet merged: see "Open, waiting" below).
 Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
@@ -44,6 +44,18 @@ Don't bring them back. Last dry run (2026-10-14/15): 272 articles for 65 integra
 person, 37 with no help centre found, 13 where the model accepted nothing. Report:
 `docs/integrations/catalog_dry_run.md`.
 
+**Open, ready to merge — blocked by GitHub, not by the code:**
+- **PR #10, C1.7** (branch `v2/c1-7-prompts-by-type`, head `11d7320`): a system prompt per platform
+  type, the four shipped drafts, the integration facts block, the editor's kind picker and preview.
+  Email & SMS unchanged: golden check 26/26 identical (run twice, before and after the review
+  fixes), all local suites green, independent review done and its findings fixed (roadmap C1.7
+  Deviations). **Not merged** because on 2026-10-15 ~17:40 the account was restricted again:
+  `https://api.github.com/users/leonardovacavliev-ai` returned 404, the first CI run was
+  cancelled by the fix push and no run started for `11d7320` (Actions lists 0 runs). Next session:
+  check that URL; once it returns 200, check CI runs on the PR (push an empty commit if none
+  starts), then merge, deploy and smoke-check (§4). After the deploy, ask Leo to read the four
+  drafts once (Admin → General Settings → Kind of platform), and set the C1.7 row to `done`.
+
 **Open, waiting for Leo:**
 - **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → Create New
   Integration, owner only), adds and labels each link from `docs/integrations/messaging_sources.md`,
@@ -85,10 +97,10 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 
 ## 3. Next work, in order
 
-1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done): C1.7 prompts by type, C1.3
-   refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. Suggested
-   order: **C1.7** (it protects the email/SMS answers, and lets non-messaging types go active:
-   extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Suggested Links tab's
+1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done, C1.7 waits only for the merge):
+   C1.3 refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3.
+   Suggested order: finish **C1.7** (above; `TYPES_IN_CHAT` deliberately stays messaging-only,
+   each type joins chat in its wave — Leo decides), then **C1.3** (the Suggested Links tab's
    sitemap section and the retire/replace buttons wait for it), then **C1.10 "Find links"** (Leo,
    2026-10-15: needed for a complete product; same Gemini key as the app, by Leo's choice; ask
    him whether he wants a daily cap before shipping it), then C1.5, C1.6.
