@@ -174,11 +174,11 @@ Not part of the suite:
 | C0.1 | CI baseline | — | dev | 1–2 d | done | PR #2, merged and deployed 2026-10-13 |
 | C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | done | PR #1, deployed 2026-10-13; health, Klaviyo chat, admin panel and a crawl OK |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
-| C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
+| C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources approved by Leo and merged 2026-10-15 (PR #4, `docs/integrations/messaging_sources.md`); next: Leo creates the platforms |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
-| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
+| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | doing | branch `v2/c1-4-admin-integrations`; built to `design/integrations-redesign.html` (Admin) |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | todo | |
@@ -788,9 +788,9 @@ Management, whose N+1 fetch-and-render cannot scale.
 - `auth.py`: `admin_request_ok`, `current_user_is_admin`.
 
 **Backend tasks**
-- [ ] `backend/admin_integrations_routes.py`, registered in `app.py` after the ESP routes. Every
+- [x] `backend/admin_integrations_routes.py`, registered in `app.py` after the ESP routes. Every
   route requires admin.
-  - [ ] `GET /api/admin/integrations?q=&category=&type=&status=&tier=&flag=&page=&per_page=50`:
+  - [x] `GET /api/admin/integrations?q=&category=&type=&status=&tier=&flag=&page=&per_page=50`:
     - **one** summary SQL: per integration, document counts by product, failed, flagged misses,
       open proposals, and tier;
     - tier per plan §4.1:
@@ -798,24 +798,24 @@ Management, whose N+1 fetch-and-render cannot scale.
         ≥ 1 completed `shared` document;
       - other types Basic = ≥ 1 completed loyalty/reviews document;
       - otherwise Listed.
-  - [ ] `GET /api/admin/integrations/<name>`: facts and merged catalog cards.
-  - [ ] `PATCH /api/admin/integrations/<name>`: `platform_type`, `display_name`, `categories`,
+  - [x] `GET /api/admin/integrations/<name>`: facts and merged catalog cards.
+  - [x] `PATCH /api/admin/integrations/<name>`: `platform_type`, `display_name`, `categories`,
     `products`. Changing `status` is **owner-only**.
-  - [ ] `GET /api/admin/integrations/<name>/documents?page=`: paginated
+  - [x] `GET /api/admin/integrations/<name>/documents?page=`: paginated
     `crawl_queue.list_document_states`.
-  - [ ] `GET /api/admin/proposals?esp=&source=&state=open&page=`. Sources are `catalog`,
+  - [x] `GET /api/admin/proposals?esp=&source=&state=open&page=`. Sources are `catalog`,
     `sitemap`, `manual` and `mechanics` (the partner's own articles on the functions the
     integration touches, C1.2). `mechanics` proposals are shown per integration as one list, with
     the functions the model found and each article's function and reason; an admin approves the
     final list in one click or per article. Integrations whose help centre blocked automated
     reading are listed for an admin to pick articles by hand.
-  - [ ] `POST /api/admin/proposals/approve {items: [{id, product}]}`:
+  - [x] `POST /api/admin/proposals/approve {items: [{id, product}]}`:
     - a product is required per item;
     - `add_document(…, product=…)` then `enqueue_crawl_job`;
     - state `approved`.
-  - [ ] `POST /api/admin/proposals/reject {ids, note}`: state `rejected` (remembered).
-  - [ ] `GET /api/admin/crawl-summary`: counts by state and host, plus active jobs (≤ 50).
-- [ ] **Roles:**
+  - [x] `POST /api/admin/proposals/reject {ids, note}`: state `rejected` (remembered).
+  - [x] `GET /api/admin/crawl-summary`: counts by state and host, plus active jobs (≤ 50).
+- [x] **Roles:**
   - `ADMIN_OWNER_EMAILS` (comma-separated). `auth.current_admin_role()` → `owner` | `editor` |
     `None`.
   - **Unset means every admin is an owner,** which is today's behaviour.
@@ -824,21 +824,21 @@ Management, whose N+1 fetch-and-render cannot scale.
   - The break-glass password counts as owner.
 
 **Frontend tasks**
-- [ ] `frontend/admin-integrations.js`:
+- [x] `frontend/admin-integrations.js`:
   - integrations table with search, filters and pagination;
   - detail panel: documents table (paginated; reuse `productPickerHTML`/`saveProductLabel`), add
     link with product, paste (existing modal), crawl selected, delete, retire/replace;
   - catalog facts; `platform_type` select.
-- [ ] Proposals tab:
+- [x] Proposals tab:
   - grouped list with select-all;
   - **a required product picker per row** (header suggestion pre-filled; no default otherwise);
   - approve and reject.
-- [ ] Crawl tracker polls `crawl-summary` instead of posting every job id every 2 s.
-- [ ] `index.html`:
+- [x] Crawl tracker polls `crawl-summary` instead of posting every job id every 2 s.
+- [x] `index.html`:
   - the "ESP Management" tab becomes "Integrations"; add a "Proposals" tab;
   - new script tags;
   - user-facing "ESP" strings renamed (inventory in plan §2).
-- [ ] Remove `loadESPManagement` rendering and its runtime monkey-patch (`app.js:3263-3270`) once
+- [x] Remove `loadESPManagement` rendering and its runtime monkey-patch (`app.js:3263-3270`) once
   the new tab has parity. Global Knowledge stays as it is.
 
 **Tests:** `backend/test_admin_integrations.py` (SQLite, Flask test client):
@@ -857,6 +857,47 @@ Management, whose N+1 fetch-and-render cannot scale.
   - every old ESP Management action works (add link with product, crawl, paste, set-product,
     delete).
 - Screenshots at 1280 px in the PR.
+
+**Deviations** (2026-10-15)
+- **Listed integrations can be documented.** `esp_manager.get_esp_by_name` and
+  `find_documents_by_url` now see `listed` rows as well as `active` ones. Without it every document
+  action (approve, add link, label, crawl, paste) failed with "not found" on the ~145 imported
+  integrations, which made C1.9 step 4 impossible. Every caller is an admin or document path; chat
+  checks `is_active_integration` and the sidebar lists through `list_esps`, both `active` only (I4).
+  The duplicate-URL check now covers listed integrations too.
+- **New columns** (additive, both adapters): `document_proposals.title`, `partner_function`,
+  `reason` (a mechanics article's, shown in the inbox), `decision_note` (the admin's note on a
+  rejection; `note` keeps the import's), and `esps.platform_type_set_by` (who chose the type, so a
+  settled type conflict leaves the "Type to check" filter).
+- **The import stores what the inbox shows.** `import_catalog.py --apply` also writes each
+  mechanics proposal's title, function and reason (from the plan's `mechanics.accepted`, so plans
+  saved before this change still apply), the per-integration notes (`app_settings`
+  `catalog_mechanics`: functions found, help centre, why nothing was found) and the report
+  (`catalog_last_report`). The plan format is unchanged.
+- **Tier.** "Indexed" is `crawl_status = 'completed'` and `vector_count` NULL or > 0: NULL is a
+  document indexed before C1.1 recorded counts. It applies to the guide and to messaging's shared
+  document alike, and the guide must be for a product the catalog lists (any product when the
+  catalog lists none), as plan §4.1 says.
+- **Only messaging integrations can be active** until C1.7 gives the other types their prompts
+  (`admin_integrations_routes.TYPES_IN_CHAT`): a PATCH that would make a non-messaging integration
+  active, or move an active one off messaging, gets 409. C1.7 and each wave extend the tuple.
+- **Crawl tracker.** Batches up to 50 jobs keep today's per-job tracker; a larger one (Refresh All)
+  is followed in the Crawls strip, which polls `crawl-summary` every 5 s while jobs are active.
+- **Not built here:** the sitemap's new and vanished articles and the retire/replace buttons wait
+  for C1.3 (a document missing ≥ 3 times already says "retire or replace it"); the hand-set
+  "evaluated" flag (plan §4.1); the design's Usage Analytics additions (plan §4.9), which need the
+  C1.5 picks and a source count per chat message; user-facing "ESP" strings outside the admin
+  (sidebar, feedback modal), which C1.5 rewrites.
+- **Create New Integration is owner-only**: it creates an `active` messaging integration, in chat
+  at once, and putting an integration into chat is an owner's call like its status.
+- **Refresh All and Rebuild Vectors "all" include listed integrations**, so a listed one's
+  documents are current and indexed on the day it goes active.
+- **Approving a link that is already this integration's document** (added by hand, or an approve
+  that stopped half way) marks the proposal approved and keeps the document's label. A link that
+  belongs to another integration stays open, with the reason.
+- **Partner articles are pre-filled Shared** in the inbox, from the import's label (C1.2, Leo's
+  design); the label is dashed until a person changes or approves it.
+- **Roles change nothing until `ADMIN_OWNER_EMAILS` is set**: unset, every admin is an owner.
 
 **Rollback:** revert. The old tab returns. Routes are additive.
 
@@ -1423,3 +1464,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-14 | C1.2 | Header parser, catalog import (dry run by default, `--apply` from a saved plan), partner mechanics articles (Leo's request), fixtures, tests, live dry-run report | Claude Code |
 | 2026-10-15 | C1.2 | Partner mechanics rebuilt to Leo's design (model lists functions from the integration's own documents, confirms articles by reading them; blocked centres to a person; person approves each list); crawler reads JSON-LD article text; PR #5 merged and deployed | Claude Code |
 | 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
+| 2026-10-15 | C0.4 | Leo approved the sources; PR #4 merged | Claude Code |
+| 2026-10-15 | C1.4 | Integrations and Proposals tabs, crawl summary, owner/editor roles, listed integrations documentable; independent review, findings fixed; practice import into a local SQLite copy (no model calls) | Claude Code |

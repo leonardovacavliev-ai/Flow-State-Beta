@@ -64,3 +64,52 @@ def default_type(categories: Optional[Iterable[str]]) -> Optional[str]:
         if platform_type in types:
             return platform_type
     return None
+
+
+def category_types(categories: Optional[Iterable[str]]) -> list:
+    """The platform types these categories default to, sorted. More than one
+    means the catalog can't decide the type, and an admin has to."""
+    return sorted({CATEGORY_DEFAULT_TYPE[c] for c in
+                   ((c or '').strip().lower() for c in (categories or ()))
+                   if c in CATEGORY_DEFAULT_TYPE})
+
+
+# Catalog category slug -> the label yotpo.com/integrations shows for it
+# (the page's filter list, backend/fixtures/catalog/catalog.html)
+CATEGORY_NAMES = {
+    'ads': 'Ads',
+    'bi-analytics': 'BI & Analytics',
+    'consumer-platform': 'Social Platforms',
+    'data-automation': 'Data & Automation',
+    'ecommerce-platform': 'eCommerce Platform',
+    'email-marketing': 'Email Marketing',
+    'gift-cards': 'Gift Cards',
+    'help-desk-crm': 'Help Desk & CRM',
+    'in-store-pos': 'In-store & POS',
+    'influencer-marketing': 'Influencer Marketing',
+    'loyalty-referrals': 'Loyalty & Referrals',
+    'mobile-app-builder': 'Mobile App Builder',
+    'mobile-wallet-pass': 'Mobile Wallet Pass',
+    'on-site-engagement': 'On-site Engagement',
+    'onsite-chatbots': 'On-site Chatbots',
+    'other': 'Other',
+    'page-builder-pwa': 'Page Builder & PWA',
+    'payment-checkout': 'Payment & Checkout',
+    'personalization-and-product-recs': 'Personalization and Product Recs',
+    'privacy-and-data-subject-requests': 'Privacy & Data Subject Requests',
+    'product-sampling': 'Product Sampling',
+    'quiz-and-gamification': 'Quiz & Gamification',
+    'retailers-and-review-syndication': 'Retailers & Review Syndication',
+    'reviews-and-visual-ugc': 'Reviews & Visual UGC',
+    'search': 'On-site Search',
+    'shipping-returns': 'Shipping & Returns',
+    'sms-marketing': 'SMS Marketing',
+    'subscription-recurring-billing': 'Subscription & Recurring Billing',
+    'sustainability-and-donations': 'Sustainability & Donations',
+    'whatsapp-social-dms': 'WhatsApp & Social DMs',
+}
+
+
+def category_name(slug: str) -> str:
+    """The catalog's label for a category; an unknown slug reads as words."""
+    return CATEGORY_NAMES.get(slug) or (slug or '').replace('-', ' ').capitalize()

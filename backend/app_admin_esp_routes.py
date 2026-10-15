@@ -327,9 +327,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
     @app.route('/api/admin/esp/create', methods=['POST'])
     def create_esp():
-        """Create a new ESP."""
+        """Create a new ESP. Owner-only: it is active, in chat at once, and
+        putting an integration into chat is an owner's call (C1.4)."""
         if not check_admin_password():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+        from auth import owner_request_ok, OWNER_ONLY_ERROR
+        if not owner_request_ok():
+            return jsonify({'error': OWNER_ONLY_ERROR}), 403
         try:
             esp_mgr = get_mgr()
             data = request.json
@@ -691,16 +695,21 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
         Body: {"esp": "<name>"} for one ESP, or {} / {"esp": "all"} for all.
         Use after a redeploy to restore the knowledge base, or to re-embed.
+        Owner-only (auth.current_admin_role).
         """
         if not check_admin_password():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+        from auth import owner_request_ok, OWNER_ONLY_ERROR
+        if not owner_request_ok():
+            return jsonify({'error': OWNER_ONLY_ERROR}), 403
         try:
             esp_mgr = get_mgr()
             data = request.get_json(silent=True) or {}
             target = (data.get('esp') or 'all').lower()
 
             if target == 'all':
-                esp_names = [esp['name'] for esp in esp_mgr.list_esps()]
+                # listed integrations too: activated, they must already be indexed
+                esp_names = [esp['name'] for esp in esp_mgr.list_integrations(('active', 'listed'))]
             else:
                 if not esp_mgr.get_esp_by_name(target):
                     return jsonify({'error': f"ESP '{target}' not found"}), 404

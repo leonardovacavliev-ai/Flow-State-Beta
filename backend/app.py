@@ -60,6 +60,18 @@ def is_admin_request():
     from auth import admin_request_ok
     return admin_request_ok()
 
+def owner_denied():
+    """None when the caller is an owner (auth.current_admin_role); otherwise
+    the 403 response for an owner-only route. Settings, Refresh All and the
+    debug views are owner-only; editors keep documents and proposals."""
+    from auth import current_admin_role, OWNER_ONLY_ERROR
+    role = current_admin_role()   # once: the break-glass check logs each use
+    if role is None:
+        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    if role != 'owner':
+        return jsonify({'error': OWNER_ONLY_ERROR}), 403
+    return None
+
 # Initialize configuration manager
 config_manager = ConfigManager(BASE_PATH)
 
@@ -127,6 +139,10 @@ if USE_DATABASE_ESP_ROUTES:
     # Product-line labels on documents; same for both route modules
     from product_labels import register_product_label_routes
     register_product_label_routes(app, vectorizer)
+
+    # The v2 admin: integrations list, proposals inbox, crawl summary
+    from admin_integrations_routes import register_admin_integrations_routes
+    register_admin_integrations_routes(app, use_async_crawl=USE_ASYNC_CRAWL)
 
 # Health check endpoint for Railway
 @app.route('/api/health', methods=['GET'])
@@ -439,16 +455,20 @@ def verify_admin():
     """Report whether the caller may use the admin panel.
 
     Used to gate the UI only. Every admin route enforces access itself, so a
-    forged 'valid': true here buys nothing.
+    forged 'valid': true here buys nothing. `role` ('owner' | 'editor')
+    decides which tabs are shown, on the same terms.
     """
-    return jsonify({'valid': is_admin_request()})
+    from auth import current_admin_role
+    role = current_admin_role()
+    return jsonify({'valid': role is not None, 'role': role})
 
 @app.route('/api/admin/debug/pinecone-sample', methods=['GET'])
 def debug_pinecone_sample():
     """Debug endpoint to see what's actually in Pinecone (admin only)"""
     password = request.args.get('password', '') or request.headers.get('X-Admin-Password', '')
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if VECTOR_PROVIDER != 'pinecone':
         return jsonify({'error': f'Not using Pinecone (provider: {VECTOR_PROVIDER})'}), 400
@@ -489,8 +509,9 @@ def refresh_all():
     """Re-crawl all links and update vector database"""
     data = request.json
 
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if USE_ASYNC_CRAWL and not app.config.get('CRAWL_WORKER_RUNNING'):
         return jsonify({'error': 'The background crawl worker is not running, so nothing '
@@ -512,7 +533,9 @@ def refresh_all():
             job_ids, skipped, not_queued = [], [], []
             no_label = {'error': 'No product label: pick Loyalty, Reviews or Shared beside it, '
                                  'then crawl it'}
-            for esp in esp_mgr.list_esps():
+            # Listed integrations too: their documents are crawled before they
+            # go into chat (C1.4), and must be current when they do
+            for esp in esp_mgr.list_integrations(('active', 'listed')):
                 labels = esp_mgr.get_product_labels(esp['name'])
                 for doc in esp_mgr.list_documents(esp['name']):
                     if (labels.get(doc['url']) or {}).get('product') is None:
@@ -567,8 +590,9 @@ def get_analytics_data():
 @app.route('/api/admin/settings/ai-model', methods=['GET'])
 def get_ai_model_config():
     """Get current AI model configuration (admin only)"""
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
     try:
         config = config_manager.get_model_config()
         available_models = AIClient.get_available_models()
@@ -589,8 +613,9 @@ def update_ai_model_config():
     model_name = data.get('model_name', '')
     user_email = data.get('user_email', '')
 
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -623,8 +648,9 @@ def update_api_key():
     api_key = data.get('api_key', '')
     user_email = data.get('user_email', '')
 
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -659,8 +685,9 @@ def update_api_key():
 @app.route('/api/admin/settings/api-status', methods=['GET'])
 def check_api_status():
     """Check current API status"""
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
     try:
         status = ai_client.check_status()
         return jsonify(status)
@@ -670,8 +697,9 @@ def check_api_status():
 @app.route('/api/admin/settings/system-prompt', methods=['GET'])
 def get_system_prompt():
     """Get current system prompt (admin only)"""
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
     try:
         prompt = config_manager.get_system_prompt()
         return jsonify({'system_prompt': prompt})
@@ -685,8 +713,9 @@ def update_system_prompt():
     new_prompt = data.get('system_prompt', '')
     user_email = data.get('user_email', '')
 
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400
@@ -726,8 +755,9 @@ def update_system_prompt():
 @app.route('/api/admin/settings/audit-log', methods=['GET'])
 def get_audit_log():
     """Get configuration change audit log (admin only)"""
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
     try:
         limit = request.args.get('limit', type=int, default=50)
         audit_log = config_manager.get_audit_log(limit=limit)
@@ -743,8 +773,9 @@ def restore_from_backup():
     audit_index = data.get('audit_index', -1)
     user_email = data.get('user_email', '')
 
-    if not is_admin_request():
-        return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
+    denied = owner_denied()
+    if denied:
+        return denied
 
     if not user_email:
         return jsonify({'error': 'User email is required for audit trail'}), 400

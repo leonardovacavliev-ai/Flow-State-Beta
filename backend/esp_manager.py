@@ -100,6 +100,9 @@ class ESPManager:
         # is UNIQUE regardless of status and the INSERT would fail anyway
         existing = self.get_esp_by_name(name, include_archived=True)
         if existing:
+            if existing.get('status') == 'listed':
+                raise ValueError(f"'{name}' already exists as a listed integration: open it in "
+                                 f"the Integrations list")
             if existing.get('status') != 'active':
                 raise ValueError(f"ESP '{name}' already exists but is archived — restore it instead")
             raise ValueError(f"ESP '{name}' already exists")
@@ -130,7 +133,14 @@ class ESPManager:
 
     def get_esp_by_name(self, name: str, include_archived: bool = False) -> Optional[Dict]:
         """
-        Get ESP by name.
+        Get ESP by name: an `active` or `listed` integration.
+
+        Listed rows are found because an admin documents an integration
+        before it goes into chat: proposals are approved, labelled and
+        crawled while it is listed (C1.4, C1.9). This is a lookup by name,
+        used by admin and document paths only. Chat checks
+        is_active_integration and older code lists through list_esps, both
+        `active` only (I4).
 
         include_archived matters when the row must be found even if soft
         deleted: esps.name is UNIQUE regardless of status, so code that does
@@ -140,7 +150,7 @@ class ESPManager:
         query = """
             SELECT id, name, display_name, description, status, created_at, updated_at
             FROM esps
-            WHERE name = %s AND (status = 'active' OR %s = true)
+            WHERE name = %s AND (status IN ('active', 'listed') OR %s = true)
         """
         result = self.db.execute_query(query, (name, include_archived), fetch=True)
         if result:
@@ -372,7 +382,8 @@ class ESPManager:
     def find_documents_by_url(self, url: str) -> List[Dict]:
         """
         Every document whose URL is `url` once normalised (urls.py), across
-        all ESPs including global knowledge.
+        all ESPs including global knowledge, active or listed (a listed
+        integration's documents are crawled before it goes into chat).
 
         Returns a list of {'esp_name', 'display_name', 'filename',
         'crawl_status'}; empty if the URL is new.
@@ -381,7 +392,7 @@ class ESPManager:
             SELECT e.name, e.display_name, d.filename, d.crawl_status
             FROM esp_documents d
             JOIN esps e ON e.id = d.esp_id
-            WHERE d.url = %s AND e.status = 'active'
+            WHERE d.url = %s AND e.status IN ('active', 'listed')
             ORDER BY e.name
         """
         rows = self.db.execute_query(query, (normalize_url(url),), fetch=True) or []
