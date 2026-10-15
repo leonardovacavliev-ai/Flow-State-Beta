@@ -136,8 +136,8 @@ curl -s -X PUT -H "Authorization: Bearer $TOKEN" $API/pulls/<N>/merge -d '{"merg
 # deploy: Railway posts a commit status on the merge sha
 curl -s -H "Authorization: Bearer $TOKEN" $API/commits/<sha>/status
 ```
-**CI does not run on GitHub**: Actions shows 0 runs ever (checked 2026-10-15), though the workflow
-is active. Run the §1.4 suite locally (network blocked, see above) before merging and say so in the
+**CI may not run on GitHub**: on 2026-10-15 Actions showed 0 runs ever while the account was
+restricted (see §5); check whether runs appear again once it is lifted. Run the §1.4 suite locally (network blocked, see above) before merging and say so in the
 PR. The Postgres jobs need `TEST_DATABASE_URL`, which isn't available locally. Tell Leo if a change
 touches the database code; fixing Actions (billing or settings) is his.
 
@@ -154,6 +154,11 @@ touches the database code; fixing Actions (billing or settings) is his.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
+- **GitHub restricted the account once (found 2026-10-15).** Railway failed with "couldn't find
+  the repo", Actions showed 0 runs ever, and `https://api.github.com/users/leonardovacavliev-ai`
+  returned 404 to everyone else. Leo had it lifted the same day. If a deploy fails at "Snapshot
+  code" or Actions history vanishes, check that URL first (200 = fine), and stop merging until it
+  is. Poll GitHub at most once a minute (the 20-second polling that day ran into the API limit).
 - **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
   disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
   keep nothing only there.
