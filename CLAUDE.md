@@ -29,8 +29,9 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
 - ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
   backend with it runs schema changes on production at boot, and local crawls write production
   vectors. Before running anything locally, read roadmap §1.1.
-- **Claude Code merges and deploys** (Railway deploys every push to `main`). Running
-  data-changing scripts on production stays Leo's.
+- **Claude Code opens the PRs, merges and deploys, without asking** (Railway deploys every push
+  to `main`; GitHub Actions does not run, so run the check suite locally; NEXT_SESSION.md §4).
+  Running data-changing scripts on production stays Leo's.
 
 ---
 

@@ -1,6 +1,7 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13 after the first v2 build session; updated 2026-10-14 after the second (C1.2). Read this first, then
+Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2).
+Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
 
@@ -13,6 +14,7 @@ your session with the agenda for the one after.
 | #1 | C0.2 | Dependencies pinned to production's own freeze (`requirements.txt`, `constraints.txt`, Dockerfile) |
 | #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres` |
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
+| #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
 - `scripts/fix_url_spellings.py --apply`: the 3 links stored with a `#section` were tidied (row and
@@ -21,13 +23,22 @@ Production data steps Leo ran on 2026-10-13:
 - `scripts/normalize_esp_keys.py --apply`: 16 `esp_selections` rows renamed `other/webhook` →
   `other_webhook`. The dashboard recomputes its daily aggregates on its next load.
 
+**Partner mechanics (C1.2, Leo's design, 2026-10-14/15).** Besides the Yotpo guides, every
+integration needs the partner's own articles on the functions the integration touches (Klaviyo flow
+triggers, Recharge subscription discount codes). Per integration, `backend/app_mechanics.py` and
+`backend/mechanics_ai.py` (Gemini Flash, the app's `GEMINI_API_KEY`):
+1. read the Yotpo guides, the partner's Yotpo pages and the partner help centre's own Yotpo articles;
+2. the model lists the partner functions the integration touches;
+3. code searches the help centre (Zendesk API, or the model picks from the centre's titles);
+4. code reads each candidate, the model accepts only articles whose text explains a function;
+5. help centres that can't be read automatically (bot check, login, moved, browser-only) go to a
+   person; **a person approves each integration's final list in the admin (C1.4)**.
+Leo rejected two earlier versions (general "Welcome to the app" articles; hand-made topic lists).
+Don't bring them back. Last dry run (2026-10-14/15): 272 articles for 65 integrations, 39 for a
+person, 37 with no help centre found, 13 where the model accepted nothing. Report:
+`docs/integrations/catalog_dry_run.md`.
+
 **Open:**
-- **C1.2 (branch `v2/c1-2-catalog-import`)**: header parser, catalog import, and the **partner mechanics
-  articles** Leo asked for on 2026-10-14 (source `mechanics`): a model reads the integration's own
-  documents, lists the partner functions it touches, and confirms each article by reading it;
-  blocked help centres go to a person; a person approves each integration's final list (C1.4). Nothing is
-  written to production by this branch. Waiting for Leo to read
-  `docs/integrations/catalog_dry_run.md`; then merge when CI is green. `--apply` stays C1.9.
 - **PR #4 (C0.4 sources)**: `docs/integrations/messaging_sources.md`, the help links for the 13
   missing email/SMS platforms. It waits for Leo to read the "Flags for Leo" and approve the links.
   After he approves, merge it. Then Leo creates the platforms in the admin panel, and you do the
@@ -50,21 +61,30 @@ Production data steps Leo ran on 2026-10-13:
 - **The safety filter blocked one merge** (#3, the first one that changes the live database
   schema). Don't work around it. Explain it to Leo and ask. He then said "merge 3", and it went
   through.
-- Leo has to do these himself: open the admin panel (Google sign-in), click "Create pull
-  request" on GitHub (`gh` is not installed here), and run production data scripts.
+- **Open PRs, merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the
+  pulls and deploys, just go"). Report when done. See §4 for the API commands.
+- Leo still does these himself: open the admin panel (Google sign-in) and run production data
+  scripts.
 
 ## 3. Next work, in order
 
-1. **Finish C1.2**: once Leo has read the dry-run report, merge (CI green, diff reviewed), then
-   mark it done in the roadmap. If he adds help centres to `scripts/help_centres.json`, re-run the
-   dry run (`--cache` makes it quick) and update the report. To re-run:
-   `DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=<copy from eval/seed_local_db.py> python3
-   scripts/import_catalog.py --cache <dir> --plan <file> --report <file>`. A full run from an
-   empty cache takes about 45 minutes (1 request/s per host).
-2. **Then, in parallel** (each its own branch, once C1.2 is merged where needed): C1.3 refresh
-   pipeline, C1.4 admin (needs C1.2's proposals), C1.5 chat picker, C1.6 Reviews readiness, C1.7
-   prompts by type. C1.8 waits for C1.3. C1.4 and C1.5 now have a design prototype; see §5.
-3. **C0.4**, whenever Leo approves PR #4 (see §1).
+1. **Next, in parallel** (each its own branch; C1.1 and C1.2 are done): C1.3 refresh pipeline,
+   C1.4 admin, C1.5 chat picker, C1.6 Reviews readiness, C1.7 prompts by type. C1.8 waits for
+   C1.3. C1.4 and C1.5 have a design prototype; see §5. Suggested order: **C1.4 first**: C1.9
+   (Leo's import) cannot happen without it.
+   - C1.4 must show `mechanics` proposals **per integration as one list**: the functions the model
+     found, each article with its function and reason, approve-all or per article; and the
+     "needs a person" integrations, where an admin adds articles by hand.
+2. **C0.4**, whenever Leo approves PR #4 (see §1).
+3. **Re-running the catalog dry run** (e.g. after help centres are added to
+   `scripts/help_centres.json`), read-only, against a local copy of the knowledge base:
+   ```bash
+   python3 eval/seed_local_db.py /private/tmp/<scratch>/seed.db
+   DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=/private/tmp/<scratch>/seed.db python3 scripts/import_catalog.py --cache /private/tmp/<scratch>/cache --plan /private/tmp/<scratch>/plan.json --report /private/tmp/<scratch>/report.md
+   ```
+   From an empty cache this takes **well over an hour** (1 request/s per host, ~1,500 pages) and
+   ~250 model calls (~1M tokens, under a dollar). Run it in the background. Then copy the report
+   to `docs/integrations/catalog_dry_run.md`.
 
 ## 4. Procedures that worked
 
@@ -104,8 +124,22 @@ sides failed.
 `PYTHONPATH=<that folder> HF_HUB_OFFLINE=1`. This session found two network calls that way
 (ipapi.co in the analytics test, huggingface.co on model load).
 
-**Open a PR without `gh`:** push the branch and give Leo a
-`…/compare/main...<branch>?expand=1&title=…&body=…` link (URL-encoded) to click.
+**Open, check and merge a PR without `gh`** (do it yourself; never send Leo a link to click). The
+token comes from the macOS keychain via git; never print it:
+```bash
+TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
+API=https://api.github.com/repos/leonardovacavliev-ai/Flow-State-Beta
+# open
+curl -s -X POST -H "Authorization: Bearer $TOKEN" $API/pulls -d '{"title":"…","head":"<branch>","base":"main","body":"…"}'
+# merge (merge commit, like the earlier PRs)
+curl -s -X PUT -H "Authorization: Bearer $TOKEN" $API/pulls/<N>/merge -d '{"merge_method":"merge","commit_title":"Merge pull request #<N> from leonardovacavliev-ai/<branch>"}'
+# deploy: Railway posts a commit status on the merge sha
+curl -s -H "Authorization: Bearer $TOKEN" $API/commits/<sha>/status
+```
+**CI does not run on GitHub**: Actions shows 0 runs ever (checked 2026-10-15), though the workflow
+is active. Run the §1.4 suite locally (network blocked, see above) before merging and say so in the
+PR. The Postgres jobs need `TEST_DATABASE_URL`, which isn't available locally. Tell Leo if a change
+touches the database code; fixing Actions (billing or settings) is his.
 
 ## 5. Watch out for
 
@@ -120,6 +154,9 @@ sides failed.
   the stash entry is kept, and a backup sits in
   `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
   refuse when the branches differ there, so work in worktrees.
+- **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
+  disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
+  keep nothing only there.
 - **Partner mechanics: Leo's design, keep it.** No hand-made topic lists and no human picking,
   except where a help centre blocks automated reading. The model lists the functions from the
   integration's own documents and confirms articles by reading them; a person approves the final

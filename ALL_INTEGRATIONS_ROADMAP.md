@@ -22,11 +22,15 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
    - Claude Code only prepares their inputs, where the checkpoint says so.
 3. **Branching:**
    - Use one branch per checkpoint: `v2/<id>-<slug>` (e.g. `v2/c1-1-schema`).
-   - Use conventional commits and open a PR to `main`.
+   - Use conventional commits and **open the PR yourself** (Leo, 2026-10-15: never ask him to).
+     `gh` is not installed: use the GitHub REST API with the token `git credential fill` gives
+     (never print it). NEXT_SESSION.md §4 has the commands.
    - **Claude Code merges and deploys** (Leo's decision, 2026-10-13). Railway deploys every push
      to `main`, so a merge is a deploy.
-     - Merge only when CI is green, the whole diff has been reviewed, and every 🛑 step the
-       checkpoint puts before the merge is done.
+     - Merge only when the check suite is green, the whole diff has been reviewed, and every 🛑
+       step the checkpoint puts before the merge is done. **GitHub Actions has never run on this
+       repository** (0 workflow runs as of 2026-10-15, workflow active), so run §1.4 locally and
+       say so in the PR. Don't stop to ask Leo between PR, merge and deploy: go, then report.
      - One PR at a time, in dependency order: `git merge --no-ff` into `main`, then push.
      - After each deploy, smoke-check the live site: `/api/health` answers and one Klaviyo chat
        answers. The admin panel needs Leo's Google sign-in, so ask him to open it.
@@ -172,7 +176,7 @@ Not part of the suite:
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources ready for approval: PR #4 (`docs/integrations/messaging_sources.md`) |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
-| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | doing | branch `v2/c1-2-catalog-import`; adds partner mechanics articles (Leo, 2026-10-14); waiting for Leo to read `docs/integrations/catalog_dry_run.md` |
+| C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | todo | |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
@@ -1417,3 +1421,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-13 | C1.1 | Merged and deployed (#3); Leo applied the URL fix and the key rename; live checks OK: done | Claude Code |
 | 2026-10-13 | — | NEXT_SESSION.md: hand-off agenda for the next session | Claude Code |
 | 2026-10-14 | C1.2 | Header parser, catalog import (dry run by default, `--apply` from a saved plan), partner mechanics articles (Leo's request), fixtures, tests, live dry-run report | Claude Code |
+| 2026-10-15 | C1.2 | Partner mechanics rebuilt to Leo's design (model lists functions from the integration's own documents, confirms articles by reading them; blocked centres to a person; person approves each list); crawler reads JSON-LD article text; PR #5 merged and deployed | Claude Code |
+| 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
