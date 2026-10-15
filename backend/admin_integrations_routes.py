@@ -15,6 +15,7 @@ lists did.
 """
 
 import json
+import re
 import uuid
 from typing import Dict, List, Optional
 
@@ -381,9 +382,26 @@ _ACTIVE_JOBS_SQL = f"""
 IN_QUEUE = ('queued', 'crawling', 'waiting', 'retrying')
 
 
-def crawl_summary(db, use_async: bool) -> Dict:
+# A database timestamp as crawl_summary's `now` gives it
+_SINCE = re.compile(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d{1,6})?$')
+
+
+def _db_now(db) -> str:
+    """The database's clock, in the form last_crawled_at is stored in, so a
+    later `since` compares like with like whatever the time zones."""
+    sql = ("SELECT CURRENT_TIMESTAMP" if db.__class__.__name__ == 'SQLiteAdapter'
+           else "SELECT LOCALTIMESTAMP")
+    value = db.execute_query(sql, fetch=True)[0][0]
+    return value.strftime('%Y-%m-%d %H:%M:%S.%f') if hasattr(value, 'strftime') else str(value)
+
+
+def crawl_summary(db, use_async: bool, since: Optional[str] = None) -> Dict:
     """Documents by crawl state, the sites with queued or failed crawls, and
-    the jobs running or waiting now (the first ACTIVE_JOBS_SHOWN)."""
+    the jobs running or waiting now (the first ACTIVE_JOBS_SHOWN).
+
+    `now` is the database's clock. Given back as `since`, `crawled_since`
+    counts the documents crawled from then on: the admin shows the crawl box
+    only when something is waiting or failed, or crawled during the visit."""
     from crawler import url_host
     from workers.crawl_queue import describe_link
     states: Dict[str, int] = {}
@@ -420,10 +438,17 @@ def crawl_summary(db, use_async: bool) -> Dict:
                 detail = f"starts {format_wait(wait)}" if wait and wait >= 5 else None
             jobs.append({'state': state, 'detail': detail, 'host': host, 'url': url,
                          'esp': name, 'display_name': display or name})
+    crawled_since = 0
+    if since:
+        crawled_since = int(db.execute_query("""
+            SELECT COUNT(*) FROM esp_documents d JOIN esps e ON e.id = d.esp_id
+            WHERE e.status <> 'archived' AND d.retired_at IS NULL
+              AND d.crawl_status = 'completed' AND d.last_crawled_at >= %s
+        """, (since,), fetch=True)[0][0])
     host_rows = sorted(({'host': h, **n} for h, n in hosts.items()),
                        key=lambda r: (-r['queued'], -r['failed'], r['host']))
     return {'states': states, 'hosts': host_rows, 'jobs': jobs, 'active_jobs': active,
-            'queue': use_async}
+            'queue': use_async, 'now': _db_now(db), 'crawled_since': crawled_since}
 
 
 def needs_person(mechanics: Optional[Dict], names: Dict[str, str]) -> List[Dict]:
@@ -755,11 +780,15 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
 
     @app.route('/api/admin/crawl-summary', methods=['GET'])
     def admin_crawl_summary():
-        """Documents by crawl state and site, and the active jobs."""
+        """GET ?since=<a `now` it returned>: documents by crawl state and site,
+        the active jobs, and how many were crawled since then."""
         stop = denied()
         if stop:
             return stop
-        return jsonify(crawl_summary(db(), use_async_crawl))
+        since = (request.args.get('since') or '').strip()
+        if since and not _SINCE.match(since):
+            return jsonify({'error': 'since must be a time this route returned as now'}), 400
+        return jsonify(crawl_summary(db(), use_async_crawl, since or None))
 
     @app.route('/api/admin/catalog-import', methods=['GET'])
     def admin_catalog_import():

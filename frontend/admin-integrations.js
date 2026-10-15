@@ -80,6 +80,7 @@
         docPage: 1,
         facets: null,
         crawlDetails: false,
+        crawlSince: null,      // the database's clock when the page first asked: "this visit"
         summaryTimer: null,
         hadActiveJobs: false,
         listTicket: 0,
@@ -351,18 +352,24 @@
         if (!box) return;
         let data;
         try {
-            data = await getJSON('/admin/crawl-summary');
+            data = await getJSON(`/admin/crawl-summary${S.crawlSince ? `?since=${encodeURIComponent(S.crawlSince)}` : ''}`);
         } catch (error) {
             box.innerHTML = `<div class="${card} mb-6 text-sm text-red-700">Could not load the crawl status: ${esc(error.message)}</div>`;
             return;
         }
+        if (!S.crawlSince) S.crawlSince = data.now;
+        // Shown only when there is something to see: documents waiting,
+        // crawling, failed or never crawled, or crawled during this visit
         const counts = STRIP_STATES.filter(s => data.states[s]);
-        const crawled = data.states.crawled || 0;
+        const crawledNow = data.crawled_since || 0;
+        if (!counts.length && !crawledNow && !data.active_jobs) {
+            box.innerHTML = '';
+            watch(false);
+            return;
+        }
         const dot = '<span class="text-muted-foreground" aria-hidden="true">·</span>';
-        const parts = [`<span><span class="font-medium tabular-nums">${crawled}</span> crawled</span>`]
-            .concat(counts.length
-                ? counts.map(s => `<span class="${s === 'failed' ? 'text-red-700' : ''}" ${s === 'pending' ? tip('Listed under To do as “not crawled”') : ''}><span class="font-medium tabular-nums">${data.states[s]}</span> ${esc(STRIP_TEXT[s])}</span>`)
-                : ['<span class="text-muted-foreground">nothing waiting</span>']);
+        const parts = (crawledNow ? [`<span class="text-green-800" ${tip('Crawled since you opened the Integrations tab.')}><span class="font-medium tabular-nums">${crawledNow}</span> crawled</span>`] : [])
+            .concat(counts.map(s => `<span class="${s === 'failed' ? 'text-red-700' : ''}" ${s === 'pending' ? tip('Listed under To do as “not crawled”') : ''}><span class="font-medium tabular-nums">${data.states[s]}</span> ${esc(STRIP_TEXT[s])}</span>`));
         box.innerHTML = `
             <div class="${card} !py-3 mb-6">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-card-foreground">
