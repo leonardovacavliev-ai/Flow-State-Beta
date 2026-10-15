@@ -267,7 +267,7 @@ def check_list_pages_and_filters(c, db, ids):
     assert c.get('/api/admin/integrations?per_page=0').status_code == 400
     k = c.get('/api/admin/integrations?q=klaviyo').get_json()['integrations'][0]
     assert k['documents'] == {'total': 4, 'loyalty': 1, 'reviews': 0, 'shared': 2, 'unlabelled': 1}
-    assert k['type_choices'] == ['data', 'messaging'] and k['failed'] == 1
+    assert k['type_choices'] == ['data', 'messaging'] and k['failed'] == 1 and k['not_crawled'] == 0
 
 
 def check_detail(c, db, ids):

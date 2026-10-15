@@ -11,6 +11,15 @@ from typing import Iterable, Optional
 
 PLATFORM_TYPES = ('messaging', 'storefront', 'service', 'data', 'content')
 
+# What the admin calls each type: what kind of platform it is
+TYPE_LABELS = {
+    'messaging': 'Email & SMS',
+    'storefront': 'Store & checkout',
+    'service': 'Customer service',
+    'data': 'Data & automation',
+    'content': 'Reviews & content',
+}
+
 # Catalog category slug -> platform type
 CATEGORY_DEFAULT_TYPE = {
     # messaging: the platform sends the emails and texts

@@ -411,7 +411,7 @@
                         <!-- Bulk Actions (shown when links selected) -->
                         <div id="globalBulkActions" class="hidden items-center gap-3">
                             <span class="bg-primary/10 text-primary px-3 py-1 rounded-full font-medium text-sm">
-                                <span id="selectedCount">0</span> selected
+                                <span id="selectedCount">0</span> <span id="selectedNoun">documents</span> ticked
                             </span>
                             <button class="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors" onclick="crawlAllSelected()">
                                 Crawl Selected
@@ -421,7 +421,7 @@
                             </button>
                         </div>
 
-                        <span id="adminRoleLabel" class="text-xs text-muted-foreground" title="Set by ADMIN_OWNER_EMAILS. Editors manage documents, labels and proposals; owners also settings, Refresh All and an integration's status."></span>
+                        <span id="adminRoleLabel" class="text-xs text-muted-foreground" title="Editors add and fix documents and review suggested links. Owners can also change settings, put integrations in chat or take them out, create integrations and use Refresh All."></span>
                         <button id="closeAdmin" class="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -472,7 +472,7 @@
                                 Integrations
                             </button>
                             <button class="admin-tab px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="proposals">
-                                Proposals <span id="proposalsTabCount" class="text-muted-foreground font-normal"></span>
+                                Suggested Links <span id="proposalsTabCount" class="text-muted-foreground font-normal"></span>
                             </button>
                             <button class="admin-tab owner-only px-4 py-2 font-medium text-sm border-b-2 border-transparent text-muted-foreground hover:text-foreground" data-tab="general-settings">
                                 General Settings
@@ -641,21 +641,21 @@
                         <div id="crawlSummary"></div>
                         <div class="space-y-8">
                             <div class="border-b border-border pb-6">
-                                <h3 id="manageIntegrationsTitle" class="text-lg font-semibold text-card-foreground mb-4">Manage Integrations</h3>
+                                <h3 id="manageIntegrationsTitle" class="text-lg font-semibold text-card-foreground mb-4">All integrations</h3>
                                 <div id="espManagement"></div>
                             </div>
 
                             <div id="integrationsListOnly" class="space-y-8">
                             <div class="border-b border-border pb-6">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-4">Global Knowledge Base</h3>
-                                <p class="text-sm text-muted-foreground mb-4">Manage global knowledge sources that apply across all integrations (loyalty best practices, general email marketing guidance, etc.)</p>
+                                <p class="text-sm text-muted-foreground mb-4">Documents the AI uses for every integration, such as loyalty best practices.</p>
                                 <div class="bg-muted/50 rounded-lg p-4 border border-border">
                                     <div class="space-y-2 mb-4" id="globalKnowledgeLinks">
                                         <!-- Global knowledge links will be loaded here -->
                                     </div>
                                     <div class="flex gap-2">
                                         <input type="text" placeholder="Add new global knowledge URL" id="newGlobalKnowledgeLink" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                                        <select id="newGlobalKnowledgeProduct" class="new-link-product w-32 shrink-0 px-2 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Yotpo product for the new link" title="Which Yotpo product this document covers. Shared = correct for both.">
+                                        <select id="newGlobalKnowledgeProduct" class="new-link-product w-32 shrink-0 px-2 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" aria-label="Yotpo product for the new link" title="Which Yotpo product this document is about. Shared: true for both.">
                                             <option value="" selected disabled>Product…</option>
                                             <option value="loyalty">Loyalty</option>
                                             <option value="reviews">Reviews</option>
@@ -669,7 +669,7 @@
 
                             <div class="border-b border-border pb-6 owner-only">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-2">Create New Integration</h3>
-                                <p class="text-sm text-muted-foreground mb-4">For an email or SMS platform that is not in the catalog. It goes into chat at once, answered by the Messaging prompt.</p>
+                                <p class="text-sm text-muted-foreground mb-4">For an Email &amp; SMS platform not on yotpo.com/integrations. It goes into chat at once.</p>
                                 <div class="flex gap-3 max-w-xl">
                                     <input type="text" id="newESPName" placeholder="Integration name" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                                     <button id="createESPBtn" class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">
@@ -680,7 +680,7 @@
 
                             <div class="owner-only">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-2">Refresh All Documentation</h3>
-                                <p class="text-sm text-muted-foreground mb-4">Re-crawl all links and update the knowledge base</p>
+                                <p class="text-sm text-muted-foreground mb-4">Re-crawls every document.</p>
                                 <button id="refreshAllBtn" class="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg font-medium text-sm hover:bg-destructive/90 transition-colors">
                                     Refresh All
                                 </button>
@@ -875,8 +875,8 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=admin-integrations-1"></script>
-    <script src="admin-integrations.js?v=admin-integrations-1"></script>
+    <script src="app.js?v=admin-wording-1"></script>
+    <script src="admin-integrations.js?v=admin-wording-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>
 </html>

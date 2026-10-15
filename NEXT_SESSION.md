@@ -82,7 +82,10 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
    refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. Suggested
    order: **C1.7** (it protects the email/SMS answers, and lets non-messaging types go active:
    extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Proposals tab's
-   sitemap section and the retire/replace buttons wait for it), then C1.5, C1.6.
+   sitemap section and the retire/replace buttons wait for it), then **C1.10 "Find links"** (Leo,
+   2026-10-15: needed for a complete product; same Gemini key as the app, by Leo's choice; ask
+   him whether he wants a daily cap before shipping it), then C1.5, C1.6.
+   - From C1.9 on, **R1**: the catalog import is re-run by hand every 1–2 months (roadmap §7).
    - C1.5 has a design prototype (`design/integrations-redesign.html`, Chat screen; untracked,
      **don't commit it**: Leo, 2026-10-15). Use it as the baseline.
    - The Usage Analytics additions in that design (plan §4.9) need C1.5's picks of listed

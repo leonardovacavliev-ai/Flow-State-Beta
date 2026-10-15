@@ -1255,7 +1255,7 @@ function applyAdminRole(role) {
     const owner = role === 'owner';
     document.querySelectorAll('.owner-only').forEach(el => el.classList.toggle('hidden', !owner));
     const label = document.getElementById('adminRoleLabel');
-    if (label) label.textContent = owner ? 'Owner' : 'Editor';
+    if (label) label.textContent = owner ? 'Owner access' : 'Editor access';
     const settingsShown = !document.getElementById('generalSettingsTab').classList.contains('hidden');
     if (!owner && settingsShown) showAdminTab('usage-analytics');
 }
@@ -1704,13 +1704,15 @@ function crawlStateStyle(status) {
     return CRAWL_STATE_STYLES[status] || { badge: 'bg-slate-100 text-slate-700' };
 }
 
-// Pre-checked for the next "Crawl Selected": never crawled, or the last
-// crawl didn't succeed (failed, or only re-indexed from a saved copy)
+// Never crawled, or the last crawl didn't succeed (failed, or only
+// re-indexed from a saved copy): these rows offer Paste. They used to be
+// ticked in advance, which armed Delete Selected with links nobody chose.
 function isCrawlCandidate(link) {
     return ['pending', 'failed', 'saved_copy'].includes(link.status);
 }
 
 function statusLabel(status) {
+    if (status === 'pending') return 'not crawled yet';
     return status === 'saved_copy' ? 'saved copy' : status;
 }
 
@@ -1728,8 +1730,8 @@ const PRODUCT_LABELS = {
     shared: 'Shared'
 };
 const PRODUCT_LABEL_HELP =
-    'Which Yotpo product this document covers. Shared = correct for both: ' +
-    "the ESP's own docs, or Yotpo platform docs that belong to neither product.";
+    'Which Yotpo product this document is about. Shared: true for both, ' +
+    "like the platform's own help.";
 
 // Fixed width so every picker lines up, whatever it shows.
 const PRODUCT_PICKER_CLASSES = 'product-picker w-28 shrink-0 text-xs px-2 py-1 rounded';
@@ -1778,15 +1780,16 @@ function notQueuedLines(data, label) {
     return (data.not_queued || []).map(n => `${label ? label + ': ' : ''}${n.url} — ${n.error}`);
 }
 
-const PICK_PRODUCT_MESSAGE = 'Pick which Yotpo product this link covers: Loyalty, Reviews, or Shared (correct for both).';
+const PICK_PRODUCT_MESSAGE = 'Pick its product first: Loyalty, Reviews, or Shared (true for both).';
 
 function updateUnlabelledCount(scope) {
     const counter = scope.querySelector('.unlabelled-count');
     if (!counter) return;
     const n = [...scope.querySelectorAll('select.product-picker:not([disabled])')]
         .filter(s => !s.value).length;
-    counter.textContent = n ? `${n} unlabelled` : 'all labelled';
-    counter.className = `unlabelled-count text-xs font-medium px-2 py-0.5 rounded ${n ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}`;
+    // Shown only when something needs doing
+    counter.textContent = n ? `${n} with no product picked` : '';
+    counter.className = `unlabelled-count text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800${n ? '' : ' hidden'}`;
 }
 
 async function saveProductLabel(select, scope) {
@@ -1873,6 +1876,8 @@ function updateGlobalBulkActions() {
         globalActions.classList.remove('hidden');
         globalActions.classList.add('flex');
         selectedCount.textContent = totalChecked;
+        const noun = document.getElementById('selectedNoun');
+        if (noun) noun.textContent = totalChecked === 1 ? 'document' : 'documents';
     } else {
         globalActions.classList.add('hidden');
         globalActions.classList.remove('flex');
@@ -1911,7 +1916,7 @@ async function crawlAllSelected() {
     const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     if (espCheckboxes.length === 0 && globalCheckboxes.length === 0) {
-        alert('Please select at least one link to crawl');
+        alert('Tick at least one document to crawl.');
         return;
     }
 
@@ -1941,7 +1946,7 @@ function startCrawlTracker(jobIds) {
     if (jobIds.length > TRACKER_MAX_JOBS && window.AdminIntegrations) {
         if (window.activeCrawlTracker) window.activeCrawlTracker.dismiss();
         window.AdminIntegrations.watchCrawls();
-        alert(`Queued ${jobIds.length} crawls. Follow them in the Crawls strip at the top of the Integrations tab; "Details" lists each site and the crawls running now.`);
+        alert(`${jobIds.length} documents will be crawled. Follow them under Crawls, at the top of the Integrations tab.`);
         return;
     }
     window.AdminIntegrations?.watchCrawls();
@@ -2266,7 +2271,7 @@ async function deleteAllSelected() {
     const globalCheckboxes = visibleChecked('.global-link-checkbox');
 
     if (espCheckboxes.length === 0 && globalCheckboxes.length === 0) {
-        alert('Please select at least one link to delete');
+        alert('Tick at least one document to delete.');
         return;
     }
 
@@ -2439,7 +2444,7 @@ async function addLink(espName) {
         const data = await response.json();
 
         if (data.success) {
-            alert('Link added successfully. It will be pre-checked for crawling.');
+            alert('Link added. Tick it and press Crawl Selected to crawl it.');
             input.value = '';
             productSelect.value = '';
             // Reload the ESP management to show the new link
@@ -2469,7 +2474,7 @@ document.getElementById('createESPBtn').addEventListener('click', async () => {
         const data = await response.json();
 
         if (data.success) {
-            alert('Integration created. It is active, as an email/SMS (Messaging) integration.');
+            alert('Integration created and in chat, as Email & SMS. Add its documents on its page.');
             document.getElementById('newESPName').value = '';
             await loadESPManagement();
             await reloadSidebar(); // Dynamically reload sidebar
@@ -3082,7 +3087,7 @@ async function loadGlobalKnowledge() {
 
             return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
-                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" ${(isCrawlCandidate(link) || link.needs_backfill) ? 'checked' : ''}>
+                <input type="checkbox" class="global-link-checkbox w-4 h-4 rounded border-input cursor-pointer" value="${escapeAttr(link.url)}" aria-label="Tick ${escapeAttr(link.url)}">
                 <span class="text-xs font-medium px-2 py-0.5 rounded ${style.badge} uppercase tracking-wide">${escapeHtml(statusLabel(link.status))}</span>
                 ${link.needs_backfill ? `<span class="text-xs font-medium px-2 py-0.5 rounded bg-amber-100 text-amber-800 uppercase tracking-wide" title="${escapeAttr(backfillTitle)}">no backup</span>` : ''}
                 ${isPasted ? '<span class="text-xs font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 uppercase tracking-wide" title="Manually pasted content — cannot be re-crawled from a website">pasted</span>' : ''}
@@ -3146,7 +3151,7 @@ async function addGlobalKnowledgeLink() {
         const data = await response.json();
 
         if (data.success) {
-            alert('Global knowledge link added successfully. It will be pre-checked for crawling.');
+            alert('Global knowledge link added. To crawl it, tick it and press Crawl Selected at the top.');
             input.value = '';
             productSelect.value = '';
             await loadESPManagement();

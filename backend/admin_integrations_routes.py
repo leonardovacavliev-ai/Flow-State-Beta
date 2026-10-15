@@ -21,7 +21,8 @@ from typing import Dict, List, Optional
 from flask import jsonify, request
 
 from esp_manager import get_esp_manager, DuplicateURLError, _json_list, _iso
-from integration_types import PLATFORM_TYPES, category_types, category_name
+from integration_types import (PLATFORM_TYPES, TYPE_LABELS, CATEGORY_DEFAULT_TYPE, category_types,
+                               category_name)
 
 PER_PAGE = 50
 MAX_PER_PAGE = 200
@@ -57,7 +58,7 @@ SUMMARY_SQL = f"""
            COALESCE(d.shared, 0), COALESCE(d.unlabelled, 0), COALESCE(d.failed, 0),
            COALESCE(d.misses, 0), COALESCE(d.indexed_loyalty, 0),
            COALESCE(d.indexed_reviews, 0), COALESCE(d.indexed_shared, 0),
-           COALESCE(p.open_count, 0)
+           COALESCE(p.open_count, 0), COALESCE(d.not_crawled, 0)
     FROM esps e
     LEFT JOIN (
         SELECT esp_id, COUNT(*) AS total,
@@ -69,7 +70,9 @@ SUMMARY_SQL = f"""
                SUM(CASE WHEN consecutive_misses >= {MISS_LIMIT} THEN 1 ELSE 0 END) AS misses,
                SUM(CASE WHEN product = 'loyalty' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_loyalty,
                SUM(CASE WHEN product = 'reviews' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_reviews,
-               SUM(CASE WHEN product = 'shared' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_shared
+               SUM(CASE WHEN product = 'shared' AND {_INDEXED} THEN 1 ELSE 0 END) AS indexed_shared,
+               SUM(CASE WHEN crawl_status IS NULL OR crawl_status NOT IN ('completed', 'failed')
+                        THEN 1 ELSE 0 END) AS not_crawled
         FROM esp_documents
         WHERE retired_at IS NULL
         GROUP BY esp_id
@@ -121,7 +124,7 @@ def summary_row(row) -> Dict:
     """One SUMMARY_SQL row as the list shows it."""
     (esp_id, name, display_name, status, platform_type, categories, products, slugs,
      type_set_by, total, loyalty, reviews, shared, unlabelled, failed, misses,
-     indexed_loyalty, indexed_reviews, indexed_shared, open_proposals) = row
+     indexed_loyalty, indexed_reviews, indexed_shared, open_proposals, not_crawled) = row
     categories, products = _json_list(categories), _json_list(products)
     types = category_types(categories)
     return {
@@ -137,13 +140,22 @@ def summary_row(row) -> Dict:
         'documents': {'total': int(total), 'loyalty': int(loyalty), 'reviews': int(reviews),
                       'shared': int(shared), 'unlabelled': int(unlabelled)},
         'failed': int(failed),
+        'not_crawled': int(not_crawled),
         'misses': int(misses),
         'open_proposals': int(open_proposals),
         'tier': coverage_tier(platform_type, products, int(indexed_loyalty),
                               int(indexed_reviews), int(indexed_shared)),
+        # loaded documents with chunks in search, by label: what the tier counts
+        'indexed': {'loyalty': int(indexed_loyalty), 'reviews': int(indexed_reviews),
+                    'shared': int(indexed_shared)},
         # Categories that default to different types, until an admin picks one
         'type_choices': types if len(types) > 1 and not type_set_by else [],
         'type_set_by': type_set_by,
+        # each category with the type it defaults to, so the admin can say why
+        'category_kinds': [{'name': category_name(c), 'type': CATEGORY_DEFAULT_TYPE.get(c)}
+                           for c in categories],
+        # an admin should look at its type: unset, or its categories disagree
+        'needs_type': not platform_type or (len(types) > 1 and not type_set_by),
     }
 
 
@@ -170,7 +182,7 @@ def matches(item: Dict, q: str = '', category: str = '', ptype: str = '', status
         return False
     if flag == 'misses' and not item['misses']:
         return False
-    if flag == 'mixed_types' and not item['type_choices']:
+    if flag == 'mixed_types' and not item['needs_type']:
         return False
     return True
 
@@ -211,7 +223,7 @@ def validate_patch(body, current: Dict, is_owner: bool):
         changes['display_name'] = name.strip()
     if 'platform_type' in body:
         if body['platform_type'] not in PLATFORM_TYPES:
-            return None, f"Platform type must be one of: {', '.join(PLATFORM_TYPES)}", 400
+            return None, f"Kind of platform must be one of: {', '.join(PLATFORM_TYPES)}", 400
         changes['platform_type'] = body['platform_type']
     if 'categories' in body:
         cats = body['categories']
@@ -239,8 +251,9 @@ def validate_patch(body, current: Dict, is_owner: bool):
     status = changes.get('status', current['status'])
     ptype = changes.get('platform_type', current['platform_type'])
     if status == 'active' and ptype not in TYPES_IN_CHAT:
-        return None, (f"An integration of type {ptype or 'unset'} can't be in chat yet: its "
-                      f"platform type's prompt and checks come in a later release. Keep it listed."), 409
+        kind = TYPE_LABELS.get(ptype, 'this kind of')
+        return None, (f"{kind} platforms can't be in chat yet: the AI's instructions for them "
+                      f"aren't written. Keep it \"Not in chat yet\"."), 409
     return changes, None, None
 
 

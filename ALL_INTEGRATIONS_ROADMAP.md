@@ -184,6 +184,8 @@ Not part of the suite:
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | todo | |
 | C1.8 | Portability seams, Sentry, no local disk | C1.3 | dev + 🛑 | 3–4 d | todo | |
 | C1.9 | Production import, approvals, labelling | C1.2–C1.8 deployed | 🛑 Leo | 4–6 h | todo | |
+| C1.10 | "Find links" for one integration | C1.3, C1.4 | dev + 🛑 model budget | 2–3 d | todo | Leo, 2026-10-15: needed for a complete product |
+| R1 | Routine: re-run the catalog import | C1.9 | 🛑 Leo (dev prepares) | ~1 h each | from C1.9, every 1–2 months | Leo, 2026-10-15; §7 Routines |
 | — | **Stage 1 exit gate** (§5 end) | C1.1–C1.9 | dev + 🛑 | — | todo | |
 | C2.0 | Trap-question eval tool | C1.7 | dev | 1–2 d | todo | |
 | C2.1 | Wave: `storefront` | C2.0, Stage 1 gate | dev + 🛑 | 3–4 d + 9–15 h | todo | |
@@ -208,7 +210,8 @@ Stage 0   C0.1 CI ──┬─────────────────�
           C0.4 🛑 content (independent; can start today)          │
                     ▼                                             │
 Stage 1   C1.1 schema/keys ─┬─► C1.2 header+import ─┬─► C1.3 refresh ──► C1.8 portability
-                            │                       └─► C1.4 admin
+                            │                       │      └─────────┬─► C1.10 find links
+                            │                       └─► C1.4 admin ──┘
                             ├─► C1.5 chat picker
                             ├─► C1.6 Reviews readiness
                             └─► C1.7 prompts by type ──► C2.0 trap eval
@@ -221,6 +224,8 @@ Order inside Stage 1:
 - C1.4, C1.5, C1.6 and C1.7 can run in parallel branches once C1.1 is merged.
 - C1.4 needs C1.2's proposals table.
 - C1.8 waits for C1.3, because both touch the crawl path.
+- C1.10 waits for C1.3 (its sitemap table finds Yotpo guides for integrations the catalog doesn't
+  list) and C1.4 (results land in its inbox). C1.9 does not wait for C1.10.
 
 ---
 
@@ -898,6 +903,28 @@ Management, whose N+1 fetch-and-render cannot scale.
 - **Partner articles are pre-filled Shared** in the inbox, from the import's label (C1.2, Leo's
   design); the label is dashed until a person changes or approves it.
 - **Roles change nothing until `ADMIN_OWNER_EMAILS` is set**: unset, every admin is an owner.
+- **Plain words on screen** (Leo, 2026-10-15: the first version was "very confusing"). The code and
+  this map keep their terms; the admin shows these instead. Use the same words in later UI work.
+
+  | in code and this map | on screen |
+  |---|---|
+  | status `active` / `listed` / `archived` | In chat? — **In chat** / **Not in chat yet** / **Hidden** |
+  | coverage tier Basic / Listed | Documentation — **Ready** / **Missing documents**, with a ✓/✗ checklist of what's needed |
+  | `platform_type` messaging / storefront / service / data / content | Kind of platform — **Email & SMS** / **Store & checkout** / **Customer service** / **Data & automation** / **Reviews & content** |
+  | `products` | Yotpo products it works with (tick boxes in the list too) |
+  | catalog cards | Its pages on yotpo.com/integrations |
+  | proposals (sources catalog / sitemap / manual / mechanics) | **Suggested Links** (From yotpo.com / New Yotpo article / Added by hand / Platform help article) |
+  | mechanics functions | the platform's features its Yotpo guide uses |
+  | owner / editor | Owner access / Editor access |
+
+  Every empty field says why it is empty and what fills it. The Documentation box lists what is
+  counted, by label, with ✓/✗, and says what to do when nothing was suggested or the platform's help
+  site couldn't be read.
+- **Nothing is ticked in advance any more** (Integrations and Global Knowledge). Failed and
+  never-crawled links used to be pre-ticked, which showed "5 selected · Delete Selected" before the
+  admin had chosen anything. The admin ticks what to crawl.
+- **"In chat" is disabled** on the page for kinds other than Email & SMS (the server already refused
+  it, C1.4), and an integration with no kind is listed under "Kind of platform to set or confirm".
 
 **Rollback:** revert. The old tab returns. Routes are additive.
 
@@ -1168,6 +1195,59 @@ those integrations are `listed`.
 **Rollback:** revert. Before deleting `docs/` from the repo, keep the commit that removes it
 separate from the code changes.
 
+### C1.10 "Find links" for one integration
+
+**Goal:** an admin can ask the app to look for one integration's documentation at any time: after
+creating it by hand, or when its links have gone stale. What it finds lands in Suggested Links, for a
+person to approve, exactly like the catalog import's suggestions (Leo, 2026-10-15: "both are needed
+to have a complete product").
+
+**Read first:** `scripts/import_catalog.py` `build_plan` (the per-integration body),
+`backend/app_mechanics.py` `discover`, `backend/mechanics_ai.py`, `backend/catalog_import.py`
+`detail_links` / `find_renamed`, `backend/admin_integrations_routes.py`, and the memory note that
+the Gemini key is the live chat's prepaid key.
+
+**Tasks**
+- [ ] **One finder, two callers.** Move the per-integration body of `build_plan` (its yotpo.com
+  detail pages → Yotpo guides and partner pages; renamed guides via the sitemap; partner help
+  articles via `app_mechanics.discover`) into a backend module, e.g. `backend/link_finder.py`,
+  `find_links(integration, fetch, chooser, sitemap) -> {proposals, mechanics_note}`.
+  `import_catalog.py` calls it per integration; the plan file, the report and the dry run are
+  unchanged (`test_catalog_import.py` stays green unchanged).
+- [ ] **Integrations not on yotpo.com** (created by hand): no detail page, so look for Yotpo guides
+  in C1.3's `sitemap_urls` by the integration's name tokens (`app_mechanics.name_tokens`), the same
+  way renamed guides are found. Name collisions (Rule, Target, Drip) are fine here: a person
+  approves every suggestion. Help centre: the `scripts/help_centres.json` override, else the usual
+  discovery.
+- [ ] **`POST /api/admin/integrations/<name>/find-links`**: queues one background job (the crawl
+  worker's queue or a job of its own; never in the request: it takes about a minute). Returns at
+  once. `GET` on the same path returns the last run (when, by whom, state, what was suggested,
+  and the help-site note). One run per integration at a time.
+- [ ] **Writes only suggestions**: rows in `document_proposals` (sources `catalog` and `mechanics`),
+  skipping URLs that are already documents or were ever suggested (rejections are remembered),
+  plus that integration's entry in `app_settings` `catalog_mechanics`. Never creates documents,
+  integrations or labels.
+- [ ] **Model budget**: the partner-article step calls Gemini. Leo, 2026-10-15: **use the app's
+  same `GEMINI_API_KEY` for now** (the live chat's prepaid key). A daily cap on runs was proposed
+  as a guard against a runaway draining that credit; Leo asked why it is needed. Unless he asks for
+  a cap: one run per integration at a time, and the button says a run uses Gemini credit. Without
+  a key, it still finds the yotpo.com and Yotpo-guide links and says the help-article step was
+  skipped.
+- [ ] **Admin:** a "Find links" button on the integration's page, its last run beside it ("Found 3
+  links: review them in Suggested Links"), and "Find links" offered in the empty state of an
+  integration with no documents and no suggestions.
+- [ ] **Tests** (fake fetch, fake model, SQLite and Postgres): the import's output is unchanged;
+  find-links on a catalog integration proposes what the import would; on a hand-made one it finds a
+  sitemap guide by name; rejected and existing URLs are skipped; the cap; editor/owner rules as Leo
+  decides.
+
+**Acceptance**
+- On `backend-local` (local SQLite, no production key): "Find links" on a hand-made integration and
+  on a catalog one adds the expected suggestions; a second run adds nothing.
+- The catalog dry run's report is byte-identical before and after the refactor, on the cached pages.
+
+**Rollback:** revert; suggestions it already made stay in the inbox.
+
 ### C1.9 🛑 Production import, approvals, labelling (Leo)
 
 After C1.1–C1.8 are deployed, in this order:
@@ -1362,7 +1442,19 @@ Facts block and integration-style source headers for `messaging` too.
 
 ---
 
-## 7. Optional, triggered
+## 7. Routines and optional work
+
+### R1 🛑 Re-run the catalog import (routine, from C1.9)
+
+Leo, 2026-10-15. The import is how new and changed integrations reach the admin. It is re-run by
+hand, not on a schedule (plan §4.3): **every 1–2 months, or when Yotpo announces integrations.**
+1. Claude Code runs the dry run, read-only, against a local copy (NEXT_SESSION.md: "Re-running the
+   catalog dry run"), with Leo's OK for the model calls, and gives Leo the report in plain words:
+   new integrations, new links, renamed or dead guides, cards that disappeared.
+2. Leo applies it (`--apply --plan`), then reviews Suggested Links.
+3. Claude Code checks the result read-only (`audit_product_labels.py`, the Integrations tab's
+   counts).
+A re-run only adds: anything approved, rejected or already a document is never suggested again.
 
 ### CX.1 Embedding bake-off and index rebuild
 
@@ -1417,6 +1509,8 @@ C1.8 already did the work, so this is configuration only.
 - [ ] Nothing is stored on local disk. The worker can run as its own process. The move off Railway
   is the §3.2 checklist in the plan.
 - [ ] Rate limits, Sentry and backups are verified.
+- [ ] An admin can find links for any one integration from its page (C1.10), and the catalog import
+  has been re-run at least once after C1.9 (R1).
 - [ ] CLAUDE.md describes v2, not v1.
 
 ---
@@ -1441,6 +1535,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | Wave order: storefront → service → content → data | §2 order |
 | Lists stored as JSONB (TEXT JSON in SQLite) | refines plan §4.2's `TEXT[]` |
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
+| New links keep coming after the first import: the import is re-run by hand every 1–2 months (R1), and any integration can be searched on demand with "Find links" (Leo, 2026-10-15) | C1.10 and R1; still no scheduled discovery: everything found is a suggestion a person approves |
 | Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
 ---
@@ -1466,4 +1561,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
 | 2026-10-15 | C0.4 | Leo approved the sources; PR #4 merged | Claude Code |
 | 2026-10-15 | C1.4 | Integrations and Proposals tabs, crawl summary, owner/editor roles, listed integrations documentable; independent review, findings fixed; practice import into a local SQLite copy (no model calls) | Claude Code |
+| 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |

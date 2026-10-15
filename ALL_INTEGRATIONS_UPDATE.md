@@ -485,6 +485,13 @@ only when it carries the app's name; names are never guessed into domains (Rule,
 **Bounded**: one help centre per integration, at most 20 articles read, one request per second per
 host; three model calls per integration. Not a crawler.
 
+**After the first import** (Leo, 2026-10-15): the import is re-run by hand every 1–2 months, or
+when Yotpo announces integrations, and an admin can run the same search for one integration from
+its page ("Find links": its yotpo.com page, Yotpo guides, including by name in the help centre's
+sitemap for integrations not on yotpo.com, and the partner's help articles). Both only add
+suggestions for a person to approve. The model step spends Gemini credit; it uses the app's key
+for now (Leo), one run per integration at a time (roadmap C1.10, R1).
+
 **Daily sitemap job** (in the worker's scheduler):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,
   enqueue a re-crawl.
