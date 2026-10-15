@@ -17,6 +17,9 @@ your session with the agenda for the one after.
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
 | #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms, approved by Leo 2026-10-15 (docs only) |
 | #6 | C1.4 | Admin **Integrations** tab (list, filters, an integration's page, crawl summary) and **Proposals** tab (the import's inbox); owner/editor roles (`ADMIN_OWNER_EMAILS`, unset = all owners); listed integrations can be documented before they go into chat; only messaging can be active; `--apply` stores the inbox's notes. Details: roadmap C1.4 Deviations |
+| #7 | C1.4 | Plain wording in the admin (In chat / Not in chat, Kind of platform, Suggested Links, "the yotpo.com import"), explanations behind "i", product ticks in the list, nothing pre-ticked; plan: C1.10 "Find links" and R1 |
+| #8 | C1.4 | Working "i" popups (hover, focus, click); coverage tier ("Ready / Missing documents") removed; Hidden merged into Not in chat (admin can't set `archived`); Loyalty/Reviews ticked automatically from labelled documents (computed, locked) |
+| #9 | C1.4 | Crawls box shown only when something is waiting, failed, never crawled, or crawled since the tab was opened |
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
@@ -47,8 +50,12 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
   and crawls or pastes them. Use the names the import expects (`catalog_import.KNOWN_MATCHES`), e.g.
   "Salesforce Marketing Cloud" → `salesforce_marketing_cloud`. Then you do the per-platform
   retrieval check C0.4 describes.
-- **C1.4:** Leo opens the new Integrations and Proposals tabs once (Google sign-in). Proposals is
-  empty until C1.9's import. Optionally he sets `ADMIN_OWNER_EMAILS` on Railway.
+- **C1.4:** done (#6–#9); Leo confirmed the "i" popups work. Suggested Links is empty until
+  C1.9's import. Optionally he sets `ADMIN_OWNER_EMAILS` on Railway. The screen vocabulary and
+  Leo's later decisions (no coverage tier, two states, products from documents, crawl box) are in
+  the roadmap's C1.4 Deviations: follow them in C1.5 and later UI work.
+- **Integration delete:** offered to Leo (not built). If he wants it: owner-only, deletes vectors
+  and rows; a catalog integration comes back on the next import unless that is handled.
 - **A suggested task** (chip in the session that built C1.4): chat's integration check lets a
   message through when the database check fails, and the public Reviews-coverage list includes
   listed integrations' names. Both are pre-existing; they matter once listed integrations have
@@ -81,7 +88,7 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done): C1.7 prompts by type, C1.3
    refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. Suggested
    order: **C1.7** (it protects the email/SMS answers, and lets non-messaging types go active:
-   extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Proposals tab's
+   extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Suggested Links tab's
    sitemap section and the retire/replace buttons wait for it), then **C1.10 "Find links"** (Leo,
    2026-10-15: needed for a complete product; same Gemini key as the app, by Leo's choice; ask
    him whether he wants a daily cap before shipping it), then C1.5, C1.6.

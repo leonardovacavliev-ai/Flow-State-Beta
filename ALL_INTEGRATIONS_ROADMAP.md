@@ -105,7 +105,7 @@ So:
 | I1 | Every `esp_documents` row and every vector has a product label (`loyalty` · `reviews` · `shared`) | `add_document(…, *, product)` and the adapters refuse otherwise; `test_product_write_paths.py`; `eval/audit_product_labels.py` |
 | I2 | The email/SMS platforms (`platform_type = 'messaging'`) get today's system prompt, byte for byte | after C1.7: `test_prompts_by_type.py` |
 | I3 | Code-only changes leave the chat context byte-identical | `eval/check_context_unchanged.py capture` before, `check` after, back to back |
-| I4 | Rows with `status != 'active'` never reach chat; older code never lists them | `esp_manager.list_esps` lists `status = 'active'` only; new statuses are `listed` and `archived` |
+| I4 | Rows with `status != 'active'` never reach chat; older code never lists them | `esp_manager.list_esps` lists `status = 'active'` only; the admin sets `active` or `listed` (`archived` exists only on old rows, C1.4) |
 | I5 | Schema changes are additive, idempotent and made at boot: `_add_missing_columns` / `CREATE … IF NOT EXISTS` in **both** `postgres_adapter.initialize` and `sqlite_adapter.initialize` | booting twice is a no-op; CI boots both |
 | I6 | One integration key: `esps.name` (lowercase, underscores) everywhere — vectors, analytics, conversations, API, caches, deep links | `/api/chat` validation (C1.1) |
 | I7 | Every string that reaches HTML from the database or the catalog is escaped (`escapeHtml` / `escapeAttr`, `app.js:12-19`) | code review checklist in each UI PR |
@@ -178,7 +178,7 @@ Not part of the suite:
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
 | C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
-| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PR #6, merged and deployed 2026-10-15; live health, Klaviyo chat (17 sources) and the admin routes' access checked; Leo to open the new tabs once |
+| C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PRs #6–#9, merged and deployed 2026-10-15; follow-ups from Leo's review (wording, popups, no tier, two states, products from documents, crawl box) in Deviations; live checks OK |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | todo | |
@@ -878,7 +878,7 @@ Management, whose N+1 fetch-and-render cannot scale.
   saved before this change still apply), the per-integration notes (`app_settings`
   `catalog_mechanics`: functions found, help centre, why nothing was found) and the report
   (`catalog_last_report`). The plan format is unchanged.
-- **Tier.** "Indexed" is `crawl_status = 'completed'` and `vector_count` NULL or > 0: NULL is a
+- **Tier** (superseded the same day: the tier was removed, see "No coverage tier" below). "Indexed" is `crawl_status = 'completed'` and `vector_count` NULL or > 0: NULL is a
   document indexed before C1.1 recorded counts. It applies to the guide and to messaging's shared
   document alike, and the guide must be for a product the catalog lists (any product when the
   catalog lists none), as plan §4.1 says.

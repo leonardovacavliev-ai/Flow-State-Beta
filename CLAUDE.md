@@ -448,6 +448,15 @@ wording. Do not roll back below `9f46db1` while the template is stored (older co
 - `POST /api/chat` - Send message, get RAG response
 - `POST /api/feedback` - Submit user feedback
 
+### Admin - Integrations and Suggested Links (v2, C1.4; `backend/admin_integrations_routes.py`)
+- `GET /api/admin/integrations?q=&category=&type=&status=&flag=&page=` - Integrations list (one summary query)
+- `GET|PATCH /api/admin/integrations/<name>` - Facts; edit `platform_type`, `display_name`, `categories`, `products`, `status` (owner; `active`/`listed`, only messaging may be active)
+- `GET /api/admin/integrations/<name>/documents?page=` - Its documents
+- `GET /api/admin/proposals?state=&source=&esp=&page=` · `POST .../proposals/approve {items:[{id, product}]}` · `POST .../proposals/reject {ids, note}` - Suggested Links
+- `GET /api/admin/crawl-summary?since=` - Crawl states, sites, active jobs, crawled since
+- `GET /api/admin/catalog-import` - Last import report and help sites to pick by hand
+- Roles: `ADMIN_OWNER_EMAILS` (unset = all admins are owners); `POST /api/admin/verify` returns `role`
+
 ### Admin - ESPs
 - `POST /api/admin/verify` - Check admin password
 - `GET /api/admin/esps` - List all ESPs + doc counts
