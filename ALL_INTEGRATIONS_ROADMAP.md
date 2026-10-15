@@ -930,6 +930,9 @@ Management, whose N+1 fetch-and-render cannot scale.
   (`admin_integrations_routes.effective_products`), never stored, so every existing integration is
   pre-filled with no backfill; those boxes are locked in the admin. C1.5's `/api/integrations` uses
   the same rule.
+- **The crawl box shows only when there is something to see** (Leo, 2026-10-15): documents
+  waiting, crawling, failed or never crawled, or crawled since the Integrations tab was opened
+  (`crawl-summary?since=` with the database's own clock, so time zones can't skew it).
 - **Nothing is ticked in advance any more** (Integrations and Global Knowledge). Failed and
   never-crawled links used to be pre-ticked, which showed "5 selected · Delete Selected" before the
   admin had chosen anything. The admin ticks what to crawl.
@@ -1574,6 +1577,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | — | Found that GitHub Actions has never run on this repo; PRs are now opened by Claude Code through the API | Claude Code |
 | 2026-10-15 | C0.4 | Leo approved the sources; PR #4 merged | Claude Code |
 | 2026-10-15 | C1.4 | Integrations and Proposals tabs, crawl summary, owner/editor roles, listed integrations documentable; independent review, findings fixed; practice import into a local SQLite copy (no model calls) | Claude Code |
+| 2026-10-15 | C1.4 | Crawl box hidden unless something is waiting, failed or crawled during the visit (Leo) | Claude Code |
 | 2026-10-15 | C1.4 | Leo: the "i" popups work on hover, focus and click; coverage tier removed; Hidden merged into Not in chat; products ticked from documents | Claude Code |
 | 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |

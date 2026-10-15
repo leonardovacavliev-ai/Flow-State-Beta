@@ -400,6 +400,18 @@ def check_crawl_summary(c, db, ids, use_async):
         assert r['jobs'] == [] and r['active_jobs'] == 0 and r['states']['pending'] == 2
 
 
+def check_crawled_since(c, db, ids):
+    """The admin shows the crawl box for crawls made during the visit."""
+    first = c.get('/api/admin/crawl-summary').get_json()
+    assert first['now'] and first['crawled_since'] == 0
+    assert c.get(f"/api/admin/crawl-summary?since={first['now']}").get_json()['crawled_since'] == 0
+    doc_id = doc(db, ids['drip'], 'https://help.drip.com/crawled-now', 'shared', status='pending')
+    esp_manager.get_esp_manager().update_document_crawl_status(doc_id, 'completed')
+    r = c.get(f"/api/admin/crawl-summary?since={first['now']}").get_json()
+    assert r['crawled_since'] == 1, r
+    assert c.get('/api/admin/crawl-summary?since=yesterday').status_code == 400
+
+
 def check_catalog_import(c, db, ids):
     setting(db, air.CATALOG_REPORT_KEY, {'applied_at': 'today', 'cards': 181, 'report': '# Report'})
     r = c.get('/api/admin/catalog-import').get_json()
@@ -416,9 +428,9 @@ def run_route_checks(db, use_async, label):
               check_proposals_inbox,
               lambda c, db, ids: check_approve_and_reject(c, db, ids, use_async),
               lambda c, db, ids: check_crawl_summary(c, db, ids, use_async),
-              check_catalog_import, check_patch]
+              check_crawled_since, check_catalog_import, check_patch]
     names = ['admin_only', 'list_pages_and_filters', 'detail', 'documents', 'proposals_inbox',
-             'approve_and_reject', 'crawl_summary', 'catalog_import', 'patch']
+             'approve_and_reject', 'crawl_summary', 'crawled_since', 'catalog_import', 'patch']
     for name, check in zip(names, checks):
         try:
             check(c, db, ids)
