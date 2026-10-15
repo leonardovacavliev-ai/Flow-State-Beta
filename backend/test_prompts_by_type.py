@@ -237,6 +237,44 @@ def test_per_type_restore_restores_only_that_type():
     assert 'content' not in cm.get_config()['system_prompts']
 
 
+def test_production_shaped_config():
+    """A config stored before C1.7: no system_prompts, untyped audit entries.
+    Reading writes nothing; a key update, a save and both kinds of undo keep
+    every prompt."""
+    from prompt_blocks import shipped_default
+    cm = fresh_config()
+    stored = cm.get_config()
+    del stored['system_prompts']
+    raw = json.dumps(stored)
+    cm._db_set(cm.CONFIG_KEY, raw)
+    cm._add_audit_entry({'timestamp': '2026-09-01T10:00:00', 'user_email': 'old@yotpo.com',
+                         'description': 'Updated system prompt',
+                         'backup': {'ai_model': stored['ai_model'], 'system_prompt': 'Old [[product]].'},
+                         'changes': {'system_prompt': stored['system_prompt']}})
+    assert cm.get_system_prompt('content') == shipped_default('content')
+    cm.get_all_system_prompts()
+    assert cm._db_get(cm.CONFIG_KEY) == raw                      # nothing written on read
+    cm._update_env_file = lambda key, value: None                 # no .env writes in a test
+    real = os.environ.get('GEMINI_API_KEY')
+    try:
+        cm.update_api_key('gemini', 'test-key-not-real', 'a@yotpo.com')
+    finally:
+        if real is None:
+            os.environ.pop('GEMINI_API_KEY', None)
+        else:
+            os.environ['GEMINI_API_KEY'] = real
+    assert cm.get_config()['system_prompts'] == {}
+    cm.update_system_prompt('Content v1.', 'a@yotpo.com', 'content')
+    cm.restore_from_backup(0, 'a@yotpo.com')                    # the old untyped entry
+    assert cm.get_config()['system_prompt'] == 'Old [[product]].'
+    assert cm.get_config()['system_prompts'] == {'content': 'Content v1.'}
+    log = cm.get_audit_log()
+    cm.restore_from_backup(next(i for i, e in enumerate(log) if e.get('platform_type') == 'content'),
+                           'a@yotpo.com')
+    assert cm.get_config()['system_prompts'] == {}
+    assert cm.get_config()['system_prompt'] == 'Old [[product]].'
+
+
 # ---------- 6. build_rag_context's defaults are unchanged (I3) ----------
 
 def _chunk(esp, filename, index, total, words, url=None):
@@ -501,6 +539,32 @@ def test_prompt_routes():
     assert _app.config_manager.get_system_prompt('data') == shipped_default('data') + ' Extra.'
 
 
+def test_undo_index_is_a_whole_log_position():
+    c = app_client()
+    for n in range(25):
+        _app.config_manager.update_system_prompt(f'Data v{n}.', 'leo@yotpo.com', 'data')
+    body = c.get('/api/admin/settings/audit-log?limit=20').get_json()
+    assert body['total'] == 25 and body['offset'] == 5 and len(body['audit_log']) == 20
+    # The page's newest row: offset + its position in the page
+    newest = body['offset'] + len(body['audit_log']) - 1
+    r = c.post('/api/admin/settings/restore', json={'audit_index': newest, 'user_email': 'leo@yotpo.com'})
+    assert r.status_code == 200
+    assert _app.config_manager.get_system_prompt('data') == 'Data v23.'
+
+
+def test_settings_routes_are_owner_only():
+    c = app_client()
+    os.environ['ADMIN_OWNER_EMAILS'] = 'someone.else@yotpo.com'   # the test user is an editor
+    try:
+        assert c.post('/api/admin/settings/prompt-preview', json={'esp': 'x'}).status_code == 403
+        assert c.get('/api/admin/settings/system-prompt?platform_type=data').status_code == 403
+        r = c.post('/api/admin/settings/system-prompt',
+                   json={'system_prompt': 'x', 'user_email': 'a@yotpo.com', 'platform_type': 'data'})
+        assert r.status_code == 403
+    finally:
+        os.environ.pop('ADMIN_OWNER_EMAILS', None)
+
+
 def test_prompt_preview_for_a_listed_storefront_integration():
     from prompt_blocks import shipped_default
     from prompt_template import render
@@ -547,6 +611,11 @@ def test_chat_picks_the_prompt_by_type():
     assert r.status_code == 200, r.get_json()
     assert calls[-1]['platform_type'] == 'messaging'
     assert not calls[-1]['context'].startswith('## Integration') and 'ESP: rich' in calls[-1]['context']
+    # A key with stray spaces is the same integration for every check
+    integration('rich', 'active', 'storefront', display='Rich POS', categories=['in-store-pos'])
+    r = c.post('/api/chat', json={'message': 'Hi', 'esp': ' Rich ', 'session_id': 's1'})
+    assert r.status_code == 200 and calls[-1]['platform_type'] == 'storefront'
+    integration('rich', 'active', 'messaging', display='Rich Mail')
 
     # The same documents under an active storefront integration (C1.7 builds
     # the path; the admin still refuses to make one active until its wave)

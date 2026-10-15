@@ -1163,11 +1163,29 @@ those integrations are `listed`.
 - **Test 6 compares against contexts captured from the old code**:
   `backend/fixtures/prompts/rag_context_default.json` was written by
   `test_prompts_by_type.py --write-rag-fixture` run on `origin/main` (7b81ac8), with a fake index.
+- **Fixes from the independent review** (same PR):
+  - The editor saves the kind whose prompt is loaded, not the picker's; the text box is emptied and
+    Save disabled while a prompt loads or after a failed load; switching kind asks before
+    discarding unsaved edits. Before, a failed load could save one kind's text over another's,
+    including the live Email & SMS prompt.
+  - "Undo this change" sends the entry's position in the whole log (`audit-log` now returns
+    `offset` and `total`). Before (already on `main`), it counted within the 20 shown, so with more
+    than 20 entries it undid the wrong change.
+  - Chat reads the type with the same key spelling as the key check (`integration_key`, which
+    trims spaces), and the active cache is read once per call (a PATCH could clear it mid-read).
+- **Open for the first wave (Leo):** when the type can't be read (database error, no type set),
+  chat answers with the messaging prompt, as the key check lets a message through. Harmless while
+  only messaging is in chat; before a non-messaging type goes in, decide whether such a chat
+  should be refused instead. The audit log also grows faster (each entry's backup carries every
+  stored prompt); consider a cap if it gets large.
 - **Not here:** "Untrusted context" (plan §4.6.7: excerpts introduced as documentation, hidden text,
   outside links) is not in this checkpoint's tasks; it belongs with the first wave.
 
 **Rollback:**
 - Code older than this gives every integration the messaging prompt.
+- On older code, "Undo" on an entry saved by this code (e.g. a storefront save) uses the old
+  restore: it puts back the model and the Email & SMS prompt from that moment. Don't undo such
+  entries after a rollback.
 - **Before rolling back below this checkpoint, run `scripts/activate_integrations.py --deactivate
   --type storefront,service,content,data --apply`** (C2.1 creates it). Until then, no
   non-messaging integration is active, so a revert is safe.
@@ -1613,4 +1631,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | C1.4 | Leo: the "i" popups work on hover, focus and click; coverage tier removed; Hidden merged into Not in chat; products ticked from documents | Claude Code |
 | 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |
-| 2026-10-15 | C1.7 | Prompts by platform type: four shipped drafts, per-type storage, audit and undo, facts block, integration source headers, editor with preview; `test_prompts_by_type.py` (16 checks); golden check 26/26 identical | Claude Code |
+| 2026-10-15 | C1.7 | Prompts by platform type: four shipped drafts, per-type storage, audit and undo, facts block, integration source headers, editor with preview; `test_prompts_by_type.py` (19 checks); independent review, findings fixed; golden check 26/26 identical | Claude Code |

@@ -270,12 +270,16 @@ class ESPManager:
         _active_names to None makes the next call reload.
         """
         now = time.monotonic()
-        if self._active_names is None or now - self._active_loaded_at > ACTIVE_CACHE_SECONDS:
+        # One read of the attribute: an admin PATCH may set it to None from
+        # another thread at any moment
+        active = self._active_names
+        if active is None or now - self._active_loaded_at > ACTIVE_CACHE_SECONDS:
             rows = self.db.execute_query(
                 "SELECT name, platform_type FROM esps WHERE status = 'active'", fetch=True) or []
-            self._active_names = {row[0]: row[1] for row in rows}
+            active = {row[0]: row[1] for row in rows}
+            self._active_names = active
             self._active_loaded_at = now
-        return self._active_names
+        return active
 
     def is_active_integration(self, name: str) -> bool:
         """True when `name` is the key of an active integration."""

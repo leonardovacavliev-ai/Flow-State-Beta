@@ -2849,6 +2849,19 @@ function selectedPromptType() {
     return document.getElementById('promptPlatformType').value || 'messaging';
 }
 
+// The kind whose prompt is in the textarea, and the text as loaded. Saving
+// sends this kind, never the picker's, and is disabled while nothing is
+// loaded: a failed or slow load must not let one kind's text be saved over
+// another kind's prompt (the Email & SMS one is live).
+let loadedPromptType = null;
+let loadedPromptText = '';
+
+function setPromptEditable(editable) {
+    document.getElementById('systemPrompt').disabled = !editable;
+    document.getElementById('updatePromptBtn').disabled = !editable;
+    document.getElementById('updatePromptBtn').classList.toggle('opacity-50', !editable);
+}
+
 function promptTypeLabel(type) {
     return PROMPT_TYPE_LABELS[type] || type;
 }
@@ -2862,15 +2875,21 @@ function showPromptWarnings(warnings) {
 
 async function loadSystemPrompt() {
     const type = selectedPromptType();
+    const textarea = document.getElementById('systemPrompt');
+    loadedPromptType = null;
+    setPromptEditable(false);
+    textarea.value = '';
+    textarea.placeholder = 'Loading...';
     try {
         const response = await fetch(`${API_URL}/admin/settings/system-prompt?platform_type=${encodeURIComponent(type)}`, { headers: adminHeaders() });
         const data = await response.json();
+        if (type !== selectedPromptType()) return;   // the picker moved on meanwhile
 
-        if (data.error) {
+        if (!response.ok || data.error) {
             console.error('Error loading system prompt:', data.error);
+            textarea.placeholder = `Could not load the ${promptTypeLabel(type)} prompt. Reopen General Settings to try again.`;
             return;
         }
-        if (type !== selectedPromptType()) return;   // the picker moved on meanwhile
 
         const select = document.getElementById('promptPlatformType');
         if (Array.isArray(data.types) && select.options.length !== data.types.length) {
@@ -2879,7 +2898,10 @@ async function loadSystemPrompt() {
             select.value = type;
         }
 
-        document.getElementById('systemPrompt').value = data.system_prompt;
+        textarea.value = data.system_prompt;
+        loadedPromptType = type;
+        loadedPromptText = data.system_prompt;
+        setPromptEditable(true);
         const note = document.getElementById('promptTypeNote');
         note.textContent = data.stored === false
             ? `Nothing has been saved for ${promptTypeLabel(type)} yet: this is the draft that ships with the app, and it is what chat uses for this kind. Saving stores it.`
@@ -2888,6 +2910,9 @@ async function loadSystemPrompt() {
         showPromptWarnings(data.warnings);
     } catch (error) {
         console.error('Error loading system prompt:', error);
+        if (type === selectedPromptType()) {
+            textarea.placeholder = `Could not load the ${promptTypeLabel(type)} prompt. Reopen General Settings to try again.`;
+        }
     }
 }
 
@@ -2909,7 +2934,12 @@ async function loadPreviewIntegrations() {
     }
 }
 
-document.getElementById('promptPlatformType').addEventListener('change', () => {
+document.getElementById('promptPlatformType').addEventListener('change', (event) => {
+    const unsaved = loadedPromptType && document.getElementById('systemPrompt').value !== loadedPromptText;
+    if (unsaved && !confirm(`Discard your unsaved changes to the ${promptTypeLabel(loadedPromptType)} prompt?`)) {
+        event.target.value = loadedPromptType;
+        return;
+    }
     document.getElementById('promptPreview').classList.add('hidden');
     loadSystemPrompt();
     loadPreviewIntegrations();
@@ -2979,7 +3009,8 @@ async function loadAuditLog() {
 
         container.innerHTML = entries.map((entry, index) => {
             const timestamp = new Date(entry.timestamp).toLocaleString();
-            const actualIndex = data.audit_log.length - 1 - index;
+            // Position in the whole log, which is what restore expects
+            const actualIndex = (data.offset || 0) + data.audit_log.length - 1 - index;
 
             return `
                 <div class="border-b border-border p-4 hover:bg-muted/30 transition-colors">
@@ -3096,7 +3127,11 @@ document.getElementById('applyAIConfigBtn').addEventListener('click', async () =
 document.getElementById('updatePromptBtn').addEventListener('click', async () => {
     const systemPrompt = document.getElementById('systemPrompt').value;
     const userEmail = document.getElementById('promptChangeEmail').value;
-    const platformType = selectedPromptType();
+    const platformType = loadedPromptType;
+    if (!platformType || platformType !== selectedPromptType()) {
+        alert('The prompt has not finished loading. Wait a moment, or reopen General Settings.');
+        return;
+    }
 
     if (!userEmail) {
         alert('Please enter your email address for the audit trail');

@@ -370,7 +370,7 @@ def chat():
     # saying so, instead of an answer built from the Loyalty docs that are
     # all retrieval can find there. Loyalty requests search only Loyalty and
     # shared documents (rag_context.CHAT_SEARCH_PRODUCTS).
-    esp_key = esp.lower().replace('/', '_') if esp else 'klaviyo'
+    esp_key = integration_key(esp) if isinstance(esp, str) and esp.strip() else 'klaviyo'
     uncovered = product == 'reviews' and not has_reviews_coverage(esp_key)
     esp_display = esp_display_name(esp_key) if uncovered else None
 
@@ -894,9 +894,14 @@ def get_audit_log():
         return denied
     try:
         limit = request.args.get('limit', type=int, default=50)
-        audit_log = config_manager.get_audit_log(limit=limit)
+        full = config_manager.get_audit_log()
+        audit_log = full[-limit:] if limit and limit > 0 else full
 
-        return jsonify({'audit_log': audit_log})
+        # offset: the whole-log position of audit_log[0]. Undo sends a
+        # whole-log index; without this the page counted within the last
+        # `limit` entries and undid the wrong change once the log was longer.
+        return jsonify({'audit_log': audit_log, 'offset': len(full) - len(audit_log),
+                        'total': len(full)})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
