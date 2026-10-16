@@ -303,8 +303,18 @@ _GENERIC_TITLES = {'', 'read more', 'learn more', 'more', 'view all', 'see all',
 
 def find_help_centre(app_tokens: List[str], catalog_links: Iterable[str],
                      guide_links: Iterable[str], override: Optional[str] = None,
-                     fetch: Optional[Fetch] = None) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-    """(root url, found_via, problem). See the module docstring for the order."""
+                     fetch: Optional[Fetch] = None,
+                     trusted: Iterable[str] = ()) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+    """(root url, found_via, problem). See the module docstring for the order.
+
+    `trusted` are addresses an admin typed as the app's own site (Find
+    links): their domain is the app's even when it doesn't carry its name
+    (shop.app for "Shop App"). The import never passes any."""
+    trusted_domains = [registered_domain(host_of(u)) for u in trusted if is_partner_url(u)]
+
+    def ours(host):
+        return host_matches_app(host, app_tokens) or registered_domain(host) in trusted_domains
+
     if override:
         return help_centre_root(override) if _HELP_PATH.search(urlsplit(override).path) \
             else normalize_url(override), 'override', None
@@ -318,7 +328,7 @@ def find_help_centre(app_tokens: List[str], catalog_links: Iterable[str],
                     (looks_like_help_host(host) or urlsplit(help_centre_root(url)).path != '/'):
                 return help_centre_root(url), via, None
 
-    domains = []
+    domains = list(dict.fromkeys(trusted_domains))
     for url in list(catalog_links) + list(guide_links):
         host = host_of(url)
         if is_partner_url(url) and host_matches_app(host, app_tokens):
@@ -333,16 +343,21 @@ def find_help_centre(app_tokens: List[str], catalog_links: Iterable[str],
     for d in domains[:2]:
         # The app's own homepage says where its help lives
         home = fetch(f'https://www.{d}/') or fetch(f'https://{d}/')
-        if home and home.status == 200 and host_matches_app(host_of(home.url), app_tokens):
+        if home and home.status == 200 and ours(host_of(home.url)):
             for url, text, _ in page_links(home.text, home.url):
+                # Only a help host or a help path: a menu's "Guides" can be
+                # marketing (kustomer.com/resources?type=guide, or
+                # /en/resources), which would make the company's homepage
+                # its "help centre"
                 if _HELP_LINK_TEXT.match(text.strip()) and is_partner_url(url) and \
-                        host_matches_app(host_of(url), app_tokens):
+                        ours(host_of(url)) and \
+                        (looks_like_help_host(host_of(url)) or _HELP_PATH.search(urlsplit(url).path)):
                     return help_centre_root(url), 'homepage', None
     for d in domains[:2]:
         for candidate in (f'https://help.{d}/', f'https://support.{d}/', f'https://docs.{d}/',
                           f'https://knowledge.{d}/', f'https://{d}/help'):
             page = fetch(candidate)
-            if page and page.status == 200 and _looks_like_help_page(page, app_tokens):
+            if page and page.status == 200 and _looks_like_help_page(page, app_tokens, trusted_domains):
                 return help_centre_root(page.url), 'probe', None
     return None, None, f"no help centre found at help./support./docs./knowledge.{domains[0]}"
 
@@ -353,8 +368,9 @@ _HELP_LINK_TEXT = re.compile(r'^(help( cent(er|re))?|support( cent(er|re))?|docs
                              r'learn|academy|customer support)$', re.I)
 
 
-def _looks_like_help_page(page: Page, app_tokens: Iterable[str]) -> bool:
-    if not host_matches_app(host_of(page.url), app_tokens):
+def _looks_like_help_page(page: Page, app_tokens: Iterable[str], trusted_domains=()) -> bool:
+    host = host_of(page.url)
+    if not host_matches_app(host, app_tokens) and registered_domain(host) not in trusted_domains:
         return False  # redirected to someone else's site
     head = (page.text or '')[:20000].lower()
     title = re.search(r'<title[^>]*>(.*?)</title>', head, re.S)
@@ -552,7 +568,8 @@ def page_text(page: Optional[Page]) -> str:
 
 def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: Iterable[str],
              fetch: Fetch, model, sources: Iterable[Tuple[str, str]] = (),
-             categories: Iterable[str] = (), override: Optional[str] = None) -> Mechanics:
+             categories: Iterable[str] = (), override: Optional[str] = None,
+             trusted: Iterable[str] = ()) -> Mechanics:
     """The partner's articles on the functions this integration touches,
     found and confirmed as the module docstring says. `sources` are
     (label, text) the caller already read: the Yotpo guides and the
@@ -562,7 +579,8 @@ def discover(app_names: List[str], catalog_links: Iterable[str], guide_links: It
     tokens = name_tokens(*app_names)
     app = app_names[0] if app_names else ''
     result = Mechanics()
-    root, via, problem = find_help_centre(tokens, catalog_links, guide_links, override, fetch)
+    root, via, problem = find_help_centre(tokens, catalog_links, guide_links, override, fetch,
+                                          trusted=trusted)
     if not root:
         result.problem = problem
         return result

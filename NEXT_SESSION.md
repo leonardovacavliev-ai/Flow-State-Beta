@@ -1,8 +1,9 @@
 # Next session: agenda for the next agent
 
 Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2),
-the third (C0.4 merge, C1.4) and the fourth (C1.7, deployed 2026-10-16; GitHub restriction and the
-workflow's removal, §5; integrations require their kind, I10).
+the third (C0.4 merge, C1.4), the fourth (C1.7, deployed 2026-10-16; GitHub restriction and the
+workflow's removal, §5; integrations require their kind, I10) and the fifth (C1.10 Find links and
+the Add integration dialog, 2026-10-16).
 Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
@@ -23,6 +24,7 @@ your session with the agenda for the one after.
 | #9 | C1.4 | Crawls box shown only when something is waiting, failed, never crawled, or crawled since the tab was opened |
 | #10 | C1.7 | A system prompt per platform type: four shipped drafts (`backend/prompts/`), per-type storage, audit and undo, the integration facts block, integration source headers, the editor's kind picker and preview. Messaging unchanged (golden 26/26). Merged with plain git as `55124c7` |
 | — | I10 | No integration without its kind of platform (Leo, 2026-10-16): Create New Integration asks for the kind (non-messaging kinds created not in chat), `create_esp` requires it, the import leaves kindless ones out. Merged with plain git (branch `v2/type-required`) |
+| — | C1.10 | **Find links** per integration (`backend/link_finder.py`, shared with the yotpo.com import; `backend/find_links_job.py`, a background run; the Find links card on each integration's page) and the **Add integration** dialog (Leo, 2026-10-16: name + kind, optional website; adding starts Find links at once). Replaces the inline Create New Integration form. Merged with plain git (branch `v2/c1-10-find-links`). Details: roadmap C1.10 Deviations |
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
@@ -52,9 +54,11 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
   "Preview for…" shows one for a real integration). Final wording happens in each wave.
 - **Before the first non-messaging wave:** should a chat whose integration type can't be read be
   refused instead of answered with the messaging prompt? (roadmap C1.7 Deviations)
-- **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → Create New
-  Integration, owner only), adds and labels each link from `docs/integrations/messaging_sources.md`,
-  and crawls or pastes them. Use the names the import expects (`catalog_import.KNOWN_MATCHES`), e.g.
+- **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → **+ Add
+  integration**, owner only, kind Email & SMS). Find links now starts by itself and suggests each
+  one's yotpo.com guides and pages (tried locally on Mailchimp: exactly the four links in
+  `docs/integrations/messaging_sources.md`) and its help articles; Leo approves them in Suggested
+  Links, then adds by hand whatever that file lists and Find links didn't, and crawls or pastes them. Use the names the import expects (`catalog_import.KNOWN_MATCHES`), e.g.
   "Salesforce Marketing Cloud" → `salesforce_marketing_cloud`. Then you do the per-platform
   retrieval check C0.4 describes.
 - **C1.4:** done (#6–#9); Leo confirmed the "i" popups work. Suggested Links is empty until
@@ -104,9 +108,11 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
    C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. `TYPES_IN_CHAT` deliberately
    stays messaging-only after C1.7: each type joins chat in its wave, Leo decides. Suggested
    order: **C1.3** (the Suggested Links tab's
-   sitemap section and the retire/replace buttons wait for it), then **C1.10 "Find links"** (Leo,
-   2026-10-15: needed for a complete product; same Gemini key as the app, by Leo's choice; ask
-   him whether he wants a daily cap before shipping it), then C1.5, C1.6.
+   sitemap section and the retire/replace buttons wait for it; Find links reads the
+   support.yotpo.com sitemap itself until then, and can read C1.3's table once it exists), then
+   C1.5, C1.6. C1.10 is done.
+   - Find links has **no daily cap** (Leo asked why one is needed). If Leo wants one, it goes in
+     `find_links_job.start`.
    - From C1.9 on, **R1**: the catalog import is re-run by hand every 1–2 months (roadmap §7).
    - C1.5 has a design prototype (`design/integrations-redesign.html`, Chat screen; untracked,
      **don't commit it**: Leo, 2026-10-15). Use it as the baseline.
@@ -187,6 +193,12 @@ Leo when a change touches the database code, and ask how he wants it tested.
 
 
 ## 5. Watch out for
+
+- **Find links runs in the web process** (C1.10): a thread per run, the "one run per integration,
+  two at once" check held in memory. That is exact only with one web process (`--workers 1`). If
+  the app ever runs more (C1.8, CX.2), move the check into the database. Each run spends Gemini
+  credit when `GEMINI_API_KEY` is set (three model calls at most); tests use a fake model and a fake
+  fetch, and the local try-out ran with the key empty.
 
 - **Listed integrations are found by name** (C1.4): `get_esp_by_name` and `find_documents_by_url`
   see `active` and `listed` rows, so their documents can be approved, crawled and indexed before

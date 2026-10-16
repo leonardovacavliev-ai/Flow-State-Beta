@@ -51,16 +51,13 @@ Database: DATABASE_PROVIDER=sqlite uses SQLITE_DB_PATH; otherwise Postgres at
 DATABASE_URL (environment, then .env). A dry run opens a read-only session.
 """
 import argparse
-import hashlib
 import json
 import os
 import sqlite3
 import sys
 import time
 import uuid
-from dataclasses import asdict
 from typing import Dict, List, Optional
-from urllib.parse import urlsplit
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE, 'backend'))
@@ -68,74 +65,15 @@ sys.path.insert(0, os.path.join(BASE, 'backend'))
 from dotenv import load_dotenv  # noqa: E402
 load_dotenv(os.path.join(BASE, '.env'))
 
-import app_mechanics  # noqa: E402
 import catalog_import as ci  # noqa: E402
-import doc_header  # noqa: E402
+import link_finder  # noqa: E402
 import mechanics_ai  # noqa: E402
 
-SITEMAP_URL = 'https://support.yotpo.com/sitemap-en.xml'
 OVERRIDES_PATH = os.path.join(BASE, 'scripts', 'help_centres.json')
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
 PLAN_VERSION = 1
-MAX_SECONDS = 20
-MAX_BYTES = 5_000_000
-
-
-# ---------- network ----------
-
-class Fetcher:
-    """GET with the crawler's headers, one request per second per host, one
-    retry on a network error, and an optional on-disk cache."""
-
-    def __init__(self, cache_dir: Optional[str] = None, delay: float = 1.0):
-        import requests
-        self.session = requests.Session()
-        self.session.headers['User-Agent'] = USER_AGENT
-        self.cache_dir = cache_dir
-        self.delay = delay
-        self.last_at: Dict[str, float] = {}
-        self.requests = 0
-        if cache_dir:
-            os.makedirs(cache_dir, exist_ok=True)
-
-    def _cache_path(self, url):
-        return os.path.join(self.cache_dir, hashlib.sha1(url.encode()).hexdigest() + '.json')
-
-    def _get(self, url: str) -> app_mechanics.Page:
-        """One GET, at most MAX_BYTES and MAX_SECONDS in all: a server that
-        sends a byte at a time never trips the per-read timeout."""
-        started = time.time()
-        with self.session.get(url, timeout=10, stream=True) as r:
-            body = b''
-            for chunk in r.iter_content(65536):
-                body += chunk
-                if len(body) > MAX_BYTES or time.time() - started > MAX_SECONDS:
-                    raise TimeoutError(f'gave up after {MAX_SECONDS}s or {MAX_BYTES} bytes')
-            r._content = body
-            return app_mechanics.Page(r.status_code, r.url, r.text, r.headers.get('content-type', ''))
-
-    def __call__(self, url: str) -> Optional[app_mechanics.Page]:
-        if self.cache_dir and os.path.exists(self._cache_path(url)):
-            with open(self._cache_path(url)) as f:
-                page = app_mechanics.Page(**json.load(f))
-            return page if page.status else None  # 0: unreachable when cached
-        page = None
-        for attempt in range(2):
-            host = urlsplit(url).hostname or ''
-            wait = self.delay - (time.time() - self.last_at.get(host, 0))
-            if wait > 0:
-                time.sleep(wait)
-            self.last_at[host] = time.time()
-            self.requests += 1
-            try:
-                page = self._get(url)
-                break
-            except Exception as e:  # network: retry once, then report as unreachable
-                print(f'  [fetch] {url}: {type(e).__name__}', file=sys.stderr)
-        if self.cache_dir:
-            with open(self._cache_path(url), 'w') as f:
-                json.dump(asdict(page or app_mechanics.Page(0, url, '')), f)
-        return page
+# The search is backend/link_finder.py's, shared with the admin's "Find links"
+Fetcher = link_finder.Fetcher
+SITEMAP_URL = link_finder.SITEMAP_URL
 
 
 # ---------- database ----------
@@ -212,11 +150,7 @@ def _list(value):
 
 
 def _overrides() -> Dict[str, Optional[str]]:
-    if not os.path.exists(OVERRIDES_PATH):
-        return {}
-    with open(OVERRIDES_PATH) as f:
-        data = json.load(f)
-    return {k: v for k, v in data.items() if not k.startswith('_')}
+    return link_finder.load_overrides(OVERRIDES_PATH)
 
 
 # ---------- planning ----------
@@ -243,8 +177,7 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
     previous = set((store_view['snapshot'] or {}).get('slugs', []))
     plan['removed_cards'] = sorted(previous - {c.slug for c in cards})
 
-    sitemap_page = fetch(SITEMAP_URL)
-    sitemap = ci.sitemap_entries(sitemap_page.text) if sitemap_page and sitemap_page.status == 200 else {}
+    sitemap = link_finder.read_sitemap(fetch)
     if not sitemap:
         log('  the support.yotpo.com sitemap could not be read: renamed guides are not looked up')
 
@@ -283,92 +216,24 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
         else:
             plan['create'].append(row)
 
-        links = ci.DetailLinks()
-        for slug in integ.slugs:
-            page = fetch(f'https://www.yotpo.com/integrations/{slug}/')
-            if not page or page.status != 200:
-                plan['unreachable'].append(f'https://www.yotpo.com/integrations/{slug}/')
-                continue
-            d = ci.detail_links(page.text)
-            for mine, theirs in ((links.yotpo, d.yotpo), (links.partner_docs, d.partner_docs),
-                                 (links.partner_other, d.partner_other)):
-                mine += [u for u in theirs if u not in mine]
-
-        outbound = []
-        # What Yotpo and the partner wrote about this integration: the model
-        # reads it to list the partner functions involved
-        sources = [('Yotpo catalog card', integ.description)] if integ.description else []
-        for url in links.yotpo:
-            page = fetch(url)
-            if page and page.status == 200:
-                text = _guide_text(url, page)
-                sources.append((f'Yotpo guide {url}', text))
-                label = doc_header.suggested_label(text)
-                final = ci.clean_link(page.url or url)
-                if final != url and ci.is_yotpo_doc(final):
-                    # The guide moved and Yotpo redirects: store it where it lives
-                    propose(integ.name, final, 'catalog', label, f'redirected from {url}')
-                else:
-                    propose(integ.name, url, 'catalog', label, 'Yotpo guide linked from the catalog')
-                outbound += [u for u in ci.guide_outbound_links(page.text) if u not in outbound]
-            elif page and page.status in (404, 410):
-                matches = ci.find_renamed(url, sitemap, app_mechanics.name_tokens(
-                    integ.display_name, integ.name, *integ.slugs))
-                if len(matches) == 1:
-                    page2 = fetch(matches[0])
-                    text = _guide_text(matches[0], page2) if page2 and page2.status == 200 else ''
-                    propose(integ.name, matches[0], 'catalog', doc_header.suggested_label(text),
-                            f'renamed from {url}')
-                elif matches:
-                    plan['ambiguous_renames'].append({'esp': integ.name, 'url': url,
-                                                      'matches': matches})
-                else:
-                    plan['gone'].append({'esp': integ.name, 'url': url})
-            else:
-                plan['unreachable'].append(url)
-
-        for url in links.partner_docs:
-            propose(integ.name, url, 'catalog', None, 'partner page linked from the catalog')
-
-        if not links.yotpo and not links.partner_docs:
+        found = link_finder.find_links(integ, fetch, sitemap, chooser=chooser, mechanics=mechanics,
+                                       overrides=overrides)
+        plan['unreachable'] += found.unreachable
+        plan['gone'] += [{'esp': integ.name, 'url': u} for u in found.gone]
+        plan['ambiguous_renames'] += [{'esp': integ.name, **r} for r in found.ambiguous_renames]
+        if found.nothing:
             plan['nothing'].append(integ.name)
-
-        if mechanics:
-            for url in links.partner_docs:
-                text = app_mechanics.page_text(fetch(url))
-                if text:
-                    sources.append((f'{integ.display_name} page about Yotpo {url}', text))
-        if mechanics and integ.name in overrides and overrides[integ.name] is None:
-            plan['mechanics'][integ.name] = {'help_centre': None, 'problem': 'skipped in scripts/help_centres.json'}
-        elif mechanics:
-            found = app_mechanics.discover(
-                [integ.display_name, integ.name] + integ.slugs,
-                links.partner_docs + links.partner_other, outbound, fetch, chooser,
-                sources=sources, categories=integ.categories, override=overrides.get(integ.name))
-            plan['mechanics'][integ.name] = {
-                'help_centre': found.help_centre, 'found_via': found.found_via,
-                'method': found.method, 'sources': found.sources, 'functions': found.functions,
-                'checked': found.checked, 'blocked': found.blocked, 'problem': found.problem,
-                'accepted': [asdict(c) for c in found.candidates]}
-            if found.help_centre is None:
-                plan['no_help_centre'].append({'esp': integ.name, 'why': found.problem})
-            if found.blocked:
-                plan['blocked'].append({'esp': integ.name, 'why': found.problem})
-            for c in found.candidates:
-                propose(integ.name, c.url, 'mechanics', 'shared',
-                        f'{c.function}: "{c.title}". {c.reason}')
+        if found.mechanics is not None:
+            plan['mechanics'][integ.name] = found.mechanics
+        if found.no_help_centre:
+            plan['no_help_centre'].append({'esp': integ.name, 'why': found.mechanics['problem']})
+        if found.blocked:
+            plan['blocked'].append({'esp': integ.name, 'why': found.mechanics['problem']})
+        for p in found.proposals:
+            propose(integ.name, p['url'], p['source'], p['suggested_label'], p['note'])
     if chooser is not None:
         plan['ai'] = {'model': chooser.model_name, **chooser.usage}
     return plan
-
-
-def _guide_text(url, page) -> str:
-    from crawler import _extract_text
-
-    class _Response:
-        content = page.text.encode('utf-8', 'replace')
-    text, _ = _extract_text(url, _Response())
-    return text or ''
 
 
 def _integration_row(integ: ci.Integration) -> Dict:
@@ -407,12 +272,7 @@ def mechanics_notes(plan: Dict) -> Dict[str, Dict]:
     """Per integration, what the partner-articles search found: the
     functions the model listed, the help centre, and why nothing was found.
     The Proposals tab shows it beside each integration's list."""
-    return {name: {'help_centre': m.get('help_centre'), 'found_via': m.get('found_via'),
-                   'functions': [{'name': f.get('name'), 'yotpo_role': f.get('yotpo_role')}
-                                 for f in m.get('functions') or [] if isinstance(f, dict)],
-                   'blocked': bool(m.get('blocked')), 'problem': m.get('problem'),
-                   'accepted': len(m.get('accepted') or [])}
-            for name, m in plan.get('mechanics', {}).items()}
+    return {name: link_finder.mechanics_note(m) for name, m in plan.get('mechanics', {}).items()}
 
 
 def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:

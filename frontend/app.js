@@ -2459,45 +2459,7 @@ async function addLink(espName) {
     }
 }
 
-document.getElementById('createESPBtn').addEventListener('click', async () => {
-    const name = document.getElementById('newESPName').value.trim();
-    const typeSelect = document.getElementById('newESPType');
-    const platformType = typeSelect.value;
-
-    if (!name) return;
-    // No integration without its kind of platform: it decides which
-    // instructions the AI answers with
-    if (!platformType) {
-        alert('Choose the kind of platform first. An integration can\'t be added without one.');
-        typeSelect.focus();
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_URL}/admin/esp/create`, {
-            method: 'POST',
-            headers: adminHeaders(),
-            body: JSON.stringify({ name, platform_type: platformType })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            const kind = PROMPT_TYPE_LABELS[platformType] || platformType;
-            alert(data.in_chat
-                ? `Integration created and in chat, as ${kind}. Add its documents on its page.`
-                : `Integration created as ${kind}, not in chat yet: only Email & SMS platforms can be in chat for now. Add its documents on its page.`);
-            document.getElementById('newESPName').value = '';
-            typeSelect.value = '';
-            await loadESPManagement();
-            await reloadSidebar(); // Dynamically reload sidebar
-        } else {
-            alert('Error: ' + (data.error || 'Unknown error'));
-        }
-    } catch (error) {
-        alert('Error creating the integration: ' + error.message);
-    }
-});
+// Adding an integration: the Add integration dialog (admin-integrations.js)
 
 document.getElementById('refreshAllBtn').addEventListener('click', async () => {
     if (!confirm('This will re-crawl all documentation links. Continue?')) return;

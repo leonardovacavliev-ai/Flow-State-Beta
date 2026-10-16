@@ -60,8 +60,28 @@
         inChat: 'In chat: anyone using the chat can pick it. Not in chat: only admins see it, here. Only an owner changes this.',
         yotpoCom: 'Where yotpo.com/integrations lists it, and under which categories. The yotpo.com import links these.',
         documents: "What the AI reads about it. Each needs a product: Loyalty, Reviews, or Shared (the platform's own help, true for both).",
-        suggested: 'Links the yotpo.com import found for each integration. None is used until you approve it.'
+        suggested: 'Links the yotpo.com import and Find links found for each integration. None is used until you approve it.',
+        findLinks: "Looks for its documentation: its yotpo.com page, Yotpo's guides on support.yotpo.com, and its own help articles on the features the integration uses (the AI picks and checks those). What it finds goes to Suggested Links; nothing is used until you approve it."
     };
+    // Under each kind in the Add integration dialog: what it means, with
+    // integrations of that kind
+    const KIND_HELP = {
+        messaging: 'Sends the emails and texts: Klaviyo, Attentive.',
+        storefront: 'Where shoppers browse, pay or subscribe: Shopify, Recharge, Tapcart.',
+        service: 'Help desks and chat, where agents answer customers: Gorgias, Zendesk.',
+        data: 'Moves data between systems, with no screen shoppers see: analytics, ads, automation.',
+        content: 'Reviews and other customer content, in or out: Bazaarvoice.'
+    };
+    // What a running Find links is doing (find_links_job.STEPS)
+    const FIND_STEPS = {
+        starting: 'Starting…',
+        'yotpo.com': 'Reading its yotpo.com page…',
+        yotpo_guides: "Reading Yotpo's guides…",
+        help_site: 'Searching its help site; the AI reads the articles…',
+        help_site_no_ai: 'Looking for its help site…',
+        saving: 'Saving what it found…'
+    };
+    const FIND_POLL_MS = 3000;
     const NOT_LINKED = 'Not linked to yotpo.com yet: the yotpo.com import fills this in.';
     const SUMMARY_POLL_MS = 5000;
     const SAVED_MS = 1600;
@@ -84,6 +104,8 @@
         summaryTimer: null,
         hadActiveJobs: false,
         listTicket: 0,
+        detail: null,          // the open integration, as last loaded
+        findTimer: null,
         prop: { state: 'open', source: '', esp: '', page: 1, sel: new Set(), labels: {}, touched: new Set(), rows: [], integrations: {} }
     };
 
@@ -317,6 +339,7 @@
         if (!note) return '';
         if (note === 'Yotpo guide linked from the catalog') return 'Yotpo guide';
         if (note === 'partner page linked from the catalog') return "Platform's own page about Yotpo";
+        if (note === 'Yotpo guide found by its name on support.yotpo.com') return "Yotpo guide with its name in the address: check it's about this platform";
         if (note.startsWith('renamed from ')) return 'Dead link on yotpo.com; this is its new address';
         if (note.startsWith('redirected from ')) return 'The yotpo.com link now leads here';
         return note;
@@ -595,6 +618,7 @@
     }
 
     function openIntegration(name) {
+        stopFindPoll();
         S.open = name;
         S.docPage = 1;
         setListOnlySections(false);
@@ -603,6 +627,7 @@
     }
 
     function backToList() {
+        stopFindPoll();
         S.open = null;
         setListOnlySections(true);
         loadList({ rebuildShell: true });
@@ -692,9 +717,10 @@
     // Under its documents: what to do next, only when there is something
     function nextStepsHTML(i, docsTotal) {
         const helpSite = helpSiteHTML(i.mechanics);
+        const searching = i.find_links && i.find_links.state === 'running';
         const lines = [
-            !docsTotal && !i.open_proposals && i.status !== 'archived'
-                && '<p class="text-xs text-muted-foreground">Nothing suggested for it: find its guide on support.yotpo.com and add the link above.</p>',
+            !docsTotal && !i.open_proposals && i.status !== 'archived' && !searching
+                && '<p class="text-xs text-muted-foreground">Nothing suggested for it yet: use Find links, or add a link above.</p>',
             helpSite && `<p class="text-xs text-amber-800">${helpSite}</p>`
         ].filter(Boolean).join('');
         return lines ? `<div class="mt-3 space-y-2">${lines}</div>` : '';
@@ -718,6 +744,7 @@
         }
         if (S.open !== name) return;
         const i = detail.integration;
+        S.detail = i;
         // An archived integration's rows are shown, but not selectable: the
         // document routes don't find archived integrations
         const rows = docs.documents.map(link => docRowHTML(name, link, i.status === 'archived')).join('');
@@ -736,7 +763,7 @@
                         <div class="flex flex-wrap items-center gap-2 mb-3">
                             <h4 class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground">Documents (${docs.total}) ${info(HELP.documents)}</h4>
                             ${docs.total ? '<span class="unlabelled-count"></span>' : ''}
-                            ${i.open_proposals
+                            ${i.open_proposals && !(i.find_links && i.find_links.state === 'done')
                                 ? `<button type="button" class="ml-auto ${btnPrimary} !px-3 !py-1" data-review-proposals>Review ${plural(i.open_proposals, 'suggested link', 'suggested links')} →</button>`
                                 : docs.total && i.status !== 'archived' ? '<span class="ml-auto text-xs text-muted-foreground">Tick documents to crawl or delete them.</span>' : ''}
                         </div>
@@ -755,6 +782,7 @@
                     </div>
                 </div>
                 <div class="space-y-4">
+                    <div id="findLinksCard">${findLinksHTML(i)}</div>
                     ${factsHTML(i)}
                 </div>
             </div>`;
@@ -771,10 +799,15 @@
             S.docPage = Number(b.dataset.to);
             loadDetail();
         }));
-        box.querySelector('[data-review-proposals]')?.addEventListener('click', () => {
-            S.prop = { ...S.prop, esp: name, state: 'open', source: '', page: 1 };
-            showAdminTab('proposals');
+        // The Find links card wires its own (wireFindLinks), as it redraws alone
+        box.querySelectorAll('[data-review-proposals]').forEach(b => {
+            if (b.closest('#findLinksCard')) return;
+            b.addEventListener('click', () => {
+                S.prop = { ...S.prop, esp: name, state: 'open', source: '', page: 1 };
+                showAdminTab('proposals');
+            });
         });
+        wireFindLinks(i);
         wireProductPickers(box);
         if ($(`newLink-${name}`)) wireDuplicateLinkCheck($(`newLink-${name}`), name);
         box.querySelector('.new-link-product')?.addEventListener('change', () => {
@@ -817,6 +850,258 @@
         const next = prompt(`Rename "${i.display_name}":`, i.display_name);
         if (next === null || !next.trim() || next.trim() === i.display_name) return;
         await patch(i.name, { display_name: next.trim() }, { sidebar: i.status === 'active' });
+    }
+
+    // ==================== Find links ====================
+
+    function whenText(value) {
+        if (!value) return '';
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString();
+    }
+
+    // Why no help articles were suggested, in words (HTML: the site is a link)
+    function helpLineHTML(run) {
+        if (run.model_skipped) return `Its help articles weren't looked for: ${run.model_problem === 'unavailable' ? "the AI didn't start (see the server log)" : "the AI key isn't set"}.${run.help_centre ? ` Its help site: ${siteLink(run.help_centre)}.` : ''}`;
+        if (run.blocked) return `Its help site${run.help_centre ? ` (${siteLink(run.help_centre)})` : ''} blocks automatic reading: add its help articles yourself, labelled Shared.`;
+        if (!run.help_centre) return "Its help site wasn't found: give its website below and run it again, or add its help articles yourself.";
+        const p = run.help_problem || '';
+        if (!p) return '';
+        if (/accepted none/.test(p)) return `The articles found on ${siteLink(run.help_centre)} didn't fit: add the right ones yourself, labelled Shared.`;
+        if (/no partner function/.test(p)) return `The AI found nothing in its guides to look up on ${siteLink(run.help_centre)}.`;
+        if (/could not (list|check)/.test(p)) return "The AI didn't answer this time. Try again later.";
+        if (/skipped/.test(p)) return 'Its help site is skipped on purpose (scripts/help_centres.json).';
+        if (/could not be searched|show no text|refused|could not be read/.test(p)) return `Its help site (${siteLink(run.help_centre)}) couldn't be read automatically: add its help articles yourself, labelled Shared.`;
+        return esc(p);
+    }
+
+    function runResultHTML(i, run) {
+        const c = run.counts || {};
+        const n = (run.added || []).length;
+        const kinds = [
+            c.yotpo_guides && plural(c.yotpo_guides, 'Yotpo guide', 'Yotpo guides'),
+            c.partner_pages && plural(c.partner_pages, 'page of its own', 'pages of its own'),
+            c.help_articles && plural(c.help_articles, 'help article', 'help articles')
+        ].filter(Boolean);
+        const lines = [
+            run.by_name && (c.yotpo_guides
+                ? "yotpo.com doesn't list it, so Yotpo's guides were matched by its name: check each is about this platform."
+                : "yotpo.com doesn't list it, and no Yotpo guide has its name in the address."),
+            run.matched_on_yotpo_com && run.matched_on_yotpo_com.length && 'Found on yotpo.com under this name; the next yotpo.com import links it here.',
+            c.already && `${plural(c.already, 'link it found was', 'links it found were')} already documents or suggested before (rejected ones stay rejected).`,
+            (run.gone || []).length && `${plural(run.gone.length, 'Yotpo guide linked from yotpo.com is', 'Yotpo guides linked from yotpo.com are')} gone.`,
+            run.sitemap_read === false && "support.yotpo.com's list of guides couldn't be read, so guides weren't searched by name.",
+            !c.help_articles && helpLineHTML(run)
+        ].filter(Boolean);
+        return `
+            <p class="text-sm text-card-foreground">${n ? `Found ${plural(n, 'new link', 'new links')}: ${esc(kinds.join(', '))}.` : 'Nothing new found.'}</p>
+            ${i.open_proposals ? `<button type="button" class="mt-2 ${btnPrimary} !px-3 !py-1 w-full" data-review-proposals>Review ${plural(i.open_proposals, 'suggested link', 'suggested links')} →</button>` : ''}
+            ${lines.length ? `<ul class="mt-2 space-y-1">${lines.map(l => `<li class="text-xs text-muted-foreground">${l}</li>`).join('')}</ul>` : ''}`;
+    }
+
+    function findLinksHTML(i) {
+        const run = i.find_links;
+        const running = run && run.state === 'running';
+        let body;
+        if (!run) {
+            body = '<p class="text-xs text-muted-foreground">Not run yet.</p>';
+        } else if (running) {
+            body = `
+                <p class="flex items-center gap-2 text-sm text-card-foreground" role="status">
+                    <svg class="animate-spin h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    ${esc(FIND_STEPS[run.step === 'help_site' && run.model_skipped ? 'help_site_no_ai' : run.step] || 'Working…')}
+                </p>
+                <p class="text-xs text-muted-foreground mt-1">Takes a minute or two. You can leave this page: it carries on.</p>`;
+        } else if (run.state === 'done') {
+            body = runResultHTML(i, run);
+        } else if (run.state === 'interrupted') {
+            body = '<p class="text-xs text-red-700">The last search was cut short (the server restarted). Run it again.</p>';
+        } else {
+            body = `<p class="text-xs text-red-700">The last search stopped with an error: ${esc(run.error || 'unknown')}.</p>`;
+        }
+        const who = run && run.requested_by ? (run.requested_by === 'admin password' ? 'an admin' : run.requested_by) : '';
+        const when = run && !running ? `<p class="text-[11px] text-muted-foreground mt-2">Last run ${esc(whenText(run.finished_at || run.started_at))}${who ? ` by ${esc(who)}` : ''}</p>` : '';
+        const form = i.status === 'archived' || running ? '' : `
+            <div class="mt-3 pt-3 border-t border-border space-y-2">
+                <input type="text" id="findWebsite" value="${attr((run && run.website) || '')}" maxlength="500" placeholder="Its website or help site (optional)" class="w-full ${inputCls}" aria-label="Its website or help site (optional)">
+                <button type="button" class="${btnOutline} w-full !py-2" data-find-links>${run ? 'Find links again' : 'Find links'}</button>
+                <p class="text-[11px] text-muted-foreground">Uses the chat's Gemini credit for its help articles.</p>
+            </div>`;
+        return `
+            <div class="${card}">
+                <div class="flex items-center gap-1.5 text-sm font-semibold text-card-foreground mb-2">Find links ${info(HELP.findLinks)}</div>
+                ${body}${when}${form}
+            </div>`;
+    }
+
+    // Only the card redraws while a search runs, so nothing else on the page moves
+    function renderFindCard(i) {
+        const holder = $('findLinksCard');
+        if (!holder) return;
+        holder.innerHTML = findLinksHTML(i);
+        wireFindLinks(i);
+    }
+
+    function wireFindLinks(i) {
+        const holder = $('findLinksCard');
+        if (!holder) return;
+        holder.querySelector('[data-find-links]')?.addEventListener('click', () => startFindLinks(i));
+        holder.querySelectorAll('[data-review-proposals]').forEach(b => b.addEventListener('click', () => {
+            S.prop = { ...S.prop, esp: i.name, state: 'open', source: '', page: 1 };
+            showAdminTab('proposals');
+        }));
+        $('findWebsite')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') startFindLinks(i); });
+        stopFindPoll();
+        if (i.find_links && i.find_links.state === 'running') {
+            S.findTimer = setTimeout(() => pollFindLinks(i.name), FIND_POLL_MS);
+        }
+    }
+
+    function stopFindPoll() {
+        clearTimeout(S.findTimer);
+        S.findTimer = null;
+    }
+
+    async function startFindLinks(i) {
+        const btn = $('findLinksCard')?.querySelector('[data-find-links]');
+        if (!btn || btn.disabled) return;     // a second Enter while it starts
+        btn.disabled = true;
+        const website = ($('findWebsite')?.value || '').trim();
+        try {
+            const data = await sendJSON('POST', `/admin/integrations/${encodeURIComponent(i.name)}/find-links`, { website });
+            if (S.open !== i.name) return;
+            i.find_links = data.run;
+            renderFindCard(i);
+        } catch (error) {
+            alert(`Could not start Find links: ${error.message}`);
+            btn.disabled = false;
+        }
+    }
+
+    async function pollFindLinks(name) {
+        S.findTimer = null;
+        if (S.open !== name || !S.detail) return;
+        // Not on screen (panel closed, another tab): stop; opening the
+        // integration again starts it over
+        if ($('espManagementTab')?.classList.contains('hidden') || $('adminModal')?.classList.contains('hidden')) return;
+        let run;
+        try {
+            run = (await getJSON(`/admin/integrations/${encodeURIComponent(name)}/find-links`)).run;
+        } catch (error) {
+            // A passing error is tried again a few times; then the page says what it last knew
+            S.findErrors = (S.findErrors || 0) + 1;
+            if (S.findErrors < 5) S.findTimer = setTimeout(() => pollFindLinks(name), FIND_POLL_MS * 2);
+            return;
+        }
+        S.findErrors = 0;
+        if (S.open !== name) return;
+        if (run && run.state === 'running') {
+            S.detail.find_links = run;
+            renderFindCard(S.detail);
+        } else {
+            // Finished: its suggestions change the page's counts
+            loadDetail();
+        }
+    }
+
+    // ==================== Add integration ====================
+
+    function addDialog() {
+        return $('addIntegrationModal');
+    }
+
+    function setAddError(text) {
+        const el = $('addIntegrationError');
+        if (!el) return;
+        el.textContent = text || '';
+        el.classList.toggle('hidden', !text);
+    }
+
+    function markKinds() {
+        document.querySelectorAll('#addIntegrationKinds label').forEach(l => {
+            const on = l.querySelector('input').checked;
+            l.classList.toggle('border-primary', on);
+            l.classList.toggle('bg-primary/5', on);
+            l.classList.toggle('border-input', !on);
+        });
+    }
+
+    function openAddDialog() {
+        const modal = addDialog();
+        if (!modal) return;
+        const kinds = $('addIntegrationKinds');
+        // Nothing chosen in advance: the kind is the admin's decision (I10)
+        kinds.innerHTML = PLATFORM_TYPES.map(t => `
+            <label class="flex items-start gap-2.5 p-3 rounded-lg border border-input bg-background hover:border-primary cursor-pointer transition-colors">
+                <input type="radio" name="addIntegrationKind" value="${t}" class="mt-0.5 shrink-0">
+                <span class="min-w-0">
+                    <span class="block text-sm font-medium text-card-foreground">${esc(TYPE_NAMES[t])}</span>
+                    <span class="block text-xs text-muted-foreground mt-0.5">${esc(KIND_HELP[t])}</span>
+                </span>
+            </label>`).join('');
+        kinds.querySelectorAll('input').forEach(r => r.addEventListener('change', () => { markKinds(); setAddError(''); }));
+        $('addIntegrationName').value = '';
+        $('addIntegrationWebsite').value = '';
+        setAddError('');
+        $('addIntegrationSubmit').disabled = false;
+        $('addIntegrationSubmit').textContent = 'Add and find links';
+        modal.classList.remove('hidden');
+        $('addIntegrationName').focus();
+    }
+
+    function closeAddDialog() {
+        addDialog()?.classList.add('hidden');
+        $('addIntegrationBtn')?.focus();
+    }
+
+    async function submitAddDialog(e) {
+        e.preventDefault();
+        const name = $('addIntegrationName').value.trim();
+        const kind = document.querySelector('input[name="addIntegrationKind"]:checked')?.value || '';
+        const website = $('addIntegrationWebsite').value.trim();
+        if (!name) {
+            setAddError('Give it a name.');
+            $('addIntegrationName').focus();
+            return;
+        }
+        // No integration without its kind of platform (I10)
+        if (!kind) {
+            setAddError("Pick its kind of platform: an integration can't be added without one.");
+            return;
+        }
+        const submit = $('addIntegrationSubmit');
+        submit.disabled = true;
+        submit.textContent = 'Adding…';
+        let data;
+        try {
+            // display_name keeps the name as typed (HubSpot, dotdigital)
+            data = await sendJSON('POST', '/admin/esp/create', { name, display_name: name, platform_type: kind, website, find_links: true });
+        } catch (error) {
+            setAddError(error.message);
+            submit.disabled = false;
+            submit.textContent = 'Add and find links';
+            return;
+        }
+        closeAddDialog();
+        if (data.in_chat && typeof reloadSidebar === 'function') reloadSidebar();
+        openIntegration(data.esp.name);
+        if (data.find_links_error) alert(`${data.esp.display_name} was added, but Find links didn't start: ${data.find_links_error}`);
+    }
+
+    function wireAddDialog() {
+        const modal = addDialog();
+        if (!modal || modal.dataset.wired) return;
+        modal.dataset.wired = '1';
+        $('addIntegrationBtn')?.addEventListener('click', openAddDialog);
+        $('addIntegrationForm').addEventListener('submit', submitAddDialog);
+        modal.querySelectorAll('[data-close-add]').forEach(b => b.addEventListener('click', closeAddDialog));
+        modal.addEventListener('mousedown', (e) => { if (e.target === modal) closeAddDialog(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                e.stopImmediatePropagation();
+                closeAddDialog();
+            }
+        });
     }
 
     // ==================== Proposals ====================
@@ -1110,5 +1395,6 @@
     }
 
     wireTips();
+    wireAddDialog();
     window.AdminIntegrations = { reload, loadProposals, watchCrawls, openIntegration };
 })();

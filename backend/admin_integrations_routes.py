@@ -475,6 +475,29 @@ def needs_person(mechanics: Optional[Dict], names: Dict[str, str]) -> List[Dict]
     return out
 
 
+def start_find_links(app, name: str, website) -> tuple:
+    """(run, error, status): start "Find links" for one integration
+    (find_links_job). Used by POST .../find-links and by Create New
+    Integration, which starts it at once. Tests set app.config's
+    FIND_LINKS_FETCH / FIND_LINKS_CHOOSER to a fake fetch and model."""
+    import find_links_job
+    from adapters.database.db_manager import get_database_adapter
+    website, problem = find_links_job.clean_website(website)
+    if problem:
+        return None, problem, 400
+    row = find_links_job.load_integration(get_database_adapter(), name)
+    if not row:
+        return None, 'No such integration', 404
+    if row['status'] == 'archived':
+        return None, 'Archived by an older version: set it to Not in chat first.', 409
+    run, problem = find_links_job.start(get_database_adapter, name, _actor(), website,
+                                        app.config.get('FIND_LINKS_FETCH'),
+                                        app.config.get('FIND_LINKS_CHOOSER'))
+    if problem:
+        return None, problem, 409
+    return run, None, 202
+
+
 # ---------- routes ----------
 
 def register_admin_integrations_routes(app, use_async_crawl: bool):
@@ -544,6 +567,8 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
                                  for s in item['catalog_slugs']]
         item['mechanics'] = (_setting(d, CATALOG_MECHANICS_KEY) or {}).get(name)
         item['in_chat_types'] = list(TYPES_IN_CHAT)
+        import find_links_job
+        item['find_links'] = find_links_job.last_run(d, name)
         return jsonify({'integration': item})
 
     @app.route('/api/admin/integrations/<name>', methods=['PATCH'])
@@ -577,6 +602,39 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
             # once; others within esp_manager.ACTIVE_CACHE_SECONDS
             get_esp_manager()._active_names = None
         return jsonify({'success': True, 'integration': _integration_row(d, name)})
+
+    @app.route('/api/admin/integrations/<name>/find-links', methods=['GET'])
+    def admin_find_links_status(name):
+        """The last "Find links" run for this integration, or null."""
+        stop = denied()
+        if stop:
+            return stop
+        import find_links_job
+        d = db()
+        if not find_links_job.load_integration(d, name):
+            return jsonify({'error': 'No such integration'}), 404
+        return jsonify({'run': find_links_job.last_run(d, name)})
+
+    @app.route('/api/admin/integrations/<name>/find-links', methods=['POST'])
+    def admin_find_links(name):
+        """Body: {"website"?}. Starts a search for this integration's links
+        in the background and answers at once (202); GET follows it. Any
+        admin may run it: it only adds suggestions. Without "website", the
+        last run's is used again; "" clears it."""
+        stop = denied()
+        if stop:
+            return stop
+        body = request.get_json(silent=True)
+        body = body if isinstance(body, dict) else {}
+        if 'website' in body:
+            website = body['website']
+        else:
+            import find_links_job
+            website = (find_links_job.last_run(db(), name) or {}).get('website')
+        run, problem, code = start_find_links(app, name, website)
+        if problem:
+            return jsonify({'error': problem}), code
+        return jsonify({'run': run}), 202
 
     @app.route('/api/admin/integrations/<name>/documents', methods=['GET'])
     def admin_integration_documents(name):

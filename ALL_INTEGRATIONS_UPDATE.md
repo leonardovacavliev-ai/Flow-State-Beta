@@ -494,7 +494,9 @@ when Yotpo announces integrations, and an admin can run the same search for one 
 its page ("Find links": its yotpo.com page, Yotpo guides, including by name in the help centre's
 sitemap for integrations not on yotpo.com, and the partner's help articles). Both only add
 suggestions for a person to approve. The model step spends Gemini credit; it uses the app's key
-for now (Leo), one run per integration at a time (roadmap C1.10, R1).
+for now (Leo), one run per integration at a time (roadmap C1.10, R1). Adding an integration by hand starts
+the same search at once (Leo, 2026-10-16): the Add integration dialog asks for its name, its kind of
+platform and, optionally, its website, and its suggestions wait in Suggested Links.
 
 **Daily sitemap job** (in the worker's scheduler):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,

@@ -327,7 +327,9 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
     @app.route('/api/admin/esp/create', methods=['POST'])
     def create_esp():
-        """Create a new integration: {name, platform_type, display_name?}.
+        """Create a new integration: {name, platform_type, display_name?,
+        find_links?, website?}. With find_links, "Find links" starts for it
+        at once (C1.10), using the website when one is given.
 
         Owner-only: putting an integration into chat is an owner's call
         (C1.4). The kind of platform is required (Leo, 2026-10-16). A kind
@@ -351,9 +353,15 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             if not display_name:
                 display_name = name.title()
 
-            from admin_integrations_routes import TYPES_IN_CHAT
+            from admin_integrations_routes import TYPES_IN_CHAT, start_find_links
+            import find_links_job
             platform_type = data.get('platform_type')
             status = 'active' if platform_type in TYPES_IN_CHAT else 'listed'
+            # Checked before anything is created, so a mistyped address
+            # doesn't leave an integration behind
+            _, website_problem = find_links_job.clean_website(data.get('website'))
+            if website_problem:
+                return jsonify({'error': website_problem}), 400
 
             # Create in database (refuses a missing or unknown kind)
             esp = esp_mgr.create_esp(name, display_name, description,
@@ -363,12 +371,24 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
             docs_path = os.path.join(BASE_PATH, 'docs', esp['name'])
             os.makedirs(docs_path, exist_ok=True)
 
-            return jsonify({
+            result = {
                 'success': True,
                 'message': f"ESP '{display_name}' created successfully",
                 'esp': esp,
                 'in_chat': status == 'active'
-            })
+            }
+            if data.get('find_links'):
+                # The Add integration dialog: look for its links at once (C1.10).
+                # The integration exists by now, so a failure here is reported
+                # beside it rather than as a failed create.
+                try:
+                    run, problem, _ = start_find_links(app, esp['name'], data.get('website'))
+                except Exception as e:
+                    run, problem = None, f'{type(e).__name__}: {e}'
+                result['find_links'] = run
+                if problem:
+                    result['find_links_error'] = problem
+            return jsonify(result)
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
         except Exception as e:

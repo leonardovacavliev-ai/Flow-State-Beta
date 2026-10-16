@@ -188,6 +188,23 @@ def test_help_centre_from_the_homepage():
     assert (root, via) == ('https://help.acme.io/en', 'homepage')
 
 
+
+def test_a_marketing_menu_link_is_not_the_help_centre():
+    """'Guides' on kustomer.com goes to its marketing resources: the next
+    help link, on a help host, is the help centre."""
+    home = ('<a href="https://www.acme.io/resources?type=guide">Guides</a>'
+            '<a href="https://help.acme.io/">Help Center</a>')
+    pages = {'https://www.acme.io/': am.Page(200, 'https://www.acme.io/', home)}
+    root, via, _ = am.find_help_centre(am.name_tokens('Acme'), ['https://www.acme.io/'], [],
+                                       fetch=pages.get)
+    assert (root, via) == ('https://help.acme.io/', 'homepage')
+    # a help path on the main site still counts
+    pages['https://www.acme.io/'] = am.Page(200, 'https://www.acme.io/', '<a href="/help/en">Support</a>')
+    root, via, _ = am.find_help_centre(am.name_tokens('Acme'), ['https://www.acme.io/'], [],
+                                       fetch=pages.get)
+    assert (root, via) == ('https://www.acme.io/help/en', 'homepage')
+
+
 # ---------- partner mechanics ----------
 
 CASES = None
