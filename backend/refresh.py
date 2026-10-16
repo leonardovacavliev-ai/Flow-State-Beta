@@ -74,11 +74,15 @@ def header_fields(url: str, text: str, title: Optional[str] = None) -> Dict:
 
 def record_success(db, doc_id: str, fields: Dict, job_id: Optional[str] = None,
                    reset_misses: bool = True) -> None:
-    """After a good crawl: the header fields, the miss count back to 0, and
-    the row un-retired when this crawl is its own (crawl_job_id = job_id;
-    the synchronous path passes None and always un-retires: an admin asked
-    for it). A re-index from a saved copy keeps its misses (reset_misses
-    False): the page itself is still gone."""
+    """After a crawl that indexed the document: the header fields, the miss
+    count back to 0, and the row un-retired.
+
+    Un-retiring follows the indexing, whatever its source: a re-index from
+    the saved copy (a pasted document) is in the chat just the same. Only
+    the document's own crawl un-retires it (crawl_job_id = job_id; the
+    synchronous path passes None: an admin asked for that crawl). A saved
+    copy keeps its misses (reset_misses False): the page itself is still
+    gone."""
     sets, params = [], []
     if fields:
         sets += ['title = COALESCE(%s, title)', 'supported_plans = %s', 'supported_platforms = %s']
@@ -86,13 +90,11 @@ def record_success(db, doc_id: str, fields: Dict, job_id: Optional[str] = None,
                    json.dumps(fields.get('supported_platforms') or [])]
     if reset_misses:
         sets.append('consecutive_misses = 0')
-        if job_id is None:
-            sets.append('retired_at = NULL')
-        else:
-            sets.append('retired_at = CASE WHEN crawl_job_id = %s THEN NULL ELSE retired_at END')
-            params.append(job_id)
-    if not sets:
-        return
+    if job_id is None:
+        sets.append('retired_at = NULL')
+    else:
+        sets.append('retired_at = CASE WHEN crawl_job_id = %s THEN NULL ELSE retired_at END')
+        params.append(job_id)
     db.execute_query(f"UPDATE esp_documents SET {', '.join(sets)} WHERE id = %s",
                      tuple(params) + (doc_id,))
 
@@ -103,47 +105,61 @@ def record_miss(db, doc_id: str) -> None:
 
 
 def retire(db, vectorizer, esp_name: str, urls: List[str]) -> Dict[str, List]:
-    """Retire some of one integration's documents: their vectors go, their
-    rows stay, marked retired. A document being crawled right now is left
-    alone (its crawl would index it again); waiting crawls are cancelled.
-    Returns {retired: [url], skipped: [{url, error}]}."""
+    """Retire some of one integration's documents: their rows stay, marked
+    retired, and their vectors go. Returns {retired: [url], skipped:
+    [{url, error}]}.
+
+    The database comes first, so no crawl can index the page again in
+    between: waiting crawls are cancelled, then the row is marked retired
+    unless a crawl is running right now (that one would index it again, so
+    it is left alone), then the vectors are deleted and checked gone. An
+    already retired document is retired again: its delete is re-run, which
+    is how a delete that failed is repaired."""
     out = {'retired': [], 'skipped': []}
+    esp_name = (esp_name or '').lower()
     for url in urls:
         url = normalize_url(url) if isinstance(url, str) else url
-        # crawl_jobs exists on both databases; only the async queue fills it
         rows = db.execute_query("""
-            SELECT d.id, d.retired_at,
-                   (SELECT COUNT(*) FROM crawl_jobs j WHERE j.document_id = d.id
-                    AND j.status = 'processing')
-            FROM esp_documents d JOIN esps e ON e.id = d.esp_id
+            SELECT d.id FROM esp_documents d JOIN esps e ON e.id = d.esp_id
             WHERE e.name = %s AND d.url = %s
         """, (esp_name, url), fetch=True)
         if not rows:
             out['skipped'].append({'url': url, 'error': 'Not a document of this integration'})
             continue
-        doc_id, retired_at, crawling = rows[0]
-        if retired_at:
-            out['skipped'].append({'url': url, 'error': 'Already retired'})
-            continue
-        if int(crawling or 0):
-            out['skipped'].append({'url': url, 'error': 'Being crawled right now: retire it when that finishes'})
-            continue
-        try:
-            if hasattr(vectorizer, 'delete_by_url'):
-                vectorizer.delete_by_url(url, esp_name.lower())
-        except Exception as e:
-            out['skipped'].append({'url': url, 'error': f'Its search entries could not be removed: {e}'})
-            continue
+        doc_id = rows[0][0]
+        # crawl_jobs exists on both databases; only the async queue fills it
         db.execute_query("UPDATE crawl_jobs SET status = 'cancelled', completed_at = CURRENT_TIMESTAMP "
                          "WHERE document_id = %s AND status = 'pending'", (doc_id,))
-        db.execute_query("""
+        marked = db.execute_query("""
             UPDATE esp_documents
-            SET retired_at = CURRENT_TIMESTAMP, crawl_status = 'retired', vector_count = 0,
-                is_crawling = FALSE, crawl_job_id = NULL
-            WHERE id = %s
-        """, (doc_id,))
+            SET retired_at = COALESCE(retired_at, CURRENT_TIMESTAMP), crawl_status = 'retired',
+                vector_count = 0, is_crawling = FALSE, crawl_job_id = NULL
+            WHERE id = %s AND NOT EXISTS (
+                SELECT 1 FROM crawl_jobs j WHERE j.document_id = %s AND j.status = 'processing')
+            RETURNING id
+        """, (doc_id, doc_id), fetch=True)
+        if not marked:
+            out['skipped'].append({'url': url, 'error': 'Being crawled right now: retire it when that finishes'})
+            continue
+        problem = _delete_vectors(vectorizer, esp_name, url)
+        if problem:
+            out['skipped'].append({'url': url, 'error': f'Marked retired, but {problem}. Retire it again.'})
+            continue
         out['retired'].append(url)
     return out
+
+
+def _delete_vectors(vectorizer, esp_name: str, url: str) -> Optional[str]:
+    """Delete one document's vectors and check they are gone (the Pinecone
+    adapter reports a failed delete as "0 deleted"). Why not, or None."""
+    try:
+        if hasattr(vectorizer, 'delete_by_url'):
+            vectorizer.delete_by_url(url, esp_name)
+        if hasattr(vectorizer, 'url_exists') and vectorizer.url_exists(url, esp_name):
+            return 'its search entries are still there'
+    except Exception as e:
+        return f'its search entries could not be removed ({e})'
+    return None
 
 
 def retire_replaced(db, vectorizer, new_doc_id: str) -> List[str]:
@@ -157,4 +173,12 @@ def retire_replaced(db, vectorizer, new_doc_id: str) -> List[str]:
     for esp_name, url in rows:
         done += retire(db, vectorizer, esp_name, [url])['retired']
     return done
+
+
+def still_retired(db, doc_id: str, job_id: str) -> bool:
+    """True when the document was retired since this crawl was queued (its
+    crawl_job_id cleared): the worker must not index it again."""
+    rows = db.execute_query("SELECT retired_at, crawl_job_id FROM esp_documents WHERE id = %s",
+                            (doc_id,), fetch=True)
+    return bool(rows and rows[0][0] and str(rows[0][1] or '') != str(job_id))
 

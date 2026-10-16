@@ -308,6 +308,83 @@ def test_crawling_a_retired_document_brings_it_back():
     assert row(db, d, 'retired_at', 'crawl_status') == (None, 'completed')
 
 
+def test_review_findings_stay_fixed():
+    """From the independent review of C1.3."""
+    db, vectors = boot_db(), FakeVectors()
+    esp_id = esp(db)
+    # 1. a retired pasted document re-indexed from its saved copy is un-retired
+    pasted = doc(db, esp_id, 'local://recharge/notes', product='shared', content='Source URL: local://recharge/notes\n\npasted',
+                 vector_count=2)
+    refresh.retire(db, vectors, 'recharge', ['local://recharge/notes'])
+    script = {'local://recharge/notes': [FetchResult(PERMANENT, error='pasted, cannot be crawled')]}
+    worker = make_worker(db, vectors, script)
+    run_job(db, worker, esp_id, pasted)
+    assert row(db, pasted, 'retired_at', 'crawl_status') == (None, 'completed')
+
+    # 2. a crawl queued before the retire doesn't index it again
+    queued_doc = doc(db, esp_id, 'https://help.example.com/q', content='x', vector_count=2)
+    job_id = str(uuid.uuid4())
+    db.execute_query("INSERT INTO crawl_jobs (id, esp_id, document_id, status, attempts, max_attempts) "
+                     "VALUES (%s, %s, %s, 'pending', 0, 3)", (job_id, esp_id, queued_doc))
+    db.execute_query("UPDATE esp_documents SET crawl_job_id = %s WHERE id = %s", (job_id, queued_doc))
+    refresh.retire(db, vectors, 'recharge', ['https://help.example.com/q'])
+    script['https://help.example.com/q'] = [FetchResult(OK, content='changed')]
+    before = list(vectors.indexed)
+    db.execute_query("UPDATE crawl_jobs SET status = 'processing' WHERE id = %s", (job_id,))  # claimed in between
+    worker._process_job({'id': job_id, 'esp_id': esp_id, 'document_id': queued_doc, 'attempts': 1,
+                         'max_attempts': 3, 'host': None, 'rate_limited_count': 0})
+    assert vectors.indexed == before
+    assert row(db, queued_doc, 'crawl_status')[0] == 'retired'
+    assert db.execute_query("SELECT status FROM crawl_jobs WHERE id = %s", (job_id,), fetch=True)[0][0] == 'cancelled'
+    # retiring again re-runs the delete instead of refusing
+    vectors.deleted.clear()
+    assert refresh.retire(db, vectors, 'recharge', ['https://help.example.com/q'])['retired']
+    assert vectors.deleted == ['https://help.example.com/q']
+
+    # 8. a crawl of a retired page that is still gone leaves it retired
+    gone = doc(db, esp_id, 'https://help.example.com/gone2', content='x', vector_count=1)
+    refresh.retire(db, vectors, 'recharge', ['https://help.example.com/gone2'])
+    script['https://help.example.com/gone2'] = [FetchResult(PERMANENT, error='404', status_code=404)]
+    run_job(db, worker, esp_id, gone)
+    assert row(db, gone, 'crawl_status', 'consecutive_misses') == ('retired', 1)
+
+    # 4. same text under a new file name is indexed again (chunk ids carry the name)
+    renamed = doc(db, esp_id, 'https://help.example.com/renamed', product='shared')
+    script['https://help.example.com/renamed'] = [FetchResult(OK, content='same')]
+    run_job(db, worker, esp_id, renamed)
+    db.execute_query("UPDATE esp_documents SET filename = 'other-name.txt' WHERE id = %s", (renamed,))
+    n = len(vectors.indexed)
+    assert run_job(db, worker, esp_id, renamed)[1] is None and len(vectors.indexed) == n + 1
+
+    # 6. a Replace waiting on an unchanged new document finishes
+    old = doc(db, esp_id, 'https://help.example.com/old6', content='o', vector_count=1)
+    db.execute_query("UPDATE esp_documents SET replaced_by = %s WHERE id = %s", (renamed, old))
+    assert run_job(db, worker, esp_id, renamed)[1] == 'unchanged'
+    assert row(db, old, 'crawl_status')[0] == 'retired'
+
+    # 5. a delete the index reports done but didn't do is not "retired"
+    class Stubborn(FakeVectors):
+        def url_exists(self, url, esp):
+            return True
+    keep = doc(db, esp_id, 'https://help.example.com/stubborn', content='x', vector_count=1)
+    out = refresh.retire(db, Stubborn(), 'recharge', ['https://help.example.com/stubborn'])
+    assert not out['retired'] and 'still there' in out['skipped'][0]['error']
+    assert row(db, keep, 'crawl_status')[0] == 'retired'                 # marked: no crawl brings it back
+
+    # 3. a failed index forgets the old count, so the next crawl re-indexes
+    class Broken(FakeVectors):
+        def add_document(self, text, metadata):
+            raise RuntimeError('pinecone down')
+    broken = doc(db, esp_id, 'https://help.example.com/broken', content='x', vector_count=5)
+    try:
+        crawler.vectorize_single_document(Broken(), 'recharge', 'https://help.example.com/broken', None,
+                                          'broken.txt', content='x', product='shared')
+        raise AssertionError('the failure was swallowed')
+    except RuntimeError:
+        pass
+    assert row(db, broken, 'vector_count')[0] is None
+
+
 # ---------- retired documents are left out ----------
 
 def test_retired_documents_are_left_out_everywhere():
@@ -322,8 +399,10 @@ def test_retired_documents_are_left_out_everywhere():
     assert vectors.deleted == ['https://help.example.com/old']
     assert db.execute_query("SELECT status FROM crawl_jobs WHERE document_id = %s", (gone,),
                             fetch=True)[0][0] == 'cancelled'
-    assert refresh.retire(db, vectors, 'klaviyo', ['https://help.example.com/old'])['skipped'][0]['error'] \
-        == 'Already retired'
+    # retiring it again repeats the delete (how a failed delete is repaired)
+    assert refresh.retire(db, vectors, 'klaviyo', ['https://help.example.com/old'])['retired'] \
+        == ['https://help.example.com/old']
+    vectors.deleted = vectors.deleted[:1]
     mgr = esp_manager.get_esp_manager()
     assert [x['url'] for x in mgr.list_documents('klaviyo')] == ['https://help.example.com/keep']
     assert len(mgr.list_documents('klaviyo', include_retired=True)) == 2
@@ -365,6 +444,7 @@ def fake_fetch(pages):
 def test_lastmod_and_the_diff():
     assert sm.parse_lastmod('2026-10-01T10:00:00+02:00') == datetime(2026, 10, 1, 8, 0)
     assert sm.parse_lastmod('2026-10-02') == datetime(2026, 10, 2)
+    assert sm.parse_lastmod('2026-10-13T12:27:50.22Z') == datetime(2026, 10, 13, 12, 27, 50, 220000)
     assert sm.parse_lastmod('nonsense') is None and sm.parse_lastmod(None) is None
     entries = sm.read_entries(SITEMAP)
     assert set(entries) == {'https://support.yotpo.com/docs/a', 'https://support.yotpo.com/docs/b',
@@ -398,11 +478,18 @@ def test_a_run_records_changes_and_queues_changed_guides():
         first = sm.run(db, fake_fetch({sm.SITEMAP_URL: Page(SITEMAP)}), use_queue=True, log=lambda m: None)
     finally:
         cq.enqueue_crawl_job = real
-    assert first['ok'] and first['urls'] == 3 and first['new'] == 3
-    assert queued == [(held, sm.PRIORITY)]                          # changed since its crawl, labelled
-    assert first['queued'] == 1 and first['not_queued'] == 0        # c has no lastmod: not due
+    assert first['ok'] and first['urls'] == 3 and first['new'] == 3 and first['first_read']
+    # the first read only records: the changed guide is counted, not queued
+    assert queued == [] and first['queued'] == 0 and first['not_queued'] == 1
     assert row(db, held, 'sitemap_lastmod')[0].startswith('2026-10-01 08:00')
     assert fresh and unlabelled
+    cq.enqueue_crawl_job = lambda db_, e, d, u, priority=10: (queued.append((d, priority)), ('job', True))[1]
+    try:
+        again = sm.run(db, fake_fetch({sm.SITEMAP_URL: Page(SITEMAP)}), use_queue=True, log=lambda m: None)
+    finally:
+        cq.enqueue_crawl_job = real
+    # later reads queue the labelled guide changed since its crawl (c has no date: not due)
+    assert not again['first_read'] and queued == [(held, sm.PRIORITY)] and again['queued'] == 1
     # the first read's articles are not "new" to the admin
     changes = sm.changes_since(db, datetime(2000, 1, 1))
     assert changes['new'] == [] and changes['last_run']['urls'] == 3
@@ -420,6 +507,9 @@ def test_a_run_records_changes_and_queues_changed_guides():
     third = sm.run(db, fake_fetch({sm.SITEMAP_URL: Page(tiny)}), use_queue=False, log=lambda m: None)
     assert third['shrunk'] and third['vanished'] == 0
     assert db.execute_query("SELECT COUNT(*) FROM sitemap_urls WHERE gone_at IS NULL", fetch=True)[0][0] == 3
+    # the same smaller sitemap twice: Yotpo really removed them
+    fourth = sm.run(db, fake_fetch({sm.SITEMAP_URL: Page(tiny)}), use_queue=False, log=lambda m: None)
+    assert not fourth['shrunk'] and fourth['vanished'] == 2
     # an unreadable sitemap changes nothing and says so
     broken = sm.run(db, fake_fetch({}), use_queue=False, log=lambda m: None)
     assert not broken['ok'] and 'could not be read' in broken['problem']

@@ -837,6 +837,25 @@ followed by `retrieval_recall.py`.
 - **Not run**: the Postgres part of `test_crawl_pacing.py` (no `TEST_DATABASE_URL`). The worker's
   job processing is tested on SQLite (`test_refresh_pipeline.py`, NOW() rewritten); claiming jobs
   is untouched.
+- **The first sitemap read only records** the sitemap: the guides Yotpo changed since their last
+  crawl are counted ("N of our guides changed…; crawl them by hand"), not queued. Queueing them would
+  re-crawl many guides at once on the deploy, with the new extraction, which is Leo's call (Note
+  below). From the second read on, changed guides are queued.
+- **After the independent review** (2026-10-16), fixed: a retired pasted document re-indexed from its
+  saved copy is un-retired (un-retiring follows the indexing, not the miss reset); Retire marks the
+  row first (cancelling waiting crawls, refused while one runs), then deletes the vectors and checks
+  them gone (`url_exists`; Pinecone's delete reports failures as 0), and the worker re-checks
+  "retired since queued" before indexing; retiring again re-runs the delete; the chunk count is
+  cleared before every re-index, so a failed one is never skipped later as unchanged; "unchanged"
+  also needs the same saved file name (chunk ids carry it); a Replace also finishes on an unchanged
+  crawl; a failed crawl of a retired page keeps it retired; the sitemap writes only what changed,
+  never overwrites a date with an unreadable one, accepts a genuinely smaller sitemap after two
+  identical reads, and pads short fractions of a second (Python < 3.11).
+- **Known, not changed**: a change of chunking or embedding is applied by Rebuild Vectors, not by
+  re-crawls (an unchanged text is skipped); a label change already updates the vectors itself
+  (set-product). A retired URL is still refused as a duplicate when re-added (crawl it to bring it
+  back). A guide that keeps failing for a reason other than 404/410 is queued again on each monthly
+  read.
 - **Verified locally** on SQLite with a local index, against the live support.yotpo.com: the Recharge
   guide crawled twice was indexed once (7 chunks), then "Unchanged…"; its title and plans were
   stored; Retire and a later crawl brought it back; the sitemap read 713 articles in a second.
@@ -1762,6 +1781,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
-| 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, monthly sitemap (Leo; `sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (16); golden 26/26 | Claude Code |
+| 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, monthly sitemap (Leo; `sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (18); review findings fixed; golden 26/26 | Claude Code |
 | 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

@@ -262,7 +262,7 @@ class ESPManager:
                 e.platform_type, e.catalog_slugs, e.categories, e.products,
                 e.catalog_description, COUNT(d.id) as doc_count
             FROM esps e
-            LEFT JOIN esp_documents d ON e.id = d.esp_id
+            LEFT JOIN esp_documents d ON e.id = d.esp_id AND d.retired_at IS NULL
             WHERE e.status IN ({placeholders})
             GROUP BY e.id, e.name, e.display_name, e.description, e.status,
                      e.platform_type, e.catalog_slugs, e.categories, e.products,

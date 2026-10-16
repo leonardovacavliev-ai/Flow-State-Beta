@@ -502,10 +502,12 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
 
                         # Same text as the stored copy, already indexed: the
                         # index is left alone (C1.3)
+                        # (and under the same file name: chunk ids carry it)
                         stored = esp_mgr.db.execute_query(
-                            "SELECT content_hash, vector_count FROM esp_documents WHERE id = %s",
+                            "SELECT content_hash, vector_count, filename FROM esp_documents WHERE id = %s",
                             (doc['id'],), fetch=True)
-                        same = not backfilled and bool(stored) and refresh.unchanged(stored[0][0], stored[0][1], content)
+                        same = (not backfilled and bool(stored) and stored[0][2] == filename
+                                and refresh.unchanged(stored[0][0], stored[0][1], content))
 
                         # Vectorize just this document — refresh_esp() would
                         # delete the whole namespace and re-add only local
@@ -540,8 +542,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             esp_mgr.db, doc['id'],
                             {} if backfilled else refresh.header_fields(url, fetched.content, fetched.title),
                             reset_misses=not backfilled)
-                        if indexed:
-                            refresh.retire_replaced(esp_mgr.db, vectorizer, doc['id'])
+                        if indexed or same:
+                            # A Replace waiting for this document. Its own
+                            # problem must not mark this good crawl failed
+                            try:
+                                refresh.retire_replaced(esp_mgr.db, vectorizer, doc['id'])
+                            except Exception as re_error:
+                                warnings.append(f"the link it replaces was not retired: {re_error}")
 
                         entry = {
                             'url': url,
@@ -557,10 +564,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             entry['warnings'] = warnings
                         results['success'].append(entry)
                     else:
-                        # Mark as failed with the actual reason
+                        # Mark as failed with the actual reason (a retired
+                        # document stays retired: it isn't in use either way)
+                        retired = esp_mgr.db.execute_query(
+                            "SELECT retired_at FROM esp_documents WHERE id = %s", (doc['id'],), fetch=True)
                         esp_mgr.update_document_crawl_status(
                             doc['id'],
-                            status='failed',
+                            status='retired' if retired and retired[0][0] else 'failed',
                             error_message=crawl_error
                         )
                         results['failed'].append({

@@ -1249,9 +1249,11 @@
         }
         const unheld = (sm.new || []).filter(x => !x.document && !x.proposal);
         const gone = (sm.vanished || []).filter(x => x.document && !x.document.retired);
-        const status = run.ok
-            ? `Last read ${esc(whenText(when))}: ${esc(String(run.urls))} articles, ${esc(String(run.changed))} changed (${esc(String(run.queued))} of our guides queued to crawl again).`
-            : `The last read failed (${esc(whenText(when))}): ${esc(run.problem || 'unknown')}.`;
+        const status = !run.ok
+            ? `The last read failed (${esc(whenText(when))}): ${esc(run.problem || 'unknown')}.`
+            : run.first_read
+            ? `First read ${esc(whenText(when))}: ${esc(String(run.urls))} articles recorded. ${run.not_queued ? `${esc(String(run.not_queued))} of our guides changed since their last crawl; they weren't crawled again (the first read only records). Crawl them by hand if you want them current now.` : 'From the next read on, our guides Yotpo changes are crawled again.'}`
+            : `Last read ${esc(whenText(when))}: ${esc(String(run.urls))} articles, ${esc(String(run.changed))} changed (${esc(String(run.queued))} of our guides queued to crawl again).`;
         const item = (x, extra) => `
             <li class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 bg-background rounded-lg border border-border">
                 <a href="${attr(x.url)}" target="_blank" rel="noopener" class="flex-1 min-w-0 text-sm text-foreground hover:underline truncate" title="${attr(x.url)}">${esc(pageName(x.url))}</a>

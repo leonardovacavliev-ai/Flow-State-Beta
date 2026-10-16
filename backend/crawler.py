@@ -225,7 +225,9 @@ def _drop_yotpo_boilerplate(article):
     header itself (Products, Supported plans, eCommerce Platform) stays at
     the top: doc_header reads it."""
     for tab in article.select('.tab-container .tabcontent'):
-        values = [p.get_text(' ', strip=True) for p in tab.find_all('p')]
+        # Everything in the slot but its headings ("Supported plans")
+        headings = {h.get_text(' ', strip=True) for h in tab.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])}
+        values = [t for t in tab.stripped_strings if t not in headings]
         if values and all(_TEMPLATE_PLACEHOLDER.match(v) for v in values):
             tab.decompose()
     for p in article.find_all('p'):
@@ -562,6 +564,16 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
     if content is None:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
+
+    # Forget the old count before touching the index: if the delete or the
+    # add below fails half way, the document has fewer chunks than its count
+    # said, and an unknown count makes the next crawl re-index it instead of
+    # skipping it as unchanged (refresh.unchanged)
+    try:
+        from esp_manager import get_esp_manager
+        get_esp_manager().set_vector_count(esp_key, url, None)
+    except Exception as e:
+        print(f"[INDEX] Could not clear the chunk count for {url}: {e}")
 
     if hasattr(vectorizer, 'delete_by_url'):
         vectorizer.delete_by_url(url, esp_key)

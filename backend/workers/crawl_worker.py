@@ -291,11 +291,18 @@ class CrawlWorker:
             self._handle_failure(job, doc, filename, FetchResult(
                 TRANSIENT, error=f"Crawled, but saving it locally failed: {e}"))
             return
+        if refresh.still_retired(self.db, document_id, job_id):
+            # Retired while this crawl waited: indexing it would put it back
+            # in the chat behind the admin's back
+            self._finish_cancelled(job, "Retired while it waited; not indexed")
+            return
         fields = refresh.header_fields(url, fetch.content, fetch.title)
-        if refresh.unchanged(stored_hash, vector_count, content):
-            # Same text as the stored copy, already indexed: its chunks would
-            # come out the same, so the index is left alone (C1.3)
+        # Same text as the stored copy, already indexed under the same file
+        # name (chunk ids carry it): its chunks would come out the same, so
+        # the index is left alone (C1.3)
+        if filename == old_filename and refresh.unchanged(stored_hash, vector_count, content):
             self._finish_completed(job, doc, filename, content, unchanged=True, fields=fields)
+            self._finish_replacements(document_id)
             print(f"[WORKER] ✓ Job {job_id}: {refresh.UNCHANGED_NOTE}")
             return
         try:
@@ -310,6 +317,13 @@ class CrawlWorker:
         self._finish_replacements(document_id)
         self._notify_indexed(esp_name)
         print(f"[WORKER] ✓ Job {job_id} completed: {filename}")
+
+    def _finish_cancelled(self, job: Dict, why: str):
+        self.db.execute_query("""
+            UPDATE crawl_jobs SET status = 'cancelled', completed_at = NOW(), error_message = %s
+            WHERE id = %s AND status = 'processing'
+        """, (why, job['id']))
+        print(f"[WORKER] Job {job['id']} cancelled: {why}")
 
     def _finish_replacements(self, document_id):
         """A Replace waits for its new document to be indexed: retire the old
@@ -475,9 +489,11 @@ class CrawlWorker:
         if doc:
             # Only if this is still the document's latest job; a newer crawl
             # of the same URL owns its status otherwise
+            # A retired document stays retired: a failed crawl of it
+            # changes nothing about its use
             self.db.execute_query("""
                 UPDATE esp_documents
-                SET crawl_status = 'failed',
+                SET crawl_status = CASE WHEN retired_at IS NOT NULL THEN crawl_status ELSE 'failed' END,
                     error_message = %s,
                     is_crawling = FALSE
                 WHERE id = %s AND (crawl_job_id = %s OR crawl_job_id IS NULL)
@@ -540,6 +556,9 @@ class CrawlWorker:
         except Exception as e:
             print(f"[WORKER] Could not restore the saved copy of {url}: {e}")
             return FetchResult(TRANSIENT, error=f"Couldn't restore the saved copy locally: {e}")
+        if refresh.still_retired(self.db, doc['id'], job['id']):
+            self._finish_cancelled(job, "Retired while it waited; not indexed")
+            return True
         try:
             vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename, content=content)
         except Exception as e:
@@ -553,6 +572,7 @@ class CrawlWorker:
             if refresh.is_miss(fetch.kind, fetch.status_code):
                 refresh.record_miss(self.db, doc['id'])
         self._finish_completed(job, doc, filename, content, note=note)
+        self._finish_replacements(doc['id'])
         self._notify_indexed(esp_name)
         print(f"[WORKER] ✓ Job {job['id']}: {note}")
         return True

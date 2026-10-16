@@ -9,7 +9,9 @@ Each run:
      ones that vanished (gone_at);
   3. queues a re-crawl of every Yotpo guide we hold (not retired, labelled)
      whose sitemap date is newer than its last crawl, at the lowest priority;
-     an unchanged text is then not re-indexed (refresh.py);
+     an unchanged text is then not re-indexed (refresh.py). Not on the very
+     first read, which only records the sitemap and counts those guides:
+     re-crawling many guides at once is Leo's call;
   4. notes the sitemap index's child sitemaps, so a new one is reported.
 
 New and vanished articles are listed for an admin, unassigned
@@ -22,6 +24,7 @@ Yotpo's guides as deleted.
 """
 
 import json
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
@@ -52,6 +55,9 @@ def parse_lastmod(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
     text = value.strip().replace('Z', '+00:00')
+    # Python before 3.11 reads a fraction of a second only as 3 or 6 digits
+    # ("12:27:50.22" is in the live sitemap): pad it to 6
+    text = re.sub(r'(T\d{2}:\d{2}:\d{2})\.(\d{1,6})', lambda m: f'{m.group(1)}.{m.group(2).ljust(6, "0")}', text)
     for parse in (datetime.fromisoformat,
                   lambda t: datetime.strptime(t[:10], '%Y-%m-%d')):
         try:
@@ -152,31 +158,44 @@ def run(db, fetch, use_queue: bool, log=print) -> Dict:
         "SELECT url, lastmod, gone_at FROM sitemap_urls", fetch=True) or []}
     changes = diff(previous, current)
     live_before = sum(1 for _, gone in previous.values() if gone is None)
-    shrunk = too_small(live_before, len(current))
+    last = _load(db) or {}
+    # A much smaller sitemap marks nothing gone, unless the last read saw
+    # the same smaller size: then Yotpo really did remove those articles
+    shrunk = too_small(live_before, len(current)) and not (
+        last.get('shrunk') and last.get('urls') == len(current))
+    first_read = not previous
 
-    for url, lastmod in current.items():
-        if url in previous:
-            db.execute_query("UPDATE sitemap_urls SET lastmod = %s, last_seen_at = CURRENT_TIMESTAMP, "
-                             "gone_at = NULL WHERE url = %s", (lastmod, url))
-        else:
-            db.execute_query("INSERT INTO sitemap_urls (url, lastmod) VALUES (%s, %s) "
-                             "ON CONFLICT (url) DO NOTHING", (url, lastmod))
+    # Only what changed is written: new rows, newer dates, returns
+    for url in changes['new']:
+        db.execute_query("INSERT INTO sitemap_urls (url, lastmod) VALUES (%s, %s) "
+                         "ON CONFLICT (url) DO NOTHING", (url, current[url]))
+    for url in changes['changed'] + changes['back']:
+        # a date that can't be read keeps the one stored
+        db.execute_query("UPDATE sitemap_urls SET lastmod = COALESCE(%s, lastmod), gone_at = NULL "
+                         "WHERE url = %s", (current[url], url))
+    seen = sorted(set(current) - set(changes['new']))
+    for i in range(0, len(seen), 200):
+        batch = seen[i:i + 200]
+        db.execute_query(f"UPDATE sitemap_urls SET last_seen_at = CURRENT_TIMESTAMP "
+                         f"WHERE url IN ({', '.join(['%s'] * len(batch))})", tuple(batch))
     if not shrunk:
         for url in changes['vanished']:
             db.execute_query("UPDATE sitemap_urls SET gone_at = CURRENT_TIMESTAMP "
                              "WHERE url = %s AND gone_at IS NULL", (url,))
 
-    queued, skipped = queue_changed(db, current, use_queue)
+    # The first read only records the sitemap: queueing every guide Yotpo
+    # changed since its last crawl would re-crawl many at once, which is
+    # Leo's call (roadmap C1.3 note). Later reads queue what changed since.
+    queued, skipped = queue_changed(db, current, use_queue and not first_read)
 
     index = fetch(INDEX_URL)
     children = child_sitemaps(index.text) if index and index.status == 200 else None
-    last = _load(db) or {}
     known_children = last.get('children') or []
     summary.update({
         'ok': True, 'urls': len(current), 'new': len(changes['new']),
         'changed': len(changes['changed']), 'back': len(changes['back']),
         'vanished': 0 if shrunk else len(changes['vanished']),
-        'shrunk': shrunk, 'queued': queued, 'not_queued': skipped,
+        'shrunk': shrunk, 'queued': queued, 'not_queued': skipped, 'first_read': first_read,
         'children': children if children is not None else known_children,
         'new_children': sorted(set(children or []) - set(known_children)) if known_children else [],
         'finished_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
@@ -193,18 +212,19 @@ def run(db, fetch, use_queue: bool, log=print) -> Dict:
 def queue_changed(db, current: Dict[str, Optional[datetime]], use_queue: bool) -> Tuple[int, int]:
     """Record each held guide's sitemap date, and queue a re-crawl of the
     ones changed since their last crawl. (queued, due but not queued:
-    no crawl queue on this server, or no product label)."""
+    no crawl queue on this server, the first read, or no product label)."""
     rows = db.execute_query("""
-        SELECT d.id, d.esp_id, d.url, d.last_crawled_at, d.product, e.status
+        SELECT d.id, d.esp_id, d.url, d.last_crawled_at, d.product, e.status, d.sitemap_lastmod
         FROM esp_documents d JOIN esps e ON e.id = d.esp_id
         WHERE d.retired_at IS NULL AND d.url LIKE %s
     """, (f'https://{HOST}/%',), fetch=True) or []
     queued = skipped = 0
-    for doc_id, esp_id, url, last_crawled, product, status in rows:
+    for doc_id, esp_id, url, last_crawled, product, status, stored in rows:
         lastmod = current.get(url)
         if lastmod is None:
             continue
-        db.execute_query("UPDATE esp_documents SET sitemap_lastmod = %s WHERE id = %s", (lastmod, doc_id))
+        if _as_datetime(stored) != lastmod:
+            db.execute_query("UPDATE esp_documents SET sitemap_lastmod = %s WHERE id = %s", (lastmod, doc_id))
         if not due(lastmod, _as_datetime(last_crawled)):
             continue
         if not use_queue or status == 'archived' or product not in ('loyalty', 'reviews', 'shared'):
@@ -245,7 +265,7 @@ def changes_since(db, since: datetime) -> Dict:
             "ORDER BY first_seen_at DESC, url", (after_first,))],
         'changed': [entry(r[0], r[1]) for r in rows(
             "SELECT url, lastmod FROM sitemap_urls WHERE lastmod >= %s AND first_seen_at < %s "
-            "AND gone_at IS NULL ORDER BY lastmod DESC, url", (since, since))],
+            "AND gone_at IS NULL ORDER BY lastmod DESC, url", (since, after_first))],
         'vanished': [entry(r[0], r[1]) for r in rows(
             "SELECT url, gone_at FROM sitemap_urls WHERE gone_at >= %s ORDER BY gone_at DESC, url", (since,))],
     }
