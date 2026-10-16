@@ -421,7 +421,7 @@
                             </button>
                         </div>
 
-                        <span id="adminRoleLabel" class="text-xs text-muted-foreground cursor-help" data-tip="Editors add and fix documents and review suggested links. Owners can also change settings, put integrations in chat or take them out, create integrations and use Refresh All."></span>
+                        <span id="adminRoleLabel" class="text-xs text-muted-foreground cursor-help" data-tip="Editors add and fix documents, review suggested links and use Find links. Owners can also change settings, put integrations in chat or take them out, add integrations and use Refresh All."></span>
                         <button id="closeAdmin" class="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -641,7 +641,10 @@
                         <div id="crawlSummary"></div>
                         <div class="space-y-8">
                             <div class="border-b border-border pb-6">
-                                <h3 id="manageIntegrationsTitle" class="text-lg font-semibold text-card-foreground mb-4">All integrations</h3>
+                                <div id="manageIntegrationsTitle" class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                                    <h3 class="text-lg font-semibold text-card-foreground">All integrations</h3>
+                                    <button type="button" id="addIntegrationBtn" class="owner-only px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">+ Add integration</button>
+                                </div>
                                 <div id="espManagement"></div>
                             </div>
 
@@ -664,25 +667,6 @@
                                         <button class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap" onclick="addGlobalKnowledgeLink()">Add Link</button>
                                     </div>
                                     <p id="newGlobalKnowledgeFlag" class="hidden mt-1.5 text-xs text-red-600" role="alert"></p>
-                                </div>
-                            </div>
-
-                            <div class="border-b border-border pb-6 owner-only">
-                                <h3 class="text-lg font-semibold text-card-foreground mb-2">Create New Integration</h3>
-                                <p class="text-sm text-muted-foreground mb-4">For a platform not on yotpo.com/integrations. Choose its kind of platform first: an integration can't be added without one. Email &amp; SMS platforms go into chat at once; other kinds are added as not in chat yet.</p>
-                                <div class="flex flex-wrap gap-3 max-w-2xl">
-                                    <input type="text" id="newESPName" placeholder="Integration name" class="flex-1 min-w-0 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                                    <select id="newESPType" aria-label="Kind of platform" class="px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
-                                        <option value="" selected disabled>Kind of platform…</option>
-                                        <option value="messaging">Email &amp; SMS</option>
-                                        <option value="storefront">Store &amp; checkout</option>
-                                        <option value="service">Customer service</option>
-                                        <option value="data">Data &amp; automation</option>
-                                        <option value="content">Reviews &amp; content</option>
-                                    </select>
-                                    <button id="createESPBtn" class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">
-                                        Create Integration
-                                    </button>
                                 </div>
                             </div>
 
@@ -861,6 +845,48 @@
         </div>
     </div>
 
+    <!-- Add Integration dialog: admin-integrations.js (C1.10) -->
+    <div id="addIntegrationModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="addIntegrationTitle">
+        <form id="addIntegrationForm" class="bg-card rounded-xl shadow-lg max-w-xl w-full max-h-[90vh] overflow-hidden flex flex-col" novalidate>
+            <div class="p-6 border-b border-border">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h2 id="addIntegrationTitle" class="text-xl font-semibold text-card-foreground">Add an integration</h2>
+                        <p class="text-sm text-muted-foreground mt-1">Name it and pick its kind of platform. Flow State then looks for its links: its Yotpo guides and the platform's own help articles. They wait in Suggested Links until you approve them.</p>
+                    </div>
+                    <button type="button" data-close-add class="text-muted-foreground hover:text-foreground transition-colors" aria-label="Close">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-5">
+                <div>
+                    <label for="addIntegrationName" class="block text-sm font-medium text-card-foreground mb-1.5">Name</label>
+                    <input type="text" id="addIntegrationName" maxlength="100" autocomplete="off" placeholder="e.g. Mailchimp" class="w-full px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <p class="text-xs text-muted-foreground mt-1.5">As the platform calls itself. If yotpo.com/integrations lists it, use the same name, so its Yotpo pages are found.</p>
+                </div>
+                <fieldset>
+                    <legend class="block text-sm font-medium text-card-foreground mb-1.5">Kind of platform</legend>
+                    <div id="addIntegrationKinds" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+                    <p class="text-xs text-muted-foreground mt-1.5">It picks the instructions the AI follows. Email &amp; SMS goes into chat at once; other kinds are added as Not in chat until their instructions are ready.</p>
+                </fieldset>
+                <div>
+                    <label for="addIntegrationWebsite" class="block text-sm font-medium text-card-foreground mb-1.5">Its website or help site <span class="font-normal text-muted-foreground">(optional)</span></label>
+                    <input type="text" id="addIntegrationWebsite" maxlength="500" autocomplete="off" placeholder="e.g. https://www.example.com" class="w-full px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                    <p class="text-xs text-muted-foreground mt-1.5">Helps find its own help articles, mostly for platforms yotpo.com doesn't list.</p>
+                </div>
+                <p id="addIntegrationError" class="hidden text-sm text-red-700" role="alert"></p>
+            </div>
+            <div class="px-6 py-4 border-t border-border">
+                <p class="text-xs text-muted-foreground mb-3">Looking for its help articles uses the chat's Gemini credit.</p>
+                <div class="flex justify-end gap-3">
+                    <button type="button" data-close-add class="px-4 py-2 border border-input bg-background text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors">Cancel</button>
+                    <button type="submit" id="addIntegrationSubmit" class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Add and find links</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <!-- Paste Content Modal -->
     <div id="pasteContentModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-card rounded-xl shadow-lg max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -917,8 +943,8 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=type-required-1"></script>
-    <script src="admin-integrations.js?v=admin-crawls-1"></script>
+    <script src="app.js?v=find-links-1"></script>
+    <script src="admin-integrations.js?v=find-links-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>
 </html>

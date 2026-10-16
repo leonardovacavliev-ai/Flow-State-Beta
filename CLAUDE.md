@@ -471,6 +471,7 @@ change records its type, and undoing it restores that type only.
 - `GET /api/admin/proposals?state=&source=&esp=&page=` · `POST .../proposals/approve {items:[{id, product}]}` · `POST .../proposals/reject {ids, note}` - Suggested Links
 - `GET /api/admin/crawl-summary?since=` - Crawl states, sites, active jobs, crawled since
 - `GET /api/admin/catalog-import` - Last import report and help sites to pick by hand
+- `GET|POST /api/admin/integrations/<name>/find-links` - Find links (C1.10): POST `{website?}` starts a background search for its links (any admin; suggestions only), GET follows it
 - Roles: `ADMIN_OWNER_EMAILS` (unset = all admins are owners); `POST /api/admin/verify` returns `role`
 
 ### Admin - ESPs
@@ -482,7 +483,7 @@ change records its type, and undoing it restores that type only.
 - `POST /api/admin/check-link` - Is this URL already in the knowledge base?
 - `POST /api/admin/esp/<name>/crawl-selected` - Crawl URLs
 - `POST /api/admin/esp/<name>/delete-links` - Remove URLs
-- `POST /api/admin/esp/create` - Create new ESP
+- `POST /api/admin/esp/create` - Create an integration (`{name, platform_type, website?, find_links?}`; owner; the Add integration dialog sends `find_links: true`)
 - `POST /api/admin/refresh` - Re-crawl everything through the crawl queue (409 when the queue is off)
 - `POST /api/admin/rebuild-vectors` - Re-index from database content, labels included (no button)
 - `GET /api/reviews-coverage` - ESPs with Yotpo Reviews documentation (public)

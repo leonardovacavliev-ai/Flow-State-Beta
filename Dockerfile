@@ -12,6 +12,8 @@ COPY backend ./backend
 COPY frontend ./frontend
 COPY docs ./docs
 COPY esp_support_links.csv ./
+# Help-centre overrides for Find links (backend/find_links_job.py)
+COPY scripts/help_centres.json ./scripts/
 
 # Create necessary directories
 RUN mkdir -p backend/chroma_db

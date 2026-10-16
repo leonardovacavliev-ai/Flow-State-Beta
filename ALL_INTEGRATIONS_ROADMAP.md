@@ -192,7 +192,7 @@ Not part of the suite:
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | done | PR #10, merged (`55124c7`) and deployed 2026-10-16; golden check 26/26 identical; live health, Klaviyo chat (16 sources), unknown-key 400 and owner-only routes OK. 🛑 still open: Leo reads the four drafts (Admin → General Settings → Kind of platform) |
 | C1.8 | Portability seams, Sentry, no local disk | C1.3 | dev + 🛑 | 3–4 d | todo | |
 | C1.9 | Production import, approvals, labelling | C1.2–C1.8 deployed | 🛑 Leo | 4–6 h | todo | |
-| C1.10 | "Find links" for one integration | C1.3, C1.4 | dev + 🛑 model budget | 2–3 d | todo | Leo, 2026-10-15: needed for a complete product |
+| C1.10 | "Find links" for one integration, and the Add integration dialog | C1.4 | dev + 🛑 model budget | 2–3 d | done | Leo, 2026-10-15: needed for a complete product; 2026-10-16: adding an integration starts it. Branch `v2/c1-10-find-links`; no longer waits for C1.3 (Deviations) |
 | R1 | Routine: re-run the catalog import | C1.9 | 🛑 Leo (dev prepares) | ~1 h each | from C1.9, every 1–2 months | Leo, 2026-10-15; §7 Routines |
 | — | **Stage 1 exit gate** (§5 end) | C1.1–C1.9 | dev + 🛑 | — | todo | |
 | C2.0 | Trap-question eval tool | C1.7 | dev | 1–2 d | todo | |
@@ -232,8 +232,9 @@ Order inside Stage 1:
 - C1.4, C1.5, C1.6 and C1.7 can run in parallel branches once C1.1 is merged.
 - C1.4 needs C1.2's proposals table.
 - C1.8 waits for C1.3, because both touch the crawl path.
-- C1.10 waits for C1.3 (its sitemap table finds Yotpo guides for integrations the catalog doesn't
-  list) and C1.4 (results land in its inbox). C1.9 does not wait for C1.10.
+- C1.10 waited for C1.3 (its sitemap table finds Yotpo guides for integrations the catalog doesn't
+  list) and C1.4 (results land in its inbox). It was built first and reads the sitemap itself
+  (C1.10 Deviations); once C1.3 lands it can read the table. C1.9 does not wait for C1.10.
 
 ---
 
@@ -1283,35 +1284,35 @@ to have a complete product").
 the Gemini key is the live chat's prepaid key.
 
 **Tasks**
-- [ ] **One finder, two callers.** Move the per-integration body of `build_plan` (its yotpo.com
+- [x] **One finder, two callers.** Move the per-integration body of `build_plan` (its yotpo.com
   detail pages → Yotpo guides and partner pages; renamed guides via the sitemap; partner help
   articles via `app_mechanics.discover`) into a backend module, e.g. `backend/link_finder.py`,
   `find_links(integration, fetch, chooser, sitemap) -> {proposals, mechanics_note}`.
   `import_catalog.py` calls it per integration; the plan file, the report and the dry run are
   unchanged (`test_catalog_import.py` stays green unchanged).
-- [ ] **Integrations not on yotpo.com** (created by hand): no detail page, so look for Yotpo guides
+- [x] **Integrations not on yotpo.com** (created by hand): no detail page, so look for Yotpo guides
   in C1.3's `sitemap_urls` by the integration's name tokens (`app_mechanics.name_tokens`), the same
   way renamed guides are found. Name collisions (Rule, Target, Drip) are fine here: a person
   approves every suggestion. Help centre: the `scripts/help_centres.json` override, else the usual
   discovery.
-- [ ] **`POST /api/admin/integrations/<name>/find-links`**: queues one background job (the crawl
+- [x] **`POST /api/admin/integrations/<name>/find-links`**: queues one background job (the crawl
   worker's queue or a job of its own; never in the request: it takes about a minute). Returns at
   once. `GET` on the same path returns the last run (when, by whom, state, what was suggested,
   and the help-site note). One run per integration at a time.
-- [ ] **Writes only suggestions**: rows in `document_proposals` (sources `catalog` and `mechanics`),
+- [x] **Writes only suggestions**: rows in `document_proposals` (sources `catalog` and `mechanics`),
   skipping URLs that are already documents or were ever suggested (rejections are remembered),
   plus that integration's entry in `app_settings` `catalog_mechanics`. Never creates documents,
   integrations or labels.
-- [ ] **Model budget**: the partner-article step calls Gemini. Leo, 2026-10-15: **use the app's
+- [x] **Model budget**: the partner-article step calls Gemini. Leo, 2026-10-15: **use the app's
   same `GEMINI_API_KEY` for now** (the live chat's prepaid key). A daily cap on runs was proposed
   as a guard against a runaway draining that credit; Leo asked why it is needed. Unless he asks for
   a cap: one run per integration at a time, and the button says a run uses Gemini credit. Without
   a key, it still finds the yotpo.com and Yotpo-guide links and says the help-article step was
   skipped.
-- [ ] **Admin:** a "Find links" button on the integration's page, its last run beside it ("Found 3
+- [x] **Admin:** a "Find links" button on the integration's page, its last run beside it ("Found 3
   links: review them in Suggested Links"), and "Find links" offered in the empty state of an
   integration with no documents and no suggestions.
-- [ ] **Tests** (fake fetch, fake model, SQLite and Postgres): the import's output is unchanged;
+- [x] **Tests** (fake fetch, fake model, SQLite and Postgres): the import's output is unchanged;
   find-links on a catalog integration proposes what the import would; on a hand-made one it finds a
   sitemap guide by name; rejected and existing URLs are skipped; the cap; editor/owner rules as Leo
   decides.
@@ -1320,6 +1321,59 @@ the Gemini key is the live chat's prepaid key.
 - On `backend-local` (local SQLite, no production key): "Find links" on a hand-made integration and
   on a catalog one adds the expected suggestions; a second run adds nothing.
 - The catalog dry run's report is byte-identical before and after the refactor, on the cached pages.
+
+**Deviations** (2026-10-16)
+- **Adding an integration starts it** (Leo, 2026-10-16: "a separate interface, where I add the name
+  and the type … this needs to trigger a call that crawls and checks which potential links should
+  be added"). Create New Integration, the inline form under Global Knowledge, is replaced by an
+  **Add integration** dialog (button beside "All integrations", owner only, as creating was): name,
+  kind of platform (required, nothing pre-picked, each kind explained, I10), and the platform's
+  website or help site (optional). "Add and find links" creates it through the same
+  `POST /api/admin/esp/create` (now with `find_links: true` and `website`) and opens its page,
+  where the search is already running. A website that isn't a public web address is refused
+  before anything is created.
+- **The website field is new** (optional). A platform yotpo.com doesn't list has no other way to
+  tell the search where its help lives. A help site (help./docs./… or a /help path) is used as the
+  help centre; a homepage gives the domain, and its "Help Center" link is followed. The last run's
+  website is kept with the run and used again by "Find links again".
+- **No sitemap table yet**: C1.3 isn't built, so a run reads `support.yotpo.com/sitemap-en.xml`
+  itself (one request) for renamed guides and for guides found by name. C1.10 therefore no longer
+  waits for C1.3. When C1.3's `sitemap_urls` exists, `find_links_job.run_once` can read it instead.
+- **Guides by name** (`link_finder.guides_by_name`): the name must appear as whole words in the
+  guide's address ('rule' doesn't match 'earning-rules'; 'Loop Returns' needs both words, or
+  'loopreturns'), integration guides first, at most 8. Collisions still happen ('rule' matches
+  "creating-an-anniversary-earning-rule-on-shopify"); the inbox says "Yotpo guide with its name in
+  the address: check it's about this platform".
+- **Integrations created by hand are looked up on yotpo.com by name** (`find_links_job.catalog_match`,
+  grouped exactly as the import groups cards, `KNOWN_MATCHES` included). An email platform from
+  `docs/integrations/messaging_sources.md` created under the import's name (C0.4) gets its yotpo.com
+  guides and pages at once: Mailchimp, tried locally against the live site, got exactly its four
+  links from that file. The integration's own fields (`catalog_slugs`, categories) are not written:
+  the next import does that.
+- **With no yotpo.com categories, the model is told the kind** ("kind of platform: Customer
+  service") in place of catalog categories.
+- **The job**: a thread in the web process, never in the request; the run (who, when, step, what
+  was suggested, why nothing else) is stored in `app_settings` `find_links:<name>`, so no new table
+  and no schema change. One run per integration at a time and at most 2 at once (409 otherwise). The
+  running set is in-process: exact on the single web process (Procfile, Dockerfile `--workers 1`); a
+  run left "running" by a restart reads as interrupted and can be started again.
+- **Who may run it: any admin**, editors too, since it only adds suggestions. Creating an
+  integration stays owner-only. Leo can change either.
+- **Daily cap: none** (Leo asked why one is needed, 2026-10-15). Guards: one run per integration,
+  2 at once, at most three model calls per run (`app_mechanics.discover`), and the button and the
+  dialog say a run uses the chat's Gemini credit. Without `GEMINI_API_KEY` the run still finds the
+  yotpo.com links and Yotpo guides and says the help-article step was skipped; the import's stored
+  notes for that integration are then left as they were.
+- **A help-centre fix that also changes the import**: a link on the partner's homepage now counts as
+  its help centre only on a help host or a help path. kustomer.com's menu "Guides" (marketing
+  resources) had made `https://www.kustomer.com/` its "help centre"; its "Help Center" link
+  (help.kustomer.com) now wins. The next catalog dry run may pick better help centres for some
+  integrations; on the test fixtures the plan and report are byte-identical before and after.
+- **Not run**: the live catalog dry run's byte-identical check (its page cache was wiped and a run
+  spends Gemini credit; the fixture check stands in for it); the Postgres tests (no
+  `TEST_DATABASE_URL`; no table or schema changed, the SQL is the same on both); a run with the real
+  model (no credit spent without Leo's OK; a fake model covers it).
+- `Dockerfile` copies `scripts/help_centres.json`, so the help-centre overrides apply in production.
 
 **Rollback:** revert; suggestions it already made stay in the inbox.
 
@@ -1647,4 +1701,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
+| 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (13) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

@@ -335,8 +335,12 @@ def find_help_centre(app_tokens: List[str], catalog_links: Iterable[str],
         home = fetch(f'https://www.{d}/') or fetch(f'https://{d}/')
         if home and home.status == 200 and host_matches_app(host_of(home.url), app_tokens):
             for url, text, _ in page_links(home.text, home.url):
+                # Only a help host or a help path: a menu's "Guides" can be
+                # marketing (kustomer.com/resources?type=guide), which would
+                # make the company's homepage its "help centre"
                 if _HELP_LINK_TEXT.match(text.strip()) and is_partner_url(url) and \
-                        host_matches_app(host_of(url), app_tokens):
+                        host_matches_app(host_of(url), app_tokens) and \
+                        (looks_like_help_host(host_of(url)) or urlsplit(help_centre_root(url)).path != '/'):
                     return help_centre_root(url), 'homepage', None
     for d in domains[:2]:
         for candidate in (f'https://help.{d}/', f'https://support.{d}/', f'https://docs.{d}/',
