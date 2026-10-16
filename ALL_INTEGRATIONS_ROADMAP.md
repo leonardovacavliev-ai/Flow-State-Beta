@@ -806,8 +806,10 @@ followed by `retrieval_recall.py`.
   The glued words are a problem on every site: fixing them elsewhere is a separate decision for Leo.
 - **Header fields**: `title` comes from the page's own title (og:title, else `<title>`), plans and
   platforms from `doc_header.parse_header`; never a label (I1).
-- **Sitemap**: read daily at **03:17 UTC** (a cron time: an every-24-hours timer restarts with every
-  deploy and might never fire), only where the crawl queue runs (`USE_ASYNC_CRAWL`, production).
+- **Sitemap**: read **monthly, on the 1st at 03:17 UTC** (Leo, 2026-10-16: once a month, not daily),
+  only where the crawl queue runs (`USE_ASYNC_CRAWL`, production). A fixed date, since a "every 30
+  days" timer restarts with every deploy; and each boot reads it ten minutes in when the last read
+  is over 32 days old, so a restart on the 1st doesn't skip a month. The admin's list covers 45 days.
   Owners also have **Read it now** in Suggested Links. Re-crawls are queued at priority 0, only for
   labelled, non-retired guides crawled before their sitemap date; never-crawled ones are left to the
   admin. A sitemap under 80% of the last read's size marks nothing gone. The sitemap index's child
@@ -1270,7 +1272,7 @@ those integrations are `listed`.
 **Tasks**
 - [ ] **One scheduler builder**, `backend/workers/schedule.py`. Jobs:
   - stale-job cleanup (5 min);
-  - sitemap refresh (daily);
+  - sitemap refresh (monthly, Leo 2026-10-16; plus at boot when overdue);
   - conversation purge (24 h);
   - idle sweep (15 min).
 
@@ -1760,6 +1762,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
-| 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, daily sitemap (`sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (16); golden 26/26 | Claude Code |
+| 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, monthly sitemap (Leo; `sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (16); golden 26/26 | Claude Code |
 | 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

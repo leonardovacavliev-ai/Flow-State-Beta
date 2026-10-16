@@ -1,5 +1,7 @@
 """
-The daily read of support.yotpo.com's sitemap (roadmap C1.3).
+The monthly read of support.yotpo.com's sitemap (roadmap C1.3; monthly, not
+daily: Leo, 2026-10-16). It runs on the 1st at 03:17 UTC, and at boot when the
+last read is over OVERDUE_DAYS old (app.py).
 
 Each run:
   1. reads sitemap-en.xml, every article's address and when it last changed;
@@ -36,6 +38,11 @@ LAST_RUN_KEY = 'sitemap_last_run'
 SHRINK_LIMIT = 0.8
 # Re-crawls the sitemap queues wait behind anything an admin asked for
 PRIORITY = 0
+# A read older than this is overdue (monthly schedule, plus slack)
+OVERDUE_DAYS = 32
+# What the admin's list covers by default: more than a month, so the last
+# monthly read's finds are still on it
+CHANGES_DAYS = 45
 
 
 # ---------- pure ----------
@@ -106,6 +113,13 @@ def due(lastmod: Optional[datetime], last_crawled: Optional[datetime]) -> bool:
     """A document whose article changed after its last crawl. Never crawled
     ones are left to the admin (they may not be labelled or wanted yet)."""
     return lastmod is not None and last_crawled is not None and lastmod > last_crawled
+
+
+def overdue(last_run: Optional[Dict], now: Optional[datetime] = None) -> bool:
+    """No read yet, or the last one started more than OVERDUE_DAYS ago."""
+    started = parse_lastmod((last_run or {}).get('started_at'))
+    now = now or datetime.utcnow()
+    return started is None or now - started > timedelta(days=OVERDUE_DAYS)
 
 
 def _as_datetime(value) -> Optional[datetime]:

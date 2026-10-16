@@ -425,6 +425,36 @@ def test_a_run_records_changes_and_queues_changed_guides():
     assert not broken['ok'] and 'could not be read' in broken['problem']
 
 
+def test_the_sitemap_is_read_monthly():
+    """Leo, 2026-10-16: once a month. On the 1st at 03:17, and at boot when
+    the last read is over a month old (a restart on the 1st skips nothing)."""
+    now = datetime(2026, 11, 20, 12, 0)
+    assert sm.overdue(None, now)
+    assert sm.overdue({'started_at': '2026-10-01T03:17:00Z'}, now)          # 50 days
+    assert not sm.overdue({'started_at': '2026-11-01T03:17:05Z'}, now)      # 19 days
+    assert sm.overdue({'started_at': 'garbage'}, now)
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    scheduler = BackgroundScheduler()
+    job = scheduler.add_job(lambda: None, trigger='cron', day=1, hour=3, minute=17)
+    assert isinstance(job.trigger, CronTrigger)
+    from datetime import timezone as tz
+    fire = job.trigger.get_next_fire_time(None, datetime(2026, 11, 2, tzinfo=tz.utc))
+    assert (fire.month, fire.day, fire.hour, fire.minute) == (12, 1, 3, 17)
+    # the boot check reads only when overdue
+    import refresh_routes
+    calls = []
+    real = refresh_routes.run_sitemap_refresh
+    refresh_routes.run_sitemap_refresh = lambda use_queue: calls.append(use_queue) or 'ran'
+    try:
+        db = boot_db()
+        assert refresh_routes.run_sitemap_refresh_if_overdue(True) == 'ran'
+        sm._save(db, {'started_at': datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')})
+        assert refresh_routes.run_sitemap_refresh_if_overdue(True) is None and calls == [True]
+    finally:
+        refresh_routes.run_sitemap_refresh = real
+
+
 # ---------- routes ----------
 
 def make_client(db):

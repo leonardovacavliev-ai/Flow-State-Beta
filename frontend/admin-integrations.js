@@ -61,7 +61,7 @@
         yotpoCom: 'Where yotpo.com/integrations lists it, and under which categories. The yotpo.com import links these.',
         documents: "What the AI reads about it. Each needs a product: Loyalty, Reviews, or Shared (the platform's own help, true for both).",
         suggested: 'Links the yotpo.com import and Find links found for each integration. None is used until you approve it.',
-        sitemap: "Yotpo's help centre lists every article and when it last changed. It is read every night: our Yotpo guides that changed are crawled again, and new or vanished articles are listed here.",
+        sitemap: "Yotpo's help centre lists every article and when it last changed. It is read once a month: our Yotpo guides that changed are crawled again, and new or vanished articles are listed here.",
         findLinks: "Looks for its documentation: its yotpo.com page, Yotpo's guides on support.yotpo.com, and its own help articles on the features the integration uses (the AI picks and checks those). What it finds goes to Suggested Links; nothing is used until you approve it."
     };
     // Under each kind in the Add integration dialog: what it means, with
@@ -1230,7 +1230,7 @@
             </div>`;
     }
 
-    // support.yotpo.com's sitemap, read every night (C1.3): new articles
+    // support.yotpo.com's sitemap, read monthly (C1.3): new articles
     // nobody holds yet, and held ones that vanished. Never matched to an
     // integration automatically: names collide with ordinary words.
     function sitemapHTML(sm) {
@@ -1245,7 +1245,7 @@
             </div>`;
         if (!run) {
             return `<div class="border-b border-border pb-6 mb-6">${head}
-                <p class="text-sm text-muted-foreground">Not read yet. ${sm.scheduled ? 'It is read every night at 03:17 UTC.' : 'On this server it is only read when an owner presses Read it now.'}</p></div>`;
+                <p class="text-sm text-muted-foreground">Not read yet. ${sm.scheduled ? 'It is read on the 1st of each month at 03:17 UTC.' : 'On this server it is only read when an owner presses Read it now.'}</p></div>`;
         }
         const unheld = (sm.new || []).filter(x => !x.document && !x.proposal);
         const gone = (sm.vanished || []).filter(x => x.document && !x.document.retired);

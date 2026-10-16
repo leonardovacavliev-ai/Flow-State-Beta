@@ -25,7 +25,7 @@ your session with the agenda for the one after.
 | #10 | C1.7 | A system prompt per platform type: four shipped drafts (`backend/prompts/`), per-type storage, audit and undo, the integration facts block, integration source headers, the editor's kind picker and preview. Messaging unchanged (golden 26/26). Merged with plain git as `55124c7` |
 | — | I10 | No integration without its kind of platform (Leo, 2026-10-16): Create New Integration asks for the kind (non-messaging kinds created not in chat), `create_esp` requires it, the import leaves kindless ones out. Merged with plain git (branch `v2/type-required`) |
 | — | C1.10 | **Find links** per integration (`backend/link_finder.py`, shared with the yotpo.com import; `backend/find_links_job.py`, a background run; the Find links card on each integration's page) and the **Add integration** dialog (Leo, 2026-10-16: name + kind, optional website; adding starts Find links at once). Replaces the inline Create New Integration form. Merged with plain git (branch `v2/c1-10-find-links`). Details: roadmap C1.10 Deviations |
-| — | C1.3 | **Refresh pipeline**: unchanged text isn't re-indexed; Yotpo guides read with their own rule (header kept, empty product slots and Yotpo's support box dropped, spaces around links kept); title, plans and platforms stored on crawl; support.yotpo.com's sitemap read daily at 03:17 UTC (changed guides re-crawled, new and vanished articles in Suggested Links); pages missing 3 times offer Retire / Replace; retired documents left out of crawls, counts, rebuilds and the audit. Branch `v2/c1-3-refresh`. Details: roadmap C1.3 Deviations |
+| — | C1.3 | **Refresh pipeline**: unchanged text isn't re-indexed; Yotpo guides read with their own rule (header kept, empty product slots and Yotpo's support box dropped, spaces around links kept); title, plans and platforms stored on crawl; support.yotpo.com's sitemap read monthly (the 1st, 03:17 UTC; Leo, 2026-10-16) (changed guides re-crawled, new and vanished articles in Suggested Links); pages missing 3 times offer Retire / Replace; retired documents left out of crawls, counts, rebuilds and the audit. Branch `v2/c1-3-refresh`. Details: roadmap C1.3 Deviations |
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
@@ -195,7 +195,7 @@ Leo when a change touches the database code, and ask how he wants it tested.
 
 - **Yotpo guides change text when re-crawled** (C1.3): the new rule keeps the spaces around links
   and drops the header's empty slots, so a re-crawled guide's text differs from the stored one and
-  is re-indexed once. The daily sitemap run re-crawls the guides Yotpo changed, so this happens
+  is re-indexed once. The monthly sitemap run re-crawls the guides Yotpo changed, so this happens
   gradually; a golden check made across such a re-crawl differs for that reason alone. A full
   re-crawl of all Yotpo guides at once is Leo's call (roadmap C1.3 note), followed by
   `retrieval_recall.py`.

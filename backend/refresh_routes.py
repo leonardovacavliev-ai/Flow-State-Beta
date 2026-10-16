@@ -4,7 +4,7 @@ replace a document, and support.yotpo.com's sitemap changes.
 
     POST /api/admin/esp/<name>/retire   {urls}
     POST /api/admin/esp/<name>/replace  {old_url, new_url}
-    GET  /api/admin/sitemap-changes?since=YYYY-MM-DD   (default: 30 days)
+    GET  /api/admin/sitemap-changes?since=YYYY-MM-DD   (default: 45 days)
     POST /api/admin/sitemap-refresh     owner: read the sitemap now
 
 Every route needs an admin. Retire and replace work on documents like the
@@ -28,8 +28,8 @@ _sitemap_lock = threading.Lock()
 
 
 def run_sitemap_refresh(use_queue: bool):
-    """One sitemap run, unless one is going already (the daily schedule and
-    an owner's button can meet). Returns the summary, or None if skipped."""
+    """One sitemap run, unless one is going already (the monthly schedule
+    and an owner's button can meet). Returns the summary, or None if skipped."""
     if not _sitemap_lock.acquire(blocking=False):
         print('[SITEMAP] a run is going already; skipped')
         return None
@@ -44,6 +44,20 @@ def run_sitemap_refresh(use_queue: bool):
         return None
     finally:
         _sitemap_lock.release()
+
+
+def run_sitemap_refresh_if_overdue(use_queue: bool):
+    """At boot: read the sitemap when the last read is older than
+    sitemap_refresh.OVERDUE_DAYS, or there was none, so a restart on the 1st
+    doesn't skip a month."""
+    try:
+        from adapters.database.db_manager import get_database_adapter
+        if not sitemap_refresh.overdue(sitemap_refresh._load(get_database_adapter())):
+            return None
+    except Exception as e:
+        print(f'[SITEMAP] could not tell when it was last read: {e}')
+        return None
+    return run_sitemap_refresh(use_queue)
 
 
 def register_refresh_routes(app, vectorizer, use_async_crawl: bool):
@@ -129,7 +143,8 @@ def register_refresh_routes(app, vectorizer, use_async_crawl: bool):
     @app.route('/api/admin/sitemap-changes', methods=['GET'])
     def sitemap_changes():
         """GET ?since=YYYY-MM-DD: support.yotpo.com articles new, changed or
-        gone since then (default 30 days), and the last run."""
+        gone since then (default 45 days: the sitemap is read monthly), and
+        the last run."""
         stop = denied()
         if stop:
             return stop
@@ -140,7 +155,7 @@ def register_refresh_routes(app, vectorizer, use_async_crawl: bool):
             except ValueError:
                 return jsonify({'error': 'since must be a date: YYYY-MM-DD'}), 400
         else:
-            start = datetime.utcnow() - timedelta(days=30)
+            start = datetime.utcnow() - timedelta(days=sitemap_refresh.CHANGES_DAYS)
         out = sitemap_refresh.changes_since(get_database_adapter(), start)
         out['since'] = start.strftime('%Y-%m-%d')
         out['scheduled'] = bool(use_async_crawl)

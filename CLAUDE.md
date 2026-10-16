@@ -472,7 +472,7 @@ change records its type, and undoing it restores that type only.
 - `GET /api/admin/crawl-summary?since=` - Crawl states, sites, active jobs, crawled since
 - `GET /api/admin/catalog-import` - Last import report and help sites to pick by hand
 - `POST /api/admin/esp/<name>/retire {urls}` · `POST /api/admin/esp/<name>/replace {old_url, new_url}` - Retire a document (vectors removed, row kept) or replace it (C1.3)
-- `GET /api/admin/sitemap-changes?since=` · `POST /api/admin/sitemap-refresh` (owner) - support.yotpo.com's sitemap, read daily at 03:17 UTC (C1.3)
+- `GET /api/admin/sitemap-changes?since=` · `POST /api/admin/sitemap-refresh` (owner) - support.yotpo.com's sitemap, read monthly, on the 1st at 03:17 UTC (C1.3)
 - `GET|POST /api/admin/integrations/<name>/find-links` - Find links (C1.10): POST `{website?}` starts a background search for its links (any admin; suggestions only), GET follows it
 - Roles: `ADMIN_OWNER_EMAILS` (unset = all admins are owners); `POST /api/admin/verify` returns `role`
 
