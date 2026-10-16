@@ -193,17 +193,17 @@ Leo when a change touches the database code, and ask how he wants it tested.
   they go into chat. Chat (`is_active_integration`) and the sidebar (`list_esps`) still see
   `active` only; `test_admin_integrations.py` checks it. Keep it that way.
 
-- **Another session is working on a design** (`design/integrations-redesign.html`, untracked).
-  It edited `ALL_INTEGRATIONS_ROADMAP.md` (C1.4/C1.5 design notes, an analytics deviation) and
-  `ALL_INTEGRATIONS_UPDATE.md` (§4.7–4.9) in the main checkout **without committing**. Don't
-  commit or discard those edits as your own. Ask Leo whether to commit them. Until then, record
-  your progress from a worktree, or stage only your own lines. This session did it like this:
-  write the edited file from `git show HEAD:<file>`, then
-  `git update-index --cacheinfo 100644,$(git hash-object -w <file>),<path>`.
-  The main checkout is on `main`. The other session's edits were carried over with `git stash`;
-  the stash entry is kept, and a backup sits in
-  `/private/tmp/claude-502/other-session-backup/`. Uncommitted edits to a file make `git switch`
-  refuse when the branches differ there, so work in worktrees.
+- **The main checkout is clean and up to date** (2026-10-16): `main`, fast-forwarded to
+  `origin/main`, with only `design/` and `production-freeze.txt` untracked. Keep it that way: work
+  in worktrees under the scratchpad, and fast-forward the main checkout (`git merge --ff-only
+  origin/main`) after each merge so Leo's local files match git.
+- **A design session's uncommitted plan notes (2026-10-13)** are set aside, not merged: they
+  predate C1.4 and partly contradict later decisions (e.g. the coverage tier Leo removed). They
+  are in `git stash` (`stash@{0}`, "design session's uncommitted plan notes") and in
+  `design/uncommitted-plan-notes-2026-10-13.patch` (local only). The prototype
+  `design/integrations-redesign.html` stays untracked (Leo: don't commit it); use it as C1.5's
+  baseline. Bring a note from the patch into the plan only when its checkpoint needs it, checked
+  against the later decisions.
 - **The catalog dry run spends the live chat's Gemini credit.** `.env`'s `GEMINI_API_KEY` is
   production's, on a prepaid balance. The 2026-10-14/15 dry runs (~2.3M tokens) emptied it and
   live chat failed with 429 "prepayment credits are depleted" until Leo topped it up. Don't run
