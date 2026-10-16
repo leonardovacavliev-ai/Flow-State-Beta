@@ -61,6 +61,7 @@
         yotpoCom: 'Where yotpo.com/integrations lists it, and under which categories. The yotpo.com import links these.',
         documents: "What the AI reads about it. Each needs a product: Loyalty, Reviews, or Shared (the platform's own help, true for both).",
         suggested: 'Links the yotpo.com import and Find links found for each integration. None is used until you approve it.',
+        sitemap: "Yotpo's help centre lists every article and when it last changed. It is read every night: our Yotpo guides that changed are crawled again, and new or vanished articles are listed here.",
         findLinks: "Looks for its documentation: its yotpo.com page, Yotpo's guides on support.yotpo.com, and its own help articles on the features the integration uses (the AI picks and checks those). What it finds goes to Suggested Links; nothing is used until you approve it."
     };
     // Under each kind in the Add integration dialog: what it means, with
@@ -146,7 +147,8 @@
         queued: 'Waiting its turn to be crawled.',
         crawling: 'Being crawled right now.',
         retrying: 'The crawl failed and will be tried again.',
-        waiting: 'The website asked us to slow down; it will be crawled shortly.'
+        waiting: 'The website asked us to slow down; it will be crawled shortly.',
+        retired: "Retired: no longer crawled, and the AI doesn't use it. Tick it and press Crawl Selected to bring it back."
     };
 
     function stateBadge(state) {
@@ -638,8 +640,10 @@
         const style = crawlStateStyle(link.status);
         const meta = [SOURCE_KIND[link.source_kind], (link.supported_plans || []).join(', '), (link.supported_platforms || []).join(', ')]
             .filter(Boolean).join(' · ');
-        const missing = link.consecutive_misses >= MISS_LIMIT
-            ? `<span class="block text-xs text-red-700">Page not found in the last ${link.consecutive_misses} crawls: replace or delete it.</span>` : '';
+        const missing = link.consecutive_misses >= MISS_LIMIT && !link.retired && !readOnly
+            ? `<span class="flex flex-wrap items-center gap-x-2 text-xs text-red-700">Page not found in the last ${link.consecutive_misses} crawls.
+                   <button type="button" class="underline hover:text-red-900" data-replace="${attr(link.url)}">Replace with its new address…</button>
+                   <button type="button" class="underline hover:text-red-900" data-retire="${attr(link.url)}">Retire it</button></span>` : '';
         return `
             <div class="flex items-center gap-2 p-2 bg-background rounded-lg border ${style.row || 'border-border'} hover:border-primary transition-colors">
                 ${readOnly ? '' : `<input type="checkbox" class="link-checkbox w-4 h-4 rounded border-input cursor-pointer shrink-0" data-esp="${attr(name)}" value="${attr(link.url)}" aria-label="Tick ${attr(link.url)}">`}
@@ -795,6 +799,8 @@
         box.querySelector('[data-rename]').addEventListener('click', () => rename(i));
         box.querySelector('[data-add-link]')?.addEventListener('click', () => addLink(name));
         box.querySelectorAll('.paste-btn').forEach(b => b.addEventListener('click', () => openPasteModal(name, b.dataset.url, false)));
+        box.querySelectorAll('[data-retire]').forEach(b => b.addEventListener('click', () => retireLink(name, b.dataset.retire)));
+        box.querySelectorAll('[data-replace]').forEach(b => b.addEventListener('click', () => replaceLink(name, b.dataset.replace)));
         box.querySelectorAll('[data-page="docs"]').forEach(b => b.addEventListener('click', () => {
             S.docPage = Number(b.dataset.to);
             loadDetail();
@@ -831,6 +837,34 @@
             if (!confirm(question)) return;
             patch(name, { status }, { sidebar: true });
         }));
+    }
+
+    // A page that keeps answering "not found": retire it (its search entries
+    // go, the row stays, marked retired) or point it at the page's new address
+    async function retireLink(name, url) {
+        if (!confirm(`Retire this document?\n\n${url}\n\nThe AI stops using it and it isn't crawled again. You can bring it back by crawling it.`)) return;
+        try {
+            const data = await sendJSON('POST', `/admin/esp/${encodeURIComponent(name)}/retire`, { urls: [url] });
+            if (data.skipped.length) alert(`Not retired: ${data.skipped.map(x => x.error).join('; ')}`);
+        } catch (error) {
+            alert(`Could not retire it: ${error.message}`);
+        }
+        loadESPManagement();
+    }
+
+    async function replaceLink(name, url) {
+        const next = prompt(`The page's new address?\n\nIt gets the same product label and is crawled. The old one is retired once the new one is in the AI's search.\n\nOld: ${url}`, '');
+        if (next === null || !next.trim()) return;
+        try {
+            const data = await sendJSON('POST', `/admin/esp/${encodeURIComponent(name)}/replace`, { old_url: url, new_url: next.trim() });
+            alert(data.queued
+                ? 'Added and queued for crawling. The old link is retired once the new one is in the AI\'s search.'
+                : `Added.${data.warning ? ` ${data.warning}` : ' Tick it and press Crawl Selected:'} the old link is retired once the new one is in the AI's search.`);
+            if (data.queued && window.AdminIntegrations) window.AdminIntegrations.watchCrawls();
+        } catch (error) {
+            alert(`Could not replace it: ${error.message}`);
+        }
+        loadESPManagement();
     }
 
     async function patch(name, body, { sidebar = false, flash = '' } = {}) {
@@ -1196,6 +1230,48 @@
             </div>`;
     }
 
+    // support.yotpo.com's sitemap, read every night (C1.3): new articles
+    // nobody holds yet, and held ones that vanished. Never matched to an
+    // integration automatically: names collide with ordinary words.
+    function sitemapHTML(sm) {
+        if (!sm) return '';
+        const run = sm.last_run;
+        const when = run && (run.finished_at || run.started_at);
+        const nowBtn = isOwner() ? `<button type="button" class="${btnOutline} !text-xs" data-sitemap-now>Read it now</button>` : '';
+        const head = `
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+                <h3 class="flex items-center gap-1.5 text-lg font-semibold text-card-foreground">New on support.yotpo.com ${info(HELP.sitemap)}</h3>
+                <span class="flex-1"></span>${nowBtn}
+            </div>`;
+        if (!run) {
+            return `<div class="border-b border-border pb-6 mb-6">${head}
+                <p class="text-sm text-muted-foreground">Not read yet. ${sm.scheduled ? 'It is read every night at 03:17 UTC.' : 'On this server it is only read when an owner presses Read it now.'}</p></div>`;
+        }
+        const unheld = (sm.new || []).filter(x => !x.document && !x.proposal);
+        const gone = (sm.vanished || []).filter(x => x.document && !x.document.retired);
+        const status = run.ok
+            ? `Last read ${esc(whenText(when))}: ${esc(String(run.urls))} articles, ${esc(String(run.changed))} changed (${esc(String(run.queued))} of our guides queued to crawl again).`
+            : `The last read failed (${esc(whenText(when))}): ${esc(run.problem || 'unknown')}.`;
+        const item = (x, extra) => `
+            <li class="flex flex-wrap sm:flex-nowrap items-center gap-2 p-2 bg-background rounded-lg border border-border">
+                <a href="${attr(x.url)}" target="_blank" rel="noopener" class="flex-1 min-w-0 text-sm text-foreground hover:underline truncate" title="${attr(x.url)}">${esc(pageName(x.url))}</a>
+                ${extra}
+            </li>`;
+        const list = (rows, render) => rows.length ? `<ul class="space-y-2">${rows.slice(0, 50).map(render).join('')}</ul>${rows.length > 50 ? `<p class="text-xs text-muted-foreground mt-2">and ${rows.length - 50} more</p>` : ''}` : '';
+        return `
+            <div class="border-b border-border pb-6 mb-6">
+                ${head}
+                <p class="text-sm text-muted-foreground mb-4">${status}${run.problem && run.ok ? ` ${esc(run.problem)}.` : ''}</p>
+                <h4 class="text-sm font-semibold text-card-foreground mb-2">New articles since ${esc(sm.since)} (${unheld.length})</h4>
+                ${unheld.length ? `<p class="text-xs text-muted-foreground mb-2">Nobody has them yet. If one is an integration's guide, open that integration and add it there.</p>` : '<p class="text-xs text-muted-foreground mb-4">None.</p>'}
+                ${list(unheld, x => item(x, `<span class="text-xs text-muted-foreground whitespace-nowrap">${esc(whenText(x.when))}</span>`))}
+                ${gone.length ? `
+                    <h4 class="text-sm font-semibold text-card-foreground mt-4 mb-2">Our guides gone from the sitemap (${gone.length})</h4>
+                    <p class="text-xs text-muted-foreground mb-2">Yotpo removed or moved them. Open the integration to replace or retire each.</p>
+                    ${list(gone, x => item(x, `<button type="button" class="${btnOutline} !text-xs" data-open-esp="${attr(x.document.esp)}">${esc(x.document.display_name)}</button>`))}` : ''}
+            </div>`;
+    }
+
     function lastImportHTML(last) {
         if (!last) {
             return `
@@ -1220,11 +1296,12 @@
         const box = $('proposalsAdmin');
         if (!box) return;
         const P = S.prop;
-        let data, imp;
+        let data, imp, sm;
         try {
-            [data, imp] = await Promise.all([
+            [data, imp, sm] = await Promise.all([
                 getJSON(`/admin/proposals?${qs({ state: P.state, source: P.source, esp: P.esp, page: P.page })}`),
-                getJSON('/admin/catalog-import')
+                getJSON('/admin/catalog-import'),
+                getJSON('/admin/sitemap-changes').catch(() => null)
             ]);
         } catch (error) {
             box.innerHTML = `<div class="text-sm text-red-700">Could not load the suggested links: ${esc(error.message)}</div>`;
@@ -1264,6 +1341,7 @@
                 ${pager(data.total, data.page, data.per_page, 'props')}
             </div>
             ${P.state === 'open' && !P.esp ? needsPersonHTML(imp.needs_person) : ''}
+            ${P.state === 'open' && !P.esp ? sitemapHTML(sm) : ''}
             ${lastImportHTML(imp.last_import)}`;
         wireProposals(box);
         renderBulk();
@@ -1299,6 +1377,16 @@
         }));
         box.querySelectorAll('[data-open-esp]').forEach(b => {
             if (!b.closest('#propGroups')) b.addEventListener('click', () => openFromProposals(b.dataset.openEsp));
+        });
+        box.querySelector('[data-sitemap-now]')?.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            try {
+                await sendJSON('POST', '/admin/sitemap-refresh', {});
+                alert("Reading support.yotpo.com's sitemap. It takes a minute or two: come back to this tab to see it.");
+            } catch (error) {
+                alert(`Could not start it: ${error.message}`);
+                e.target.disabled = false;
+            }
         });
         wireGroups($('propGroups'));
     }

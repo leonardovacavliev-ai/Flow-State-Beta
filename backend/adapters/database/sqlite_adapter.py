@@ -283,8 +283,17 @@ class SQLiteAdapter(DatabaseAdapter):
                                        ('supported_plans', 'TEXT'), ('supported_platforms', 'TEXT'),
                                        ('vector_count', 'INTEGER'), ('sitemap_lastmod', 'DATETIME'),
                                        ('consecutive_misses', 'INTEGER NOT NULL DEFAULT 0'),
-                                       ('retired_at', 'DATETIME')):
+                                       ('retired_at', 'DATETIME'), ('replaced_by', 'TEXT')):
                 self._add_column_if_missing(cursor, 'esp_documents', column, definition)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sitemap_urls (
+                    url           TEXT PRIMARY KEY,
+                    lastmod       DATETIME,
+                    first_seen_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    last_seen_at  DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    gone_at       DATETIME
+                )
+            """)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS document_proposals (
                     id              TEXT PRIMARY KEY,

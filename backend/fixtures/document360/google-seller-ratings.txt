@@ -12,9 +12,9 @@ Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, WooCommerce, Volus
 
 ### Google Seller Ratings Overview
 
-Google seller ratingslet shoppers know you are a trusted business with a good reputation by displaying your store’s star rating alongside your ads. This improves the performance of your ad campaigns with very little effort on your part.
+Google seller ratings let shoppers know you are a trusted business with a good reputation by displaying your store’s star rating alongside your ads. This improves the performance of your ad campaigns with very little effort on your part.
 
-According to Google, adding seller ratings to Google Ads campaignsincreases their click-through rate by 10%. This means your Cost-per-click (CPC) goes down, and you’ll see an increase in high-quality traffic.
+According to Google, adding seller ratings to Google Ads campaigns increases their click-through rate by 10%. This means your Cost-per-click (CPC) goes down, and you’ll see an increase in high-quality traffic.
 
 In this article, you’ll learn how to connect Yotpo Reviews with Google so you can start showcasing your site reviews and seller ratings on Google Search and other sites.
 
@@ -33,11 +33,11 @@ The reviews are shown in the ad. You can expand the aggregated site reviews by c
 
 Note
 
-The site reviews shown in thesearch resultsand theGoogle Seller Ratings pagewill only include reviews from thelast 24 months.
+The site reviews shown in the search results and the Google Seller Ratings page will only include reviews from the last 24 months.
 
-You can view this page for your site by using the following URL:https://www.google.com/shopping/ratings/account/lookup?q=#YourDomain#
+You can view this page for your site by using the following URL: https://www.google.com/shopping/ratings/account/lookup?q=#YourDomain#
 
-Learn more about seller ratings inGoogle Ads helpand our guide:Google Seller Ratings — The Complete Guide.
+Learn more about seller ratings in Google Ads help and our guide: Google Seller Ratings — The Complete Guide.
 
 ### Before You Start
 
@@ -47,15 +47,15 @@ Please make sure you meet all of Google’s seller rating requirements and have 
 
 Disclaimer
 
-- Yotpo runs a specificset of algorithms to filter and meet Google policies. Reviews that contain profanity words and short content reviews are being filtered out by Yotpo.
-- After Yotpo's filters, Google runsanother set of algorithms and logicto ensure only high-quality, verified reviews are used for seller ratings, and this is the reason why you might see a lower number on your Google page.
-- Googledoesn't provide specific detailsregarding the algorithms that filter reviews.
-- Googledoesn't share informationabout which reviews they choose to include.
-- Googledoes not guarantee that GSR will appeareven if you meet all their guidelines.
-- Yotpo can guarantee that your reviews will appear on theDedicated Seller Ratings Page, however, we cannot guarantee that they will appear in an organic search, as that is entirely up to Google's internal logic and algorithms.
-- Google requires Yotpo tosend all valid reviewsin the feed, even if they are bad reviews.It is not possible to alter or remove the reviewsthat are being sent to Google and evenunpublished reviews will be sent out.Don’t have enough site reviews to show a seller rating?
+- Yotpo runs a specific set of algorithms to filter and meet Google policies. Reviews that contain profanity words and short content reviews are being filtered out by Yotpo.
+- After Yotpo's filters, Google runs another set of algorithms and logic to ensure only high-quality, verified reviews are used for seller ratings, and this is the reason why you might see a lower number on your Google page.
+- Google doesn't provide specific details regarding the algorithms that filter reviews.
+- Google doesn't share information about which reviews they choose to include.
+- Google does not guarantee that GSR will appear even if you meet all their guidelines.
+- Yotpo can guarantee that your reviews will appear on the Dedicated Seller Ratings Page, however, we cannot guarantee that they will appear in an organic search, as that is entirely up to Google's internal logic and algorithms.
+- Google requires Yotpo to send all valid reviews in the feed, even if they are bad reviews. It is not possible to alter or remove the reviews that are being sent to Google and even unpublished reviews will be sent out.Don’t have enough site reviews to show a seller rating?
 
-Learn how togenerate more site reviews.
+Learn how to generate more site reviews.
 
 #### Google Seller Rating Requirements
 
@@ -64,20 +64,20 @@ Only certain Google ads are eligible to appear with seller rating annotations. O
 What you need to be eligible to show a Google seller rating:
 
 - You must have at least 100 verified site reviews created within the past 24 months.
-- Each review must have been collected from a verified buyer from an automatic review request, manual review request, or2-in-1 review request.
+- Each review must have been collected from a verified buyer from an automatic review request, manual review request, or 2-in-1 review request.
 - Each review must have been created in the country of the searcher. For example, if you have 100 eligible reviews created by customers with an IP address in the USA, and a person searches for your brand in Italy, they will not see your Google seller rating.See the complete list of requirements for seller ratings from Google.
 
 Note
 
-- Once you open a Google Ads account, seller ratings will be available for you in all search advertising campaigns as anautomated extension.
+- Once you open a Google Ads account, seller ratings will be available for you in all search advertising campaigns as an automated extension.
 - Google requires that Yotpo maintains all site reviews previously collected even if the customer stops using Google seller ratings or leaves Yotpo.
 
 ### Connecting Your Account
 
 To connect your Yotpo account to Google and start showing your site reviews and seller rating:
 
-1. In your Yotpo Reviews main menu, go toMeta & Google>Google Seller Ratings.
-2. ClickConnect. We’ll now prepare and send your site reviews feed to Google.It usually takes 2-6 weeks for Google to process your feed. After this is complete, you’ll start seeing your site reviews and seller ratings on Google. We’ll send Google an update every time a new review is collected.
+1. In your Yotpo Reviews main menu, go to Meta & Google > Google Seller Ratings.
+2. Click Connect. We’ll now prepare and send your site reviews feed to Google.It usually takes 2-6 weeks for Google to process your feed. After this is complete, you’ll start seeing your site reviews and seller ratings on Google. We’ll send Google an update every time a new review is collected.
 
 Once you connect, you will be able to see:
 
@@ -87,13 +87,13 @@ Once you connect, you will be able to see:
 
 #### Checking Your Seller Rating
 
-If you want to check if Google is showing your site reviews and seller rating, click theCheck if your store has a seller ratinglink on theSeller Rating pageof Yotpo Reviews.
+If you want to check if Google is showing your site reviews and seller rating, click the Check if your store has a seller rating link on the Seller Rating page of Yotpo Reviews.
 
-The site reviews shown in thesearch resultsand theGoogle Seller Ratings pagewill only includereviews from the last 12 months.
+The site reviews shown in the search results and the Google Seller Ratings page will only include reviews from the last 12 months.
 
 Tip
 
-We have a few solutions to help you collect more site review. To learn more, seeGenerating More Site Reviews for Google Seller Ratings.
+We have a few solutions to help you collect more site review. To learn more, see Generating More Site Reviews for Google Seller Ratings.
 
 ### Google Seller Ratings vs. Google My Business Reviews
 
@@ -151,18 +151,18 @@ There are several reasons why you might not see your site reviews or seller rati
 
 Follow the steps below to troubleshoot:
 
-1. Check you’re eligible to show a seller rating by reviewing theGoogle seller rating requirements. There may not be enough reviews yet, in which case you will see ‘No rating yet’ when clicking the link on theSeller Rating pageof Yotpo Reviews:
+1. Check you’re eligible to show a seller rating by reviewing the Google seller rating requirements. There may not be enough reviews yet, in which case you will see ‘No rating yet’ when clicking the link on the Seller Rating page of Yotpo Reviews:
 
 1. Wrong country code - the link has the wrong country code - the link redirects you to a page with a specific country code. In the example below, the country code is for Austria:If most of your eligible reviews were collected in the U.S., it will seem as though there’s something wrong with your Google seller ratings. Change the country code to match the source country of users who submitted reviews. To view reviews from a different country source, change the two letters after the "&c=" part of the URL to the relevant two-letter ISO country code.
 
-For a full list of ISO country codes, please clickhere.
+For a full list of ISO country codes, please click here.
 
-1. Wrong store URL - the wrong URL may prevent a seller ratings page from loading. You can go to theGeneral Settings pageof your Yotpo account and check if the URL under the ‘Your website’ field is correct. Correcting the URL should update the seller ratings within a few seconds.
-2. Make sure that no incentive is offered for your reviews. If a review is marked as 'incentivized', the review will not be eligible. To learn how to mark a review as 'Incentivized', seeModerating Reviews.
-3. Check the reviews were created by averified buyer. From our experience, reviews that haven’t originated via email may not show up.Still can’t see your seller ratings?
+1. Wrong store URL - the wrong URL may prevent a seller ratings page from loading. You can go to the General Settings page of your Yotpo account and check if the URL under the ‘Your website’ field is correct. Correcting the URL should update the seller ratings within a few seconds.
+2. Make sure that no incentive is offered for your reviews. If a review is marked as 'incentivized', the review will not be eligible. To learn how to mark a review as 'Incentivized', see Moderating Reviews.
+3. Check the reviews were created by a verified buyer. From our experience, reviews that haven’t originated via email may not show up.Still can’t see your seller ratings?
 
-Google sometimes chooses not to show seller ratings. This might be for several reasons, for example, they believe the underlying feedback is unrelated to what's being advertised in a specific ad. In this case, we recommend youcontact Google support.
+Google sometimes chooses not to show seller ratings. This might be for several reasons, for example, they believe the underlying feedback is unrelated to what's being advertised in a specific ad. In this case, we recommend you contact Google support.
 
 ### Next Steps
 
-Set upGoogle Shopping Syndicationto make sure your product reviews are also visible on Google Shopping.
+Set up Google Shopping Syndication to make sure your product reviews are also visible on Google Shopping.

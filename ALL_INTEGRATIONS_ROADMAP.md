@@ -185,7 +185,7 @@ Not part of the suite:
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources approved by Leo and merged 2026-10-15 (PR #4, `docs/integrations/messaging_sources.md`); next: Leo creates the platforms |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
-| C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | todo | |
+| C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | done | Branch `v2/c1-3-refresh`, 2026-10-16; golden check 26/26 identical; details in Deviations |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PRs #6–#9, merged and deployed 2026-10-15; follow-ups from Leo's review (wording, popups, no tier, two states, products from documents, crawl box) in Deviations; live checks OK |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
@@ -729,20 +729,20 @@ serving stale answers.
 - `app.py` scheduler setup (1371-1425).
 
 **Tasks**
-- [ ] **Hash short-circuit.**
+- [x] **Hash short-circuit.**
   - After a successful fetch, compare `sha256(saved_text)` with the row's `content_hash`.
   - If equal and `vector_count > 0`: skip `vectorize_single_document`, set `last_crawled_at` and
     `crawl_status='completed'`, and record the job detail "unchanged; not re-indexed".
   - Do the same in the synchronous crawl path until C1.8 removes it.
-- [ ] **Document360 extraction rule** (host `support.yotpo.com`), in `_extract_text`:
+- [x] **Document360 extraction rule** (host `support.yotpo.com`), in `_extract_text`:
   - Choose the article container from the fixtures. **Inspect them; do not guess selectors.**
   - Drop the table of contents, the "Was this article helpful" block, related articles and
     "Change this text for …" lines.
   - Keep the header (Products / plans / platforms) at the top of the stored text.
-- [ ] **Header fields on crawl.** For `support.yotpo.com` documents, write `title`,
+- [x] **Header fields on crawl.** For `support.yotpo.com` documents, write `title`,
   `supported_plans` and `supported_platforms` from `doc_header.parse_header`. They are never a
   label (I1 stays human).
-- [ ] **Sitemap job.**
+- [x] **Sitemap job.**
   - `backend/sitemap_refresh.py` plus table `sitemap_urls` (`url PK`, `lastmod`, `first_seen_at`,
     `last_seen_at`, `gone_at`), Postgres and SQLite.
   - Daily job: fetch `https://support.yotpo.com/sitemap-en.xml` (and `sitemap_index.xml` for new
@@ -752,7 +752,7 @@ serving stale answers.
   - Mark vanished URLs `gone_at`.
   - Scheduled in the existing crawl scheduler (`USE_ASYNC_CRAWL`); C1.8 moves it.
   - `GET /api/admin/sitemap-changes?since=` returns new, vanished and changed URLs, unassigned.
-- [ ] **Retirement.**
+- [x] **Retirement.**
   - In `_finish_failed`, for `PERMANENT` with status 404 or 410: `consecutive_misses += 1`.
     Reset to 0 on success.
   - `describe_link` shows "missing 3 times — retire or replace" at ≥ 3.
@@ -760,7 +760,7 @@ serving stale answers.
     `crawl_status='retired'`.
   - `POST /api/admin/esp/<name>/replace {old_url, new_url}`: `add_document(new_url,
     product=<old product>)`, enqueue it, retire the old one after the new one indexes.
-- [ ] **Exclude retired rows** everywhere they would count:
+- [x] **Exclude retired rows** everywhere they would count:
   - `list_documents` default;
   - `get_documents_with_content` (rebuild);
   - Refresh All (`app.py:refresh_all`);
@@ -769,7 +769,7 @@ serving stale answers.
   - the label audit.
 
   List every query you change in the PR.
-- [ ] **Tests**, extending `test_crawl_pacing.py` (pure plus Postgres) or adding
+- [x] **Tests**, extending `test_crawl_pacing.py` (pure plus Postgres) or adding
   `test_refresh_pipeline.py`:
   - unchanged content does not call the vectorizer;
   - the Document360 rule on fixtures keeps the header and body and drops the boilerplate;
@@ -785,6 +785,59 @@ serving stale answers.
 **Note:** existing Yotpo documents pick up the new extraction only when re-crawled (their `lastmod`
 moves, or an admin re-crawls them). 🛑 An optional full re-crawl of Yotpo documents is Leo's call,
 followed by `retrieval_recall.py`.
+
+**Deviations** (2026-10-16)
+- **Where the rules live**: `backend/refresh.py` (unchanged text, misses, header fields, retire,
+  retire-after-replace), used by the worker and the synchronous Crawl Selected alike. Routes in
+  `backend/refresh_routes.py`; the sitemap in `backend/sitemap_refresh.py`.
+- **Hash skip**: unchanged means the same hash as the stored text *and* `vector_count > 0`; a NULL
+  count (indexed before counts) is re-indexed once, which records it. The job reads "Unchanged since
+  the last crawl; not re-indexed" (`error_kind = 'unchanged'`, shown as crawled).
+- **The Yotpo guide rule** (`crawler._extract_text`, only on support.yotpo.com and only when the
+  page has `article.editor360-preview-content`, which all six fixtures have): the article itself
+  (the table of contents, "Was this article helpful" and related articles sit outside it, as the
+  general rule already found); header slots whose every value is "Change this text for …" are
+  dropped; Yotpo's own closing "Having issues with the integration? Contact our support team." box
+  is dropped, but a partner's support address in the same box (Tapcart's) is kept; **spaces around
+  links are kept** ("go to Recharge Marketplace and"; the general rule joins them, "go toRecharge
+  Marketplaceand"). On the six fixtures every character of the old text is still there except the
+  placeholders and that box, and `doc_header` reads the same header. Every other site is read
+  exactly as before (`fixtures/document360/general/` keeps the old output; a test compares).
+  The glued words are a problem on every site: fixing them elsewhere is a separate decision for Leo.
+- **Header fields**: `title` comes from the page's own title (og:title, else `<title>`), plans and
+  platforms from `doc_header.parse_header`; never a label (I1).
+- **Sitemap**: read daily at **03:17 UTC** (a cron time: an every-24-hours timer restarts with every
+  deploy and might never fire), only where the crawl queue runs (`USE_ASYNC_CRAWL`, production).
+  Owners also have **Read it now** in Suggested Links. Re-crawls are queued at priority 0, only for
+  labelled, non-retired guides crawled before their sitemap date; never-crawled ones are left to the
+  admin. A sitemap under 80% of the last read's size marks nothing gone. The sitemap index's child
+  sitemaps are recorded and a new one is reported (only `sitemap-en.xml` today). The first read's
+  ~700 articles are not shown as "new". Times are compared as UTC (Railway Postgres runs in UTC).
+- **`GET /api/admin/sitemap-changes`** gives new, changed and vanished articles with the integration
+  that holds each (unassigned, as planned). The Suggested Links tab shows the new ones nobody holds
+  and our guides that vanished.
+- **Retirement**: a miss is a crawl that ends PERMANENT with 404/410 (also when a saved copy is
+  re-indexed instead; a saved copy doesn't reset the count). Retire refuses a document being crawled
+  right now and cancels its waiting crawls. A retired row keeps its row and label; **crawling it again
+  by hand brings it back** (un-retired by its own crawl only). **Replace** adds the new link with the
+  old one's label, queues it (`replaced_by` column on the old row) and retires the old one when the
+  new one is indexed, so the integration is never without the page. The admin shows retired
+  documents last with a "Retired" badge; the miss line offers "Replace with its new address…" and
+  "Retire it".
+- **Queries that now leave retired rows out**: `esp_manager.list_documents` (default; Refresh All,
+  global knowledge lists), `get_documents_with_content` (Rebuild Vectors), `reviews_documents`
+  (Reviews coverage), `get_esp_stats`, `list_esps`' document count, `DOCUMENT_STATE_QUERY` (default;
+  the admin's integration page asks for them, listed last), the sitemap's re-crawl selection, and
+  `eval/audit_product_labels.py` (a vector left for a retired row reports as "no database row").
+  Already excluded before: the integrations summary, crawl summary, facts block, proposals counts.
+- **Schema** (additive, both adapters, at boot): table `sitemap_urls`; column
+  `esp_documents.replaced_by`.
+- **Not run**: the Postgres part of `test_crawl_pacing.py` (no `TEST_DATABASE_URL`). The worker's
+  job processing is tested on SQLite (`test_refresh_pipeline.py`, NOW() rewritten); claiming jobs
+  is untouched.
+- **Verified locally** on SQLite with a local index, against the live support.yotpo.com: the Recharge
+  guide crawled twice was indexed once (7 chunks), then "Unchanged…"; its title and plans were
+  stored; Retire and a later crawl brought it back; the sitemap read 713 articles in a second.
 
 **Rollback:** revert. The new columns and table stay unused.
 
@@ -1707,5 +1760,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
+| 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, daily sitemap (`sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (16); golden 26/26 | Claude Code |
 | 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

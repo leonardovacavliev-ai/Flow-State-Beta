@@ -147,6 +147,10 @@ if USE_DATABASE_ESP_ROUTES:
     from admin_integrations_routes import register_admin_integrations_routes
     register_admin_integrations_routes(app, use_async_crawl=USE_ASYNC_CRAWL)
 
+    # Keeping documents current: retire, replace, the sitemap (C1.3)
+    from refresh_routes import register_refresh_routes
+    register_refresh_routes(app, vectorizer, use_async_crawl=USE_ASYNC_CRAWL)
+
 # Health check endpoint for Railway
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -1599,8 +1603,15 @@ if USE_ASYNC_CRAWL:
             minutes=5,
             id='cleanup_stale_jobs'
         )
+        # support.yotpo.com's sitemap, daily (C1.3): re-crawls the Yotpo
+        # guides that changed. A fixed hour, not every 24 h from boot: each
+        # deploy would restart that clock
+        from refresh_routes import run_sitemap_refresh
+        scheduler.add_job(func=run_sitemap_refresh, args=[True], trigger='cron', hour=3, minute=17,
+                          id='sitemap_refresh', misfire_grace_time=3600, coalesce=True)
         scheduler.start()
-        print("[ASYNC CRAWL] Stale job cleanup scheduler started (every 5 minutes)")
+        print("[ASYNC CRAWL] Stale job cleanup scheduler started (every 5 minutes); "
+              "sitemap refresh daily at 03:17")
 
         # Graceful shutdown on exit
         import atexit

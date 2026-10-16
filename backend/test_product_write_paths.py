@@ -246,13 +246,14 @@ def test_one_unlabelled_link_does_not_block_the_batch():
     m = mgr()
     m.add_document(ESP, 'https://x.test/ok-batch', product='loyalty')
     import app_admin_esp_routes as routes
-    real = routes.crawl_single_url_detailed
-    routes.crawl_single_url_detailed = lambda url, esp, base: (None, 'offline in tests')
+    from crawler import FetchResult, TRANSIENT
+    real = routes.crawl_single_url_result
+    routes.crawl_single_url_result = lambda url, esp, base: (None, FetchResult(TRANSIENT, error='offline in tests'))
     try:
         r = c.post(f'/api/admin/esp/{ESP}/crawl-selected',
                    json={'urls': ['https://x.test/legacy-batch', 'https://x.test/ok-batch']})
     finally:
-        routes.crawl_single_url_detailed = real
+        routes.crawl_single_url_result = real
     failed = {f['url']: f['error'] for f in r.get_json()['results']['failed']}
     assert r.status_code == 200
     assert 'No product label' in failed['https://x.test/legacy-batch']

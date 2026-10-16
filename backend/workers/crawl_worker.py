@@ -37,6 +37,7 @@ from adapters.database.db_manager import get_database_adapter
 from adapters.vector.vector_manager import get_vector_adapter
 from mechanics_cache import clear_mechanics_cache
 from workers.crawl_queue import plan_retry, repair_queue, INDEX, BACKFILLED
+import refresh
 
 # How long an idle thread waits before looking for a claimable job again:
 # 1s right after work (the next job is usually just waiting out its host's
@@ -238,7 +239,8 @@ class CrawlWorker:
 
         try:
             result = self.db.execute_query("""
-                SELECT d.url, d.filename, e.name, d.content IS NOT NULL, d.product
+                SELECT d.url, d.filename, e.name, d.content IS NOT NULL, d.product,
+                       d.content_hash, d.vector_count
                 FROM esp_documents d
                 JOIN esps e ON d.esp_id = e.id
                 WHERE d.id = %s
@@ -246,7 +248,7 @@ class CrawlWorker:
             if not result:
                 self._finish_failed(job, None, FetchResult(PERMANENT, error="The document was deleted"), None)
                 return
-            url, old_filename, esp_name, has_content, product = result[0]
+            url, old_filename, esp_name, has_content, product, stored_hash, vector_count = result[0]
         except Exception as e:
             # Database hiccup before we even know the URL: retry the job
             self._handle_failure(job, None, None, FetchResult(TRANSIENT, error=f"Internal error: {e}"))
@@ -254,6 +256,7 @@ class CrawlWorker:
 
         doc = {'id': document_id, 'url': url, 'filename': old_filename,
                'esp_name': esp_name, 'has_content': bool(has_content)}
+        fields = {}
 
         # Indexing an unlabelled document is refused, so don't spend a fetch
         # (and the host's rate limit) on it, and don't retry: a label is
@@ -288,6 +291,13 @@ class CrawlWorker:
             self._handle_failure(job, doc, filename, FetchResult(
                 TRANSIENT, error=f"Crawled, but saving it locally failed: {e}"))
             return
+        fields = refresh.header_fields(url, fetch.content, fetch.title)
+        if refresh.unchanged(stored_hash, vector_count, content):
+            # Same text as the stored copy, already indexed: its chunks would
+            # come out the same, so the index is left alone (C1.3)
+            self._finish_completed(job, doc, filename, content, unchanged=True, fields=fields)
+            print(f"[WORKER] ✓ Job {job_id}: {refresh.UNCHANGED_NOTE}")
+            return
         try:
             vectorize_single_document(self.vectorizer, esp_name, url, filepath, filename, content=content)
         except Exception as e:
@@ -296,9 +306,19 @@ class CrawlWorker:
                 INDEX, error=f"Crawled, but adding it to the search index failed: {e}"))
             return
 
-        self._finish_completed(job, doc, filename, content)
+        self._finish_completed(job, doc, filename, content, fields=fields)
+        self._finish_replacements(document_id)
         self._notify_indexed(esp_name)
         print(f"[WORKER] ✓ Job {job_id} completed: {filename}")
+
+    def _finish_replacements(self, document_id):
+        """A Replace waits for its new document to be indexed: retire the old
+        one now (refresh.retire_replaced)."""
+        try:
+            for url in refresh.retire_replaced(self.db, self.vectorizer, document_id):
+                print(f"[WORKER] Retired {url}: replaced by a newly indexed document")
+        except Exception as e:
+            print(f"[WORKER] Could not retire the documents this one replaces: {e}")
 
     def _notify_indexed(self, esp_name):
         """
@@ -396,8 +416,10 @@ class CrawlWorker:
         else:
             print(f"[WORKER] Job {job['id']} was cancelled while running; not retrying")
 
-    def _finish_completed(self, job: Dict, doc: Dict, filename, content, note=None):
-        """Record a successful crawl (or a re-index from the saved copy)."""
+    def _finish_completed(self, job: Dict, doc: Dict, filename, content, note=None,
+                          unchanged=False, fields=None):
+        """Record a successful crawl (or a re-index from the saved copy, with
+        `note`; or a crawl whose text hadn't changed, `unchanged`)."""
         # The document is updated even if the job was cancelled mid-flight:
         # its vectors were already replaced, so the stored content must match
         self.db.execute_query("""
@@ -412,6 +434,10 @@ class CrawlWorker:
             WHERE id = %s
         """, (filename, hashlib.sha256(content.encode()).hexdigest(), content,
               job['id'], doc['id']))
+        # Header fields, misses back to 0, un-retired if this crawl is its
+        # own; a saved copy keeps its misses: the page is still gone
+        refresh.record_success(self.db, doc['id'], fields or {}, job_id=job['id'],
+                               reset_misses=not note)
 
         if job.get('host') and not note:
             self.db.execute_query(
@@ -424,7 +450,8 @@ class CrawlWorker:
                 error_kind = %s,
                 error_message = %s
             WHERE id = %s AND status = 'processing'
-        """, (BACKFILLED if note else None, note, job['id']))
+        """, (BACKFILLED if note else (refresh.UNCHANGED if unchanged else None),
+              note or (refresh.UNCHANGED_NOTE if unchanged else None), job['id']))
 
     def _finish_failed(self, job: Dict, doc: Optional[Dict], fetch: FetchResult, error):
         error = error or fetch.error or 'Crawl failed'
@@ -442,6 +469,9 @@ class CrawlWorker:
             print(f"[WORKER] Job {job['id']} was cancelled while running")
             return
 
+        if doc and refresh.is_miss(fetch.kind, fetch.status_code):
+            # Page gone: counted, so the admin can retire or replace it
+            refresh.record_miss(self.db, doc['id'])
         if doc:
             # Only if this is still the document's latest job; a newer crawl
             # of the same URL owns its status otherwise
@@ -520,6 +550,8 @@ class CrawlWorker:
             note = "Pasted content — re-indexed from the saved copy"
         else:
             note = f"Couldn't crawl ({fetch.error}); re-indexed from the saved copy instead"
+            if refresh.is_miss(fetch.kind, fetch.status_code):
+                refresh.record_miss(self.db, doc['id'])
         self._finish_completed(job, doc, filename, content, note=note)
         self._notify_indexed(esp_name)
         print(f"[WORKER] ✓ Job {job['id']}: {note}")
