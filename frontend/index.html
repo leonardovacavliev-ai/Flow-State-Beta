@@ -241,7 +241,7 @@
             border-top: 4px solid oklch(0.145 0 0);
         }
     </style>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=design-pass-1">
 </head>
 <body class="antialiased bg-background text-foreground">
     <div class="flex h-screen overflow-hidden">
@@ -485,7 +485,7 @@
                         <!-- Time Range Selector -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-card-foreground mb-2">Time Range</label>
-                            <select id="analyticsTimeRange" class="px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                            <select id="analyticsTimeRange" class="h-10 px-3 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                                 <option value="all_time">All Time</option>
                                 <option value="last_90_days">Last 90 Days</option>
                                 <option value="last_30_days">Last 30 Days</option>
@@ -943,7 +943,7 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=find-links-1"></script>
+    <script src="app.js?v=design-pass-1"></script>
     <script src="admin-integrations.js?v=design-pass-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>
