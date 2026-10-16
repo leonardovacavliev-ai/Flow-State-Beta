@@ -498,9 +498,10 @@ for now (Leo), one run per integration at a time (roadmap C1.10, R1). Adding an 
 the same search at once (Leo, 2026-10-16): the Add integration dialog asks for its name, its kind of
 platform and, optionally, its website, and its suggestions wait in Suggested Links.
 
-**Daily sitemap job** (in the worker's scheduler):
+**Monthly sitemap job** (in the worker's scheduler; monthly, not daily: Leo, 2026-10-16; built in
+roadmap C1.3):
 - For every known `support.yotpo.com` document whose `lastmod` is newer than `last_crawled_at`,
-  enqueue a re-crawl.
+  enqueue a re-crawl (not on the very first read, which only records the sitemap).
 - List new and vanished sitemap URLs for the admin, **unassigned**. Slugs are not matched to
   integrations automatically, because catalog names collide with ordinary words (Rule, Target,
   Drip, Novel, Insider, Checkout, Attentive, Gladly, Cordial).

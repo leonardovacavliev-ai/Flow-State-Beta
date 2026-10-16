@@ -185,14 +185,14 @@ Not part of the suite:
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources approved by Leo and merged 2026-10-15 (PR #4, `docs/integrations/messaging_sources.md`); next: Leo creates the platforms |
 | C1.1 | Schema, canonical key, URL normalisation | C0.1 | dev | 3–4 d | done | PR #3, deployed 2026-10-13; URL fix and key rename applied by Leo |
 | C1.2 | Document360 header parser + catalog import (dry run) | C1.1 | dev | 4–5 d | done | PR #5, merged and deployed 2026-10-15; adds partner mechanics (Leo's design); report `docs/integrations/catalog_dry_run.md`, read by Leo |
-| C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | done | Branch `v2/c1-3-refresh`, 2026-10-16; golden check 26/26 identical; details in Deviations |
+| C1.3 | Refresh pipeline: hash skip, Document360 extraction, sitemap job, retirement | C1.1, C1.2 | dev | 3–4 d | done | Merged (`dbf63cb`) and deployed 2026-10-16; golden check 26/26 identical; live health, Klaviyo chat (15 sources), unknown-key 400, new routes admin-only OK; details in Deviations |
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PRs #6–#9, merged and deployed 2026-10-15; follow-ups from Leo's review (wording, popups, no tier, two states, products from documents, crawl box) in Deviations; live checks OK |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
 | C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | done | PR #10, merged (`55124c7`) and deployed 2026-10-16; golden check 26/26 identical; live health, Klaviyo chat (16 sources), unknown-key 400 and owner-only routes OK. 🛑 still open: Leo reads the four drafts (Admin → General Settings → Kind of platform) |
 | C1.8 | Portability seams, Sentry, no local disk | C1.3 | dev + 🛑 | 3–4 d | todo | |
 | C1.9 | Production import, approvals, labelling | C1.2–C1.8 deployed | 🛑 Leo | 4–6 h | todo | |
-| C1.10 | "Find links" for one integration, and the Add integration dialog | C1.4 | dev + 🛑 model budget | 2–3 d | done | Leo, 2026-10-15: needed for a complete product; 2026-10-16: adding an integration starts it. Branch `v2/c1-10-find-links`; no longer waits for C1.3 (Deviations) |
+| C1.10 | "Find links" for one integration, and the Add integration dialog | C1.4 | dev + 🛑 model budget | 2–3 d | done | Leo, 2026-10-15: needed for a complete product; 2026-10-16: adding an integration starts it. Merged (`fecd270`) and deployed 2026-10-16, live checks OK; built before C1.3 (Deviations) |
 | R1 | Routine: re-run the catalog import | C1.9 | 🛑 Leo (dev prepares) | ~1 h each | from C1.9, every 1–2 months | Leo, 2026-10-15; §7 Routines |
 | — | **Stage 1 exit gate** (§5 end) | C1.1–C1.9 | dev + 🛑 | — | todo | |
 | C2.0 | Trap-question eval tool | C1.7 | dev | 1–2 d | todo | |
@@ -234,7 +234,8 @@ Order inside Stage 1:
 - C1.8 waits for C1.3, because both touch the crawl path.
 - C1.10 waited for C1.3 (its sitemap table finds Yotpo guides for integrations the catalog doesn't
   list) and C1.4 (results land in its inbox). It was built first and reads the sitemap itself
-  (C1.10 Deviations); once C1.3 lands it can read the table. C1.9 does not wait for C1.10.
+  (C1.10 Deviations). C1.3 has landed since: reading its `sitemap_urls` instead is a small
+  follow-up. C1.9 does not wait for C1.10.
 
 ---
 
@@ -1781,6 +1782,8 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
+| 2026-10-16 | C1.3 | Merged (`dbf63cb`) and deployed; live smoke check OK. Leo: the sitemap is read monthly, not daily | Claude Code |
+| 2026-10-16 | C1.10 | Merged (`fecd270`) and deployed; live smoke check OK | Claude Code |
 | 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, monthly sitemap (Leo; `sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (18); review findings fixed; golden 26/26 | Claude Code |
 | 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |
