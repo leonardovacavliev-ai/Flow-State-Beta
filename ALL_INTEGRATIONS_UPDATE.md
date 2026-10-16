@@ -382,6 +382,7 @@ esps                 status: 'active' (in chat) | 'listed' (catalog only) | 'arc
                      + categories JSONB, products JSONB   -- from the catalog, editable
                      (lists are JSONB, TEXT holding JSON in SQLite, like vector_ids today)
                      + platform_type ('messaging' | 'storefront' | 'service' | 'data' | 'content')
+                       -- required for every integration (Leo, 2026-10-16); NULL only on 'global'
                      + catalog_description
 esp_documents        + title, source_kind ('yotpo_support' | 'yotpo_developer' | 'partner' | 'pasted'),
                        supported_plans JSONB, supported_platforms JSONB  -- from the Yotpo header

@@ -2,7 +2,7 @@
 
 Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2),
 the third (C0.4 merge, C1.4) and the fourth (C1.7, deployed 2026-10-16; GitHub restriction and the
-workflow's removal, §5).
+workflow's removal, §5; integrations require their kind, I10).
 Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
@@ -22,6 +22,7 @@ your session with the agenda for the one after.
 | #8 | C1.4 | Working "i" popups (hover, focus, click); coverage tier ("Ready / Missing documents") removed; Hidden merged into Not in chat (admin can't set `archived`); Loyalty/Reviews ticked automatically from labelled documents (computed, locked) |
 | #9 | C1.4 | Crawls box shown only when something is waiting, failed, never crawled, or crawled since the tab was opened |
 | #10 | C1.7 | A system prompt per platform type: four shipped drafts (`backend/prompts/`), per-type storage, audit and undo, the integration facts block, integration source headers, the editor's kind picker and preview. Messaging unchanged (golden 26/26). Merged with plain git as `55124c7` |
+| — | I10 | No integration without its kind of platform (Leo, 2026-10-16): Create New Integration asks for the kind (non-messaging kinds created not in chat), `create_esp` requires it, the import leaves kindless ones out. Merged with plain git (branch `v2/type-required`) |
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
 
 Production data steps Leo ran on 2026-10-13:
@@ -49,9 +50,6 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 **Open, waiting for Leo:**
 - **C1.7 drafts:** Leo reads the four drafts once (Admin → General Settings → Kind of platform;
   "Preview for…" shows one for a real integration). Final wording happens in each wave.
-- **Rotate two leaked secrets:** the live Pinecone key and the production database password are in
-  the repo's history (July–August docs and scripts). Leo replaces both, then updates Railway's
-  variables and the local `.env`. Rewriting history only with his OK.
 - **Before the first non-messaging wave:** should a chat whose integration type can't be read be
   refused instead of answered with the messaging prompt? (roadmap C1.7 Deviations)
 - **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → Create New
@@ -98,6 +96,7 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
   instead (§4). If Leo wants a PR page, he opens it.
 - Leo still does these himself: open the admin panel (Google sign-in) and run production data
   scripts.
+- **Don't ask Leo to replace or rotate keys** (Leo, 2026-10-16).
 
 ## 3. Next work, in order
 
@@ -219,9 +218,7 @@ Leo when a change touches the database code, and ask how he wants it tested.
   (workflows used "to interact with 3rd party websites … or for general computing") and asked
   for workflows to be removed, credentials the violation used to be deleted, and an
   acknowledgement. Our workflow was ordinary CI with no secrets, but Leo had it deleted
-  (`dc79c2a`) and replied to GitHub. Don't add a workflow back without his OK. Separately, the
-  history holds the live Pinecone key and production database password (July–August docs and
-  scripts); Leo rotates both once he can sign in again. Before a merge, check that URL once without a token
+  (`dc79c2a`) and replied to GitHub. Don't add a workflow back without his OK. Before a merge, check that URL once without a token
   (200 = fine; 404 = restricted: stop, don't merge, tell Leo).
 - **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
   disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
@@ -241,7 +238,11 @@ Leo when a change touches the database code, and ask how he wants it tested.
   (`ESPManager.is_active_integration`). Any test or tool driving `/api/chat` on an empty database
   must create the integration first. `check_context_unchanged.py` does.
 - **The `platform_type` boot seed ran once** and is recorded in `app_settings`
-  (`seed:platform_type_messaging`). New integrations get their type from `create_esp`, which
-  defaults to `messaging`; C1.2's import sets its own.
+  (`seed:platform_type_messaging`).
+- **No integration without its kind of platform** (Leo, 2026-10-16; roadmap I10). `create_esp`
+  requires `platform_type` (no default; `None` only for `global`); Create New Integration asks for
+  it and creates non-messaging kinds not in chat; the catalog import leaves out an integration
+  whose categories give no kind and lists it in its report. Any new way of adding an integration
+  must do the same.
 - **First deploy after a dependency change is slow**: the full CUDA stack reinstalls (several
   GB). If build time or image size starts to hurt, that is CX.3's trigger.

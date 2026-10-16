@@ -142,8 +142,12 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
 
     @app.route('/api/admin/esp/create', methods=['POST'])
     def create_esp():
-        """Create a new ESP. Owner-only: it is active, in chat at once, and
-        putting an integration into chat is an owner's call (C1.4)."""
+        """Create a new integration: {name, platform_type, display_name?}.
+
+        Owner-only: putting an integration into chat is an owner's call
+        (C1.4). The kind of platform is required (Leo, 2026-10-16). A kind
+        whose prompt is in chat (TYPES_IN_CHAT) goes into chat at once; any
+        other kind is created not in chat."""
         if not check_admin_password():
             return jsonify({'error': 'Admin access requires a Yotpo Google account'}), 403
         from auth import owner_request_ok, OWNER_ONLY_ERROR
@@ -162,8 +166,13 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             if not display_name:
                 display_name = name.title()
 
-            # Create in database
-            esp = esp_mgr.create_esp(name, display_name, description)
+            from admin_integrations_routes import TYPES_IN_CHAT
+            platform_type = data.get('platform_type')
+            status = 'active' if platform_type in TYPES_IN_CHAT else 'listed'
+
+            # Create in database (refuses a missing or unknown kind)
+            esp = esp_mgr.create_esp(name, display_name, description,
+                                     platform_type=platform_type, status=status)
 
             # Create filesystem folder for backward compatibility
             docs_path = os.path.join(BASE_PATH, 'docs', esp['name'])
@@ -172,7 +181,8 @@ def register_esp_admin_routes_async(app, BASE_PATH, vectorizer):
             return jsonify({
                 'success': True,
                 'message': f"ESP '{display_name}' created successfully",
-                'esp': esp
+                'esp': esp,
+                'in_chat': status == 'active'
             })
         except ValueError as e:
             return jsonify({'error': str(e)}), 400

@@ -118,6 +118,7 @@ So:
 | I7 | Every string that reaches HTML from the database or the catalog is escaped (`escapeHtml` / `escapeAttr`, `app.js:12-19`) | code review checklist in each UI PR |
 | I8 | Nothing new depends on Railway, and nothing new stores state on local disk | review; C1.8 removes what exists |
 | I9 | Only Yotpo Loyalty & Referrals and Yotpo Reviews (incl. UGC) are in scope | catalog import ignores other products; header parser ignores SMS & Email and Subscriptions |
+| I10 | No integration is added without its kind of platform (`platform_type`); only the hidden `global` row has none (Leo, 2026-10-16). The kind decides which prompt answers, so it is chosen when the integration is created, never left for later | `esp_manager.create_esp` requires it (`require_platform_type`); Create New Integration has a required "Kind of platform" choice; the catalog import doesn't create an integration whose categories give no kind and lists it in the report; PATCH refuses an empty kind; `test_integrations_schema`, `test_admin_integrations`, `test_catalog_import` |
 
 ### 1.3 Conventions
 
@@ -537,7 +538,8 @@ and pastes any that are blocked.
 - **The boot seed runs once**, recorded in `app_settings` (`seed:platform_type_messaging`), not on
   every boot. Otherwise a catalog row imported in C1.2 with no type would become `messaging` at the
   next boot.
-- **`create_esp` defaults `platform_type` to `messaging`.** Today's admin only creates email/SMS
+- **`create_esp` defaults `platform_type` to `messaging`** (superseded 2026-10-16 by I10: no default,
+  the kind is required). Today's admin only creates email/SMS
   platforms (C0.4's 13 included). The hidden `global` row is created with `None`.
 - **`vector_count` is recorded inside `vectorize_single_document`**, not by each caller. Every
   indexing path goes through it, so none can skip it. A failure to record the count is logged; it
@@ -899,8 +901,10 @@ Management, whose N+1 fetch-and-render cannot scale.
   "evaluated" flag (plan §4.1); the design's Usage Analytics additions (plan §4.9), which need the
   C1.5 picks and a source count per chat message; user-facing "ESP" strings outside the admin
   (sidebar, feedback modal), which C1.5 rewrites.
-- **Create New Integration is owner-only**: it creates an `active` messaging integration, in chat
-  at once, and putting an integration into chat is an owner's call like its status.
+- **Create New Integration is owner-only**: putting an integration into chat is an owner's call
+  like its status. Since 2026-10-16 (I10) it asks for the kind of platform, required, nothing
+  pre-selected: an Email & SMS platform goes into chat at once, any other kind is created "Not in
+  chat" (`TYPES_IN_CHAT`).
 - **Refresh All and Rebuild Vectors "all" include listed integrations**, so a listed one's
   documents are current and indexed on the day it goes active.
 - **Approving a link that is already this integration's document** (added by hand, or an approve
@@ -1609,6 +1613,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
 | No coverage tier; two states (in chat / not in chat); products follow the documents (Leo, 2026-10-15) | C1.4 Deviations; plan §4.1's tier is dropped |
 | New links keep coming after the first import: the import is re-run by hand every 1–2 months (R1), and any integration can be searched on demand with "Find links" (Leo, 2026-10-15) | C1.10 and R1; still no scheduled discovery: everything found is a suggestion a person approves |
+| No integration without its kind of platform (Leo, 2026-10-16) | I10: the kind is required wherever an integration is created; the import leaves out one whose categories give no kind and reports it |
 | Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
 ---
@@ -1642,3 +1647,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
+| 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

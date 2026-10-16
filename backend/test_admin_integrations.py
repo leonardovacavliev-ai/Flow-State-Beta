@@ -562,6 +562,33 @@ def test_roles():
         as_user()
 
 
+def test_create_needs_a_kind():
+    """Create New Integration refuses an integration without its kind of
+    platform (Leo, 2026-10-16); only a kind whose prompt is in chat goes in."""
+    c = app_client()
+    as_user(owners=None)
+    mgr = esp_manager.get_esp_manager()
+    for body in ({'name': 'nokind_t'}, {'name': 'nokind_t', 'platform_type': ''},
+                 {'name': 'nokind_t', 'platform_type': 'email'}):
+        r = c.post('/api/admin/esp/create', json=body)
+        assert r.status_code == 400 and 'kind of platform' in r.get_json()['error'], body
+    assert mgr.get_esp_by_name('nokind_t', include_archived=True) is None
+    r = c.post('/api/admin/esp/create', json={'name': 'Mail Kind T', 'platform_type': 'messaging'})
+    body = r.get_json()
+    assert r.status_code == 200 and body['in_chat'] is True and body['esp']['status'] == 'active'
+    r = c.post('/api/admin/esp/create', json={'name': 'Store Kind T', 'platform_type': 'storefront'})
+    body = r.get_json()
+    assert r.status_code == 200 and body['in_chat'] is False and body['esp']['status'] == 'listed'
+    row = mgr.get_esp_by_name('store_kind_t')
+    assert row['status'] == 'listed' and not mgr.is_active_integration('store_kind_t')
+    # The create route still makes an empty docs/<name> folder in the repo
+    for name in ('mail_kind_t', 'store_kind_t'):
+        try:
+            os.rmdir(os.path.join(os.path.dirname(HERE), 'docs', name))
+        except OSError:
+            pass
+
+
 def test_owner_checks_in_the_async_routes():
     """Production registers the async ESP routes; their owner checks too."""
     from flask import Flask

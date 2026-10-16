@@ -122,7 +122,8 @@ def migrate_esps():
             esp = esp_mgr.create_esp(
                 name=esp_name,
                 display_name=display_name,
-                description=f"Migrated from filesystem on {os.environ.get('USER', 'unknown')}"
+                description=f"Migrated from filesystem on {os.environ.get('USER', 'unknown')}",
+                platform_type='messaging'   # every ESP from before v2 is email/SMS
             )
             print(f"✓ Created ESP: {display_name} ({esp_name})")
             migrated += 1
