@@ -474,7 +474,7 @@
                     <span class="truncate" data-filter-label>${esc(pickLabel(label, f[key].length))}</span>
                     <svg class="w-4 h-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                 </summary>
-                <div class="absolute z-20 mt-1 min-w-full w-max bg-background border border-border rounded-lg shadow-lg p-1" role="group" aria-label="${attr(label)}">
+                <div class="absolute z-20 mt-1 min-w-full w-max max-w-[calc(100vw-2rem)] ${key === 'flag' ? 'right-0' : 'left-0'} bg-background border border-border rounded-lg shadow-lg p-1" role="group" aria-label="${attr(label)}">
                     ${options.map(([v, t]) => `
                         <label class="flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-muted whitespace-nowrap">
                             <input type="checkbox" value="${attr(v)}" ${f[key].includes(v) ? 'checked' : ''}>
