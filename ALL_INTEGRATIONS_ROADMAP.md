@@ -1334,8 +1334,13 @@ the Gemini key is the live chat's prepaid key.
   before anything is created.
 - **The website field is new** (optional). A platform yotpo.com doesn't list has no other way to
   tell the search where its help lives. A help site (help./docs./… or a /help path) is used as the
-  help centre; a homepage gives the domain, and its "Help Center" link is followed. The last run's
+  help centre; a homepage is trusted as the platform's own site even when its domain doesn't carry
+  the name (shop.app for "Shop App"), and its "Help Center" link is followed. The last run's
   website is kept with the run and used again by "Find links again".
+- **Only public addresses** (independent review): Find links checks the typed website, every
+  address it fetches and every redirect hop (`link_finder.public_address_problem`: resolves the
+  name; refuses this server, private networks, link-local and metadata addresses, other ports and
+  user:password@ addresses). The yotpo.com import and the crawler keep their plain fetching.
 - **No sitemap table yet**: C1.3 isn't built, so a run reads `support.yotpo.com/sitemap-en.xml`
   itself (one request) for renamed guides and for guides found by name. C1.10 therefore no longer
   waits for C1.3. When C1.3's `sitemap_urls` exists, `find_links_job.run_once` can read it instead.
@@ -1365,7 +1370,8 @@ the Gemini key is the live chat's prepaid key.
   yotpo.com links and Yotpo guides and says the help-article step was skipped; the import's stored
   notes for that integration are then left as they were.
 - **A help-centre fix that also changes the import**: a link on the partner's homepage now counts as
-  its help centre only on a help host or a help path. kustomer.com's menu "Guides" (marketing
+  its help centre only on a help host or a help path (`/help`, `/docs`, …; a language segment like
+  `/en/resources` doesn't count). kustomer.com's menu "Guides" (marketing
   resources) had made `https://www.kustomer.com/` its "help centre"; its "Help Center" link
   (help.kustomer.com) now wins. The next catalog dry run may pick better help centres for some
   integrations; on the test fixtures the plan and report are byte-identical before and after.
@@ -1701,5 +1707,5 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | — | GitHub restricted Leo's account after Claude Code's automation; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
 | 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
 | 2026-10-16 | C1.7 | Account reinstated; merged with plain git (`55124c7`), deployed, live smoke check OK | Claude Code |
-| 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (13) | Claude Code |
+| 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
 | 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

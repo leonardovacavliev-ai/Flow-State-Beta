@@ -862,7 +862,7 @@
 
     // Why no help articles were suggested, in words (HTML: the site is a link)
     function helpLineHTML(run) {
-        if (run.model_skipped) return `Its help articles weren't looked for: the AI key isn't set.${run.help_centre ? ` Its help site: ${siteLink(run.help_centre)}.` : ''}`;
+        if (run.model_skipped) return `Its help articles weren't looked for: ${run.model_problem === 'unavailable' ? "the AI didn't start (see the server log)" : "the AI key isn't set"}.${run.help_centre ? ` Its help site: ${siteLink(run.help_centre)}.` : ''}`;
         if (run.blocked) return `Its help site${run.help_centre ? ` (${siteLink(run.help_centre)})` : ''} blocks automatic reading: add its help articles yourself, labelled Shared.`;
         if (!run.help_centre) return "Its help site wasn't found: give its website below and run it again, or add its help articles yourself.";
         const p = run.help_problem || '';
@@ -964,7 +964,8 @@
 
     async function startFindLinks(i) {
         const btn = $('findLinksCard')?.querySelector('[data-find-links]');
-        if (btn) btn.disabled = true;
+        if (!btn || btn.disabled) return;     // a second Enter while it starts
+        btn.disabled = true;
         const website = ($('findWebsite')?.value || '').trim();
         try {
             const data = await sendJSON('POST', `/admin/integrations/${encodeURIComponent(i.name)}/find-links`, { website });
@@ -973,20 +974,26 @@
             renderFindCard(i);
         } catch (error) {
             alert(`Could not start Find links: ${error.message}`);
-            if (btn) btn.disabled = false;
+            btn.disabled = false;
         }
     }
 
     async function pollFindLinks(name) {
         S.findTimer = null;
         if (S.open !== name || !S.detail) return;
+        // Not on screen (panel closed, another tab): stop; opening the
+        // integration again starts it over
+        if ($('espManagementTab')?.classList.contains('hidden') || $('adminModal')?.classList.contains('hidden')) return;
         let run;
         try {
             run = (await getJSON(`/admin/integrations/${encodeURIComponent(name)}/find-links`)).run;
         } catch (error) {
-            S.findTimer = setTimeout(() => pollFindLinks(name), FIND_POLL_MS * 2);
+            // A passing error is tried again a few times; then the page says what it last knew
+            S.findErrors = (S.findErrors || 0) + 1;
+            if (S.findErrors < 5) S.findTimer = setTimeout(() => pollFindLinks(name), FIND_POLL_MS * 2);
             return;
         }
+        S.findErrors = 0;
         if (S.open !== name) return;
         if (run && run.state === 'running') {
             S.detail.find_links = run;
@@ -1067,7 +1074,8 @@
         submit.textContent = 'Adding…';
         let data;
         try {
-            data = await sendJSON('POST', '/admin/esp/create', { name, platform_type: kind, website, find_links: true });
+            // display_name keeps the name as typed (HubSpot, dotdigital)
+            data = await sendJSON('POST', '/admin/esp/create', { name, display_name: name, platform_type: kind, website, find_links: true });
         } catch (error) {
             setAddError(error.message);
             submit.disabled = false;
@@ -1090,7 +1098,7 @@
         modal.addEventListener('mousedown', (e) => { if (e.target === modal) closeAddDialog(); });
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                e.stopPropagation();
+                e.stopImmediatePropagation();
                 closeAddDialog();
             }
         });

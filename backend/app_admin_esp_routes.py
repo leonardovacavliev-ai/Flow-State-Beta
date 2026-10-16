@@ -378,8 +378,13 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                 'in_chat': status == 'active'
             }
             if data.get('find_links'):
-                # The Add integration dialog: look for its links at once (C1.10)
-                run, problem, _ = start_find_links(app, esp['name'], data.get('website'))
+                # The Add integration dialog: look for its links at once (C1.10).
+                # The integration exists by now, so a failure here is reported
+                # beside it rather than as a failed create.
+                try:
+                    run, problem, _ = start_find_links(app, esp['name'], data.get('website'))
+                except Exception as e:
+                    run, problem = None, f'{type(e).__name__}: {e}'
                 result['find_links'] = run
                 if problem:
                     result['find_links_error'] = problem

@@ -42,6 +42,25 @@ import find_links_job as job  # noqa: E402
 import link_finder as lf  # noqa: E402
 import test_catalog_import as tci  # noqa: E402  (its fixtures and fake model)
 
+# Host names as the tests resolve them: no network. Anything else is public.
+ADDRESSES = {'localhost': '127.0.0.1', '0x7f.0.0.1': '127.0.0.1', 'internal.example.com': '10.0.0.5',
+             'metadata.google.internal': '169.254.169.254', 'v6.example.com': '::1'}
+
+
+def fake_resolve(host, port, *args, **kwargs):
+    if host == 'missing.example.com':
+        raise OSError('not found')
+    ip = ADDRESSES.get(host)
+    if ip is None:
+        try:
+            ip = str(__import__('ipaddress').ip_address(host))
+        except ValueError:
+            ip = '93.184.216.34'
+    return [(None, None, None, '', (ip, port))]
+
+
+lf.RESOLVE = fake_resolve
+
 MAILCHIMP_GUIDE = 'https://support.yotpo.com/docs/mailchimp-integration-guide-for-reviews'
 # A real Reviews guide's page (its header says Reviews), served at that address
 GUIDE_HTML = tci._read(os.path.join(HERE, 'fixtures', 'document360',
@@ -123,8 +142,11 @@ def test_website_is_checked():
     assert ok('help.acme.io/en') == ('https://help.acme.io/en', None)
     assert ok('https://www.Acme.io/')[0] == 'https://www.acme.io/'
     for bad in ('http://localhost:5000', 'http://127.0.0.1/', 'ftp://acme.io', 'acme', 'http://[::1]/',
-                'https://intranet.local/', 12, 'https://x.io/' + 'a' * 600):
+                12, 'https://x.io/' + 'a' * 600, 'localhost.', 'https://0x7f.0.0.1/docs',
+                'internal.example.com', 'metadata.google.internal.', 'v6.example.com',
+                'https://acme.io:6379/docs', 'https://user:pw@acme.io/'):
         assert ok(bad)[1], bad
+    assert "can't be found" in ok('missing.example.com')[1]
     # a help site is the help centre; a homepage only names the domain
     assert lf.website_links('https://help.acme.io/en') == ('https://help.acme.io/en', [])
     assert lf.website_links('https://www.acme.io/') == (None, ['https://www.acme.io/'])
@@ -135,6 +157,59 @@ def test_a_run_cut_short_reads_as_interrupted():
     assert job.run_view({'state': 'running'}, active=True)['state'] == 'running'
     assert job.run_view({'state': 'done'}, active=False)['state'] == 'done'
     assert job.run_view(None, active=False) is None
+
+
+def test_find_links_never_fetches_a_private_address():
+    """Every request, and every redirect, is checked: a public page that
+    redirects to this server is not followed."""
+    asked = []
+
+    class Response:
+        def __init__(self, url, status, location=None):
+            self.url, self.status_code = url, status
+            self.headers = {'location': location} if location else {}
+            self.is_redirect = location is not None
+            self.text, self._content = 'ok', b'ok'
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def iter_content(self, n):
+            return [b'ok']
+
+    class Session:
+        headers = {}
+
+        def get(self, url, **kw):
+            asked.append(url)
+            assert kw.get('allow_redirects') is False
+            if url == 'https://public.example.com/':
+                return Response(url, 302, 'http://127.0.0.1:5000/admin')
+            return Response(url, 200)
+
+    f = lf.Fetcher(delay=0, log=lambda m: None, public_only=True)
+    f.session = Session()
+    assert f('https://public.example.com/') is None
+    assert 'http://127.0.0.1:5000/admin' not in asked
+    assert f('https://internal.example.com/') is None and 'https://internal.example.com/' not in asked
+    page = f('https://www.acme.io/')
+    assert page.status == 200
+
+
+def test_a_typed_website_is_the_apps_own_site():
+    """shop.app doesn't carry "Shop App" as one word: the website the admin
+    typed is trusted, and its Help Center link is followed. A marketing link
+    under a language segment (/en/resources) is not a help centre."""
+    home = ('<a href="https://shop.app/en/resources?type=guide">Guides</a>'
+            '<a href="https://help.shop.app/hc/en-us">Help Center</a>')
+    pages = {'https://www.shop.app/': am.Page(200, 'https://www.shop.app/', home)}
+    tokens = am.name_tokens('Shop App')
+    assert am.find_help_centre(tokens, [], [], fetch=pages.get)[0] is None
+    root, via, _ = am.find_help_centre(tokens, [], [], fetch=pages.get, trusted=['https://shop.app'])
+    assert (root, via) == ('https://help.shop.app/hc/en-us', 'homepage')
 
 
 # ---------- one run ----------
@@ -254,6 +329,29 @@ def test_a_failure_is_recorded():
     assert job.last_run(db, 'mailchimp')['state'] == 'failed'
     run = job.run_once(db, 'nobody', 'a', None, fixture_fetch(), None, overrides={})
     assert run['state'] == 'failed' and 'removed' in run['error']
+
+
+def test_a_link_another_run_just_suggested_is_not_counted():
+    """Two runs at once can find the same link: the one whose insert lost
+    counts it as already suggested, not as added."""
+    db = boot_db()
+    esp(db, 'mailchimp')
+    other = esp(db, 'other')
+
+    class Racing:
+        def __init__(self, inner):
+            self.inner = inner
+
+        def execute_query(self, query, params=None, fetch=False):
+            if query.strip().startswith('INSERT INTO document_proposals'):
+                self.inner.execute_query(
+                    "INSERT INTO document_proposals (id, esp_id, url, source, state) "
+                    "VALUES (%s, %s, %s, 'catalog', 'open')", (str(uuid.uuid4()), other, params[2]))
+            return self.inner.execute_query(query, params, fetch)
+    pages = {MAILCHIMP_GUIDE: am.Page(200, MAILCHIMP_GUIDE, GUIDE_HTML, 'text/html')}
+    run = job.run_once(Racing(db), 'mailchimp', 'a', None, fixture_fetch(pages), None, overrides={})
+    assert run['added'] == [] and run['already'][0]['url'] == MAILCHIMP_GUIDE
+    assert proposals(db)[MAILCHIMP_GUIDE][4] == 'other'
 
 
 # ---------- routes ----------

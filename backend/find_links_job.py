@@ -52,7 +52,8 @@ MAX_WEBSITE = 500
 # The steps a run goes through, in order (the admin shows them)
 STEPS = ('starting', 'yotpo.com', 'yotpo_guides', 'help_site', 'saving')
 
-_lock = threading.Lock()
+_lock = threading.Lock()          # the running set
+_notes_lock = threading.Lock()    # this process's writes of catalog_mechanics
 _running: set = set()
 
 
@@ -68,10 +69,11 @@ def clean_website(value) -> Tuple[Optional[str], Optional[str]]:
     url = value.strip()
     if '://' not in url:
         url = 'https://' + url
-    parts = urlsplit(url)
-    host = (parts.hostname or '').lower()
-    if parts.scheme not in ('http', 'https') or '.' not in host or host.endswith(('.local', '.internal')) \
-            or host == 'localhost' or host.replace('.', '').isdigit() or ':' in host:
+    host = (urlsplit(url).hostname or '').rstrip('.').lower()
+    problem = link_finder.public_address_problem(url) if '.' in host else 'not a public web address'
+    if problem == "that address can't be found":
+        return None, f"The website {host} can't be found: check the address"
+    if problem:
         return None, 'The website must be a public web address, like https://www.example.com'
     from urls import normalize_url
     return normalize_url(url), None
@@ -129,9 +131,8 @@ def _save_setting(db, key, value):
 
 
 def last_run(db, name) -> Optional[Dict]:
-    with _lock:
-        active = name in _running
-    return run_view(_setting(db, RUN_KEY + name), active)
+    # A membership test needs no lock; every page load and poll asks
+    return run_view(_setting(db, RUN_KEY + name), name in _running)
 
 
 def load_integration(db, name) -> Optional[Dict]:
@@ -211,12 +212,17 @@ def save_suggestions(db, row: Dict, found: link_finder.Found) -> Tuple[List[Dict
             state, where = proposed[url]
             already.append({'url': url, 'why': state or 'open', 'where': where})
             continue
+        pid = str(uuid.uuid4())
         db.execute_query("""
             INSERT INTO document_proposals (id, esp_id, url, source, suggested_label, state, note,
                                             title, partner_function, reason)
             VALUES (%s, %s, %s, %s, %s, 'open', %s, %s, %s, %s) ON CONFLICT (url) DO NOTHING
-        """, (str(uuid.uuid4()), row['id'], url, p['source'], p['suggested_label'], p['note'],
+        """, (pid, row['id'], url, p['source'], p['suggested_label'], p['note'],
               p.get('title'), p.get('partner_function'), p.get('reason')))
+        if not db.execute_query("SELECT 1 FROM document_proposals WHERE id = %s", (pid,), fetch=True):
+            # Another run suggested it a moment ago
+            already.append({'url': url, 'why': 'open', 'where': None})
+            continue
         added.append({'url': url, 'source': p['source'], 'suggested_label': p['suggested_label'],
                       'note': p['note'], 'title': p.get('title')})
     return added, already
@@ -230,8 +236,11 @@ def run_once(db, name: str, actor: str, website: Optional[str], fetch, chooser,
     run = {'id': run_id or str(uuid.uuid4()), 'state': 'running', 'step': 'starting',
            'requested_by': actor, 'started_at': _now(), 'finished_at': None,
            'website': website,
-           # no GEMINI_API_KEY: the partner's help articles were not looked for
-           'model_skipped': chooser is None}
+           # no model: the partner's help articles were not looked for,
+           # because GEMINI_API_KEY is unset (no_key) or the model wouldn't start
+           'model_skipped': chooser is None,
+           'model_problem': None if chooser is not None else
+           ('no_key' if not os.environ.get('GEMINI_API_KEY') else 'unavailable')}
     key = RUN_KEY + name
 
     def progress(step):
@@ -256,7 +265,7 @@ def run_once(db, name: str, actor: str, website: Optional[str], fetch, chooser,
         added, already = save_suggestions(db, row, found)
         if chooser is not None and found.mechanics is not None:
             # The import's notes for this integration, as it would write them
-            with _lock:
+            with _notes_lock:
                 notes = _setting(db, MECHANICS_KEY) or {}
                 notes[name] = link_finder.mechanics_note(found.mechanics)
                 _save_setting(db, MECHANICS_KEY, notes)
@@ -290,7 +299,7 @@ def start(db_factory: Callable, name: str, actor: str, website: Optional[str],
     """Start a run in a thread: (the run as first saved, None) or (None,
     why not). Refuses while this integration's last run is going, or
     MAX_RUNNING runs are."""
-    fetch_factory = fetch_factory or (lambda: link_finder.Fetcher(log=print))
+    fetch_factory = fetch_factory or (lambda: link_finder.Fetcher(log=print, public_only=True))
     chooser_factory = chooser_factory or _default_chooser
     with _lock:
         if name in _running:
@@ -315,9 +324,23 @@ def start(db_factory: Callable, name: str, actor: str, website: Optional[str],
             done = run_once(db_factory(), name, actor, website, fetch_factory(), chooser_factory(),
                             run_id=run_id)
             print(f"[FIND LINKS] {name}: {done['state']}, {len(done.get('added') or [])} links suggested")
+        except Exception as e:
+            # Before or after run_once's own handling: say so, rather than
+            # leave a "running" record that reads as a restart
+            traceback.print_exc()
+            try:
+                _save_setting(db_factory(), RUN_KEY + name, dict(
+                    first, state='failed', finished_at=_now(), error=f'{type(e).__name__}: {str(e)[:300]}'))
+            except Exception:
+                traceback.print_exc()
         finally:
             with _lock:
                 _running.discard(name)
 
-    threading.Thread(target=work, name=f'find-links-{name}', daemon=True).start()
+    try:
+        threading.Thread(target=work, name=f'find-links-{name}', daemon=True).start()
+    except Exception:
+        with _lock:
+            _running.discard(name)
+        raise
     return first, None

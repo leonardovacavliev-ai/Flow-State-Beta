@@ -21,14 +21,16 @@ for a person to approve: nothing here creates documents or labels.
 """
 
 import hashlib
+import ipaddress
 import json
 import os
 import re
+import socket
 import sys
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Callable, Dict, Iterable, List, Optional
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import app_mechanics
 import catalog_import as ci
@@ -51,12 +53,44 @@ NOTE_NAME_GUIDE = 'Yotpo guide found by its name on support.yotpo.com'
 
 # ---------- network ----------
 
+# How host names are resolved; tests replace it (they run with no network)
+RESOLVE = socket.getaddrinfo
+MAX_REDIRECTS = 5
+
+
+def public_address_problem(url: str) -> Optional[str]:
+    """Why the server must not fetch this address, or None. Find links
+    fetches addresses typed by an admin and links found on other sites, so
+    only public web addresses on the standard ports: never this server, a
+    private network or a cloud metadata service, however the address is
+    written (0x7f.0.0.1, localhost., a name that resolves to 10.x)."""
+    parts = urlsplit(url)
+    if parts.scheme not in ('http', 'https'):
+        return 'not a web address'
+    host = (parts.hostname or '').rstrip('.').lower()
+    try:
+        port = parts.port
+    except ValueError:
+        return 'not a web address'
+    if not host or port not in (None, 80, 443) or parts.username or parts.password:
+        return 'not a public web address'
+    try:
+        infos = RESOLVE(host, port or 443, proto=socket.IPPROTO_TCP)
+    except (OSError, UnicodeError):
+        return "that address can't be found"
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0].split('%')[0])
+        if not ip.is_global or ip.is_multicast:
+            return 'not a public web address'
+    return None
+
 class Fetcher:
     """GET with the crawler's headers, one request per second per host, one
     retry on a network error, and an optional on-disk cache (the import's
     --cache; the admin never uses one)."""
 
-    def __init__(self, cache_dir: Optional[str] = None, delay: float = 1.0, log=None):
+    def __init__(self, cache_dir: Optional[str] = None, delay: float = 1.0, log=None,
+                 public_only: bool = False):
         import requests
         self.session = requests.Session()
         self.session.headers['User-Agent'] = USER_AGENT
@@ -65,6 +99,10 @@ class Fetcher:
         self.last_at: Dict[str, float] = {}
         self.requests = 0
         self.log = log or (lambda m: print(m, file=sys.stderr))
+        # Find links: every address and every redirect is checked first
+        # (public_address_problem); the import, which reads only the
+        # catalog's own links, keeps the plain behaviour
+        self.public_only = public_only
         if cache_dir:
             os.makedirs(cache_dir, exist_ok=True)
 
@@ -73,16 +111,27 @@ class Fetcher:
 
     def _get(self, url: str) -> app_mechanics.Page:
         """One GET, at most MAX_BYTES and MAX_SECONDS in all: a server that
-        sends a byte at a time never trips the per-read timeout."""
+        sends a byte at a time never trips the per-read timeout. With
+        public_only, redirects are followed here, one checked hop at a time."""
         started = time.time()
-        with self.session.get(url, timeout=10, stream=True) as r:
-            body = b''
-            for chunk in r.iter_content(65536):
-                body += chunk
-                if len(body) > MAX_BYTES or time.time() - started > MAX_SECONDS:
-                    raise TimeoutError(f'gave up after {MAX_SECONDS}s or {MAX_BYTES} bytes')
-            r._content = body
-            return app_mechanics.Page(r.status_code, r.url, r.text, r.headers.get('content-type', ''))
+        for _ in range(MAX_REDIRECTS + 1):
+            if self.public_only:
+                problem = public_address_problem(url)
+                if problem:
+                    raise PermissionError(f'{problem}: {url}')
+            with self.session.get(url, timeout=10, stream=True,
+                                  allow_redirects=not self.public_only) as r:
+                if self.public_only and r.is_redirect:
+                    url = urljoin(url, r.headers.get('location', ''))
+                    continue
+                body = b''
+                for chunk in r.iter_content(65536):
+                    body += chunk
+                    if len(body) > MAX_BYTES or time.time() - started > MAX_SECONDS:
+                        raise TimeoutError(f'gave up after {MAX_SECONDS}s or {MAX_BYTES} bytes')
+                r._content = body
+                return app_mechanics.Page(r.status_code, r.url, r.text, r.headers.get('content-type', ''))
+        raise TimeoutError(f'more than {MAX_REDIRECTS} redirects')
 
     def __call__(self, url: str) -> Optional[app_mechanics.Page]:
         if self.cache_dir and os.path.exists(self._cache_path(url)):
@@ -188,9 +237,11 @@ def guides_by_name(sitemap: Iterable[str], *names: str, limit: int = NAME_GUIDES
 
 
 def website_links(website: Optional[str]):
-    """(help centre override, partner links) for an address an admin typed:
-    a help site is used as the help centre, anything else (its homepage)
-    tells the search the partner's domain."""
+    """(help centre override, trusted links) for an address an admin typed:
+    a help site is used as the help centre; anything else (its homepage)
+    is the partner's own site, trusted even when its domain doesn't carry
+    the name (shop.app for "Shop App"), so its "Help Center" link is
+    followed."""
     if not website:
         return None, []
     host = app_mechanics.host_of(website)
@@ -306,12 +357,12 @@ def find_links(integ: ci.Integration, fetch, sitemap: Dict[str, Optional[str]], 
     if integ.name in overrides and overrides[integ.name] is None:
         out.mechanics = {'help_centre': None, 'problem': 'skipped in scripts/help_centres.json'}
         return out
-    typed_centre, typed_links = website_links(website)
+    typed_centre, trusted = website_links(website)
     found = app_mechanics.discover(
         [integ.display_name, integ.name] + integ.slugs,
-        links.partner_docs + links.partner_other + typed_links, outbound, fetch, chooser,
+        links.partner_docs + links.partner_other, outbound, fetch, chooser,
         sources=sources, categories=integ.categories,
-        override=overrides.get(integ.name) or typed_centre)
+        override=overrides.get(integ.name) or typed_centre, trusted=trusted)
     out.mechanics = {
         'help_centre': found.help_centre, 'found_via': found.found_via,
         'method': found.method, 'sources': found.sources, 'functions': found.functions,
