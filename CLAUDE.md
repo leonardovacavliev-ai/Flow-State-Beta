@@ -29,9 +29,14 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
 - ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
   backend with it runs schema changes on production at boot, and local crawls write production
   vectors. Before running anything locally, read roadmap §1.1.
-- **Claude Code opens the PRs, merges and deploys, without asking** (Railway deploys every push
-  to `main`; GitHub Actions does not run, so run the check suite locally; NEXT_SESSION.md §4).
-  Running data-changing scripts on production stays Leo's.
+- **Claude Code merges and deploys, without asking** (Railway deploys every push to `main`; run
+  the check suite locally; NEXT_SESSION.md §4). Running data-changing scripts on production stays
+  Leo's.
+- ⛔ **Never use the GitHub API from Leo's account** (Leo, 2026-10-16): no `curl` to
+  `api.github.com` with the keychain token, no PRs opened or merged by API, no polling of Actions
+  or deploy statuses, no `gh`. GitHub restricted his account twice after Claude Code did that.
+  Plain `git` (`fetch`, `push`, `merge`) only, as few times as the work needs; check deploys on
+  the live site.
 
 ---
 
@@ -437,6 +442,14 @@ or restoring a prompt with no placeholders shows a warning: Reviews chats would 
 wording. Do not roll back below `9f46db1` while the template is stored (older code sends the
 `[[…]]` tokens to the model verbatim); put a placeholder-free prompt back first.
 
+**One prompt per platform type** (C1.7). The prompt above is the Email & SMS (`messaging`) one and
+is unchanged. Each other type (`storefront`, `service`, `data`, `content`) has its own, stored in
+`app_config.system_prompts` once saved, otherwise the shipped draft in
+`backend/prompts/system_prompt_<type>.txt`; it never falls back to the messaging prompt. Chat picks
+the prompt from the integration's `platform_type`; non-messaging integrations also get an
+integration facts block at the top of the context (`backend/integration_facts.py`). Each saved
+change records its type, and undoing it restores that type only.
+
 ---
 
 ## API Endpoints Summary
@@ -479,8 +492,9 @@ wording. Do not roll back below `9f46db1` while the template is stored (older co
 - `POST /api/admin/settings/ai-model` - Change model
 - `POST /api/admin/settings/api-key` - Update API key
 - `GET /api/admin/settings/api-status` - Check AI status
-- `GET /api/admin/settings/system-prompt` - Get prompt
-- `POST /api/admin/settings/system-prompt` - Update prompt
+- `GET /api/admin/settings/system-prompt?platform_type=` - Get one platform type's prompt (default `messaging`)
+- `POST /api/admin/settings/system-prompt?platform_type=` - Update it (type also accepted in the body)
+- `POST /api/admin/settings/prompt-preview` - `{esp, product}`: the prompt and facts block chat would send
 - `GET /api/admin/settings/audit-log` - Change history
 - `POST /api/admin/settings/restore` - Undo an audit-log change (restores the settings from before it)
 

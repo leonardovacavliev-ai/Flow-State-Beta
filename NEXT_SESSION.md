@@ -1,7 +1,7 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2)
-and the third (C0.4 merge, C1.4).
+Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2),
+the third (C0.4 merge, C1.4) and the fourth (C1.7, not yet merged: see "Open, waiting" below).
 Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
@@ -13,7 +13,7 @@ your session with the agenda for the one after.
 | PR | checkpoint | what it did |
 |---|---|---|
 | #1 | C0.2 | Dependencies pinned to production's own freeze (`requirements.txt`, `constraints.txt`, Dockerfile) |
-| #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres` |
+| #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres`. **Deleted 2026-10-16** (`dc79c2a`) at GitHub's request: see §5 |
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
 | #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms, approved by Leo 2026-10-15 (docs only) |
 | #6 | C1.4 | Admin **Integrations** tab (list, filters, an integration's page, crawl summary) and **Proposals** tab (the import's inbox); owner/editor roles (`ADMIN_OWNER_EMAILS`, unset = all owners); listed integrations can be documented before they go into chat; only messaging can be active; `--apply` stores the inbox's notes. Details: roadmap C1.4 Deviations |
@@ -44,6 +44,20 @@ Don't bring them back. Last dry run (2026-10-14/15): 272 articles for 65 integra
 person, 37 with no help centre found, 13 where the model accepted nothing. Report:
 `docs/integrations/catalog_dry_run.md`.
 
+**Open, ready to merge — blocked by GitHub, not by the code:**
+- **PR #10, C1.7** (branch `v2/c1-7-prompts-by-type`, head `11d7320`): a system prompt per platform
+  type, the four shipped drafts, the integration facts block, the editor's kind picker and preview.
+  Email & SMS unchanged: golden check 26/26 identical (run twice, before and after the review
+  fixes), all local suites green, independent review done and its findings fixed (roadmap C1.7
+  Deviations). **Not merged** because on 2026-10-15 ~17:40 the account was restricted again:
+  `https://api.github.com/users/leonardovacavliev-ai` returned 404, the first CI run was
+  cancelled by the fix push and no run started for `11d7320` (Actions lists 0 runs). Next session:
+  check that URL once; once it returns 200, merge with plain git (`main` was already merged into
+  the branch, with the workflow deleted), deploy and smoke-check (§4).
+  PR #10 exists on GitHub (opened by API before the rule in §2); leave it, a merge pushed to
+  `main` closes it. After the deploy, ask Leo to read the four
+  drafts once (Admin → General Settings → Kind of platform), and set the C1.7 row to `done`.
+
 **Open, waiting for Leo:**
 - **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → Create New
   Integration, owner only), adds and labels each link from `docs/integrations/messaging_sources.md`,
@@ -69,7 +83,7 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 - **Review every change before committing and before pushing.** Read the whole diff. This
   session's review caught a real bug: the hidden `global` row would have been typed `messaging`.
 - **You merge and deploy** (his decision, roadmap §0.3). Railway deploys every push to `main`.
-  Merge only when CI is green, the diff is reviewed, and the checkpoint's pre-merge 🛑 steps are
+  Merge only when the local §1.4 suite is green, the diff is reviewed, and the checkpoint's pre-merge 🛑 steps are
   done. Smoke-check after each deploy (§4). If it fails, revert the merge commit and tell him.
 - **Data-changing scripts on production stay his** (`--apply`, `--write`, rebuilds). Give him the
   exact command, then verify it afterwards with the read-only checks.
@@ -78,17 +92,24 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 - **The safety filter blocked one merge** (#3, the first one that changes the live database
   schema). Don't work around it. Explain it to Leo and ask. He then said "merge 3", and it went
   through.
-- **Open PRs, merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the
-  pulls and deploys, just go"). Report when done. See §4 for the API commands.
+- **Merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the pulls and
+  deploys, just go"). Report when done. Plain git only, see the next point and §4.
+- ⛔ **Never drive Leo's GitHub account through the GitHub API** (Leo, 2026-10-16). GitHub has
+  restricted it twice, both times right after sessions that opened, edited and merged PRs with
+  `curl` and the keychain token and polled Actions and deploy statuses every minute. Use plain
+  `git` only (`fetch`, `push`, `merge`), a handful of times per checkpoint. No `curl` to
+  `api.github.com` with a token, no PRs opened or merged by API, no polling of Actions,
+  deployments or commit statuses, no `gh`. Check a deploy on the live site
+  instead (§4). If Leo wants a PR page, he opens it.
 - Leo still does these himself: open the admin panel (Google sign-in) and run production data
   scripts.
 
 ## 3. Next work, in order
 
-1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done): C1.7 prompts by type, C1.3
-   refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. Suggested
-   order: **C1.7** (it protects the email/SMS answers, and lets non-messaging types go active:
-   extend `admin_integrations_routes.TYPES_IN_CHAT` there), then **C1.3** (the Suggested Links tab's
+1. **Next** (each its own branch; C1.1, C1.2 and C1.4 are done, C1.7 waits only for the merge):
+   C1.3 refresh pipeline, C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3.
+   Suggested order: finish **C1.7** (above; `TYPES_IN_CHAT` deliberately stays messaging-only,
+   each type joins chat in its wave — Leo decides), then **C1.3** (the Suggested Links tab's
    sitemap section and the retire/replace buttons wait for it), then **C1.10 "Find links"** (Leo,
    2026-10-15: needed for a complete product; same Gemini key as the app, by Leo's choice; ask
    him whether he wants a daily cap before shipping it), then C1.5, C1.6.
@@ -119,9 +140,10 @@ cd /private/tmp/<scratch>/mainwt
 git merge --no-ff origin/<branch> -m "Merge pull request #N from leonardovacavliev-ai/<branch>"
 git push origin HEAD:main
 ```
-Railway reports each deploy to GitHub. Poll
-`https://api.github.com/repos/leonardovacavliev-ai/Flow-State-Beta/deployments?per_page=1` for the
-merge commit's sha, then its `statuses_url` until `success`. A deploy took about 12 minutes.
+The merge commit's message carries what a PR description would (what changed, checks run,
+review findings). A deploy takes about 12 minutes. **Don't poll GitHub for it**: wait ~12 minutes,
+then look at the live site, e.g. that `index.html` serves the new `app.js?v=` cache-buster, then
+smoke-check. Check the site every few minutes at most.
 
 **Smoke check** (live: `https://flow-state-beta-production.up.railway.app`):
 - `GET /api/health`;
@@ -147,22 +169,11 @@ sides failed.
 `PYTHONPATH=<that folder> HF_HUB_OFFLINE=1`. This session found two network calls that way
 (ipapi.co in the analytics test, huggingface.co on model load).
 
-**Open, check and merge a PR without `gh`** (do it yourself; never send Leo a link to click). The
-token comes from the macOS keychain via git; never print it:
-```bash
-TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
-API=https://api.github.com/repos/leonardovacavliev-ai/Flow-State-Beta
-# open
-curl -s -X POST -H "Authorization: Bearer $TOKEN" $API/pulls -d '{"title":"…","head":"<branch>","base":"main","body":"…"}'
-# merge (merge commit, like the earlier PRs)
-curl -s -X PUT -H "Authorization: Bearer $TOKEN" $API/pulls/<N>/merge -d '{"merge_method":"merge","commit_title":"Merge pull request #<N> from leonardovacavliev-ai/<branch>"}'
-# deploy: Railway posts a commit status on the merge sha
-curl -s -H "Authorization: Bearer $TOKEN" $API/commits/<sha>/status
-```
-**CI may not run on GitHub**: on 2026-10-15 Actions showed 0 runs ever while the account was
-restricted (see §5); check whether runs appear again once it is lifted. Run the §1.4 suite locally (network blocked, see above) before merging and say so in the
-PR. The Postgres jobs need `TEST_DATABASE_URL`, which isn't available locally. Tell Leo if a change
-touches the database code; fixing Actions (billing or settings) is his.
+**No PRs through the API, no CI polling** (see §2 ⛔). Branches are pushed and merged with plain
+git (above). Run the §1.4 suite locally with the network blocked before merging, and say so in the
+merge commit. There is no GitHub CI any more (§5), and no workflow may be added without Leo's OK.
+The Postgres tests need `TEST_DATABASE_URL`, which nothing provides now (no Docker locally): tell
+Leo when a change touches the database code, and ask how he wants it tested.
 
 **Try the admin in the built-in browser, on local data only** (how C1.4 was checked):
 - Seed a scratch SQLite: `python3 eval/seed_local_db.py <scratch>/local.db` (reads production
@@ -180,8 +191,6 @@ touches the database code; fixing Actions (billing or settings) is his.
 - Crawls and pastes write `docs/` and `docs/crawl_metadata.json` in the worktree: remove or restore
   them before committing.
 
-**The app's PR panel can't follow PRs here** (`bind_pr` needs `gh`). Read CI from the Actions API
-for the branch's sha, at most once a minute.
 
 ## 5. Watch out for
 
@@ -206,11 +215,18 @@ for the branch's sha, at most once a minute.
   live chat failed with 429 "prepayment credits are depleted" until Leo topped it up. Don't run
   the mechanics dry run (or anything else that calls Gemini at volume) without Leo's OK, and ask
   him for a separate development key first.
-- **GitHub restricted the account once (found 2026-10-15).** Railway failed with "couldn't find
-  the repo", Actions showed 0 runs ever, and `https://api.github.com/users/leonardovacavliev-ai`
-  returned 404 to everyone else. Leo had it lifted the same day. If a deploy fails at "Snapshot
-  code" or Actions history vanishes, check that URL first (200 = fine), and stop merging until it
-  is. Poll GitHub at most once a minute (the 20-second polling that day ran into the API limit).
+- **GitHub restricted Leo's account twice** (found 2026-10-15, and again 2026-10-15 evening, still
+  on 2026-10-16). Railway failed with "couldn't find the repo", Actions history vanished, and
+  `https://api.github.com/users/leonardovacavliev-ai` returned 404 to everyone else. Leo says it
+  is because of what Claude Code does: both times followed API-driven PR work and status polling
+  with his token. Hence the §2 ⛔ rule. **GitHub's own notice (2026-10-16) named GitHub Actions**
+  (workflows used "to interact with 3rd party websites … or for general computing") and asked
+  for workflows to be removed, credentials the violation used to be deleted, and an
+  acknowledgement. Our workflow was ordinary CI with no secrets, but Leo had it deleted
+  (`dc79c2a`) and replied to GitHub. Don't add a workflow back without his OK. Separately, the
+  history holds the live Pinecone key and production database password (July–August docs and
+  scripts); Leo rotates both once he can sign in again. Before a merge, check that URL once without a token
+  (200 = fine; 404 = restricted: stop, don't merge, tell Leo).
 - **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
   disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
   keep nothing only there.
@@ -220,10 +236,10 @@ for the branch's sha, at most once a minute.
   list. A dry run needs `GEMINI_API_KEY`; tests use a fake model. Two runs can differ slightly.
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
-- **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the
+- **Local Python is 3.9; production is 3.11.** The pins don't install on 3.9, but the
   already-installed packages run the suite. There is no Docker locally.
 - **`.env` is production.** Never start the app with it plain. Tests set their own environment
-  before importing. The Postgres tests need `TEST_DATABASE_URL` (CI provides one).
+  before importing. The Postgres tests need `TEST_DATABASE_URL`; nothing provides one now that CI is gone.
   `test_integrations_schema.py postgres` never falls back to `.env`.
 - **Chat now validates the integration key** against active `esps` rows, with a 60 s cache
   (`ESPManager.is_active_integration`). Any test or tool driving `/api/chat` on an empty database

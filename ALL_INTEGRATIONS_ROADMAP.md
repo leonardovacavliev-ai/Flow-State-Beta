@@ -22,15 +22,22 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
    - Claude Code only prepares their inputs, where the checkpoint says so.
 3. **Branching:**
    - Use one branch per checkpoint: `v2/<id>-<slug>` (e.g. `v2/c1-1-schema`).
-   - Use conventional commits and **open the PR yourself** (Leo, 2026-10-15: never ask him to).
-     `gh` is not installed: use the GitHub REST API with the token `git credential fill` gives
-     (never print it). NEXT_SESSION.md §4 has the commands.
+   - Use conventional commits. Push the branch with plain `git push`.
+   - ⛔ **Never use the GitHub API from Leo's account** (Leo, 2026-10-16): no `curl` to
+     `api.github.com` with the keychain token, no opening, editing or merging PRs by API, no
+     polling Actions, deployments or commit statuses. GitHub restricted the account twice
+     (2026-10-15 and 2026-10-15/16), each time after sessions that did exactly that; while it is
+     restricted Railway can't deploy. Plain `git fetch`/`push`/`merge` only, and as few as the
+     work needs. No PR is opened: the review summary goes in the merge commit and in this map.
    - **Claude Code merges and deploys** (Leo's decision, 2026-10-13). Railway deploys every push
      to `main`, so a merge is a deploy.
      - Merge only when the check suite is green, the whole diff has been reviewed, and every 🛑
-       step the checkpoint puts before the merge is done. **GitHub Actions has never run on this
-       repository** (0 workflow runs as of 2026-10-15, workflow active), so run §1.4 locally and
-       say so in the PR. Don't stop to ask Leo between PR, merge and deploy: go, then report.
+       step the checkpoint puts before the merge is done. Run §1.4 locally: there is no GitHub CI
+       any more (below). Don't stop to ask Leo between merge and deploy: go, then report.
+   - ⛔ **No GitHub Actions workflows** (Leo, 2026-10-16). GitHub's restriction notice named
+     Actions ("use GitHub Actions solely to interact with 3rd party websites … or for general
+     computing") and asked for workflows to be removed; `.github/workflows/ci.yml` was deleted
+     from `main` that day (`dc79c2a`). Don't add any workflow back without Leo's explicit OK.
      - One PR at a time, in dependency order: `git merge --no-ff` into `main`, then push.
      - After each deploy, smoke-check the live site: `/api/health` answers and one Klaviyo chat
        answers. The admin panel needs Leo's Google sign-in, so ask him to open it.
@@ -171,7 +178,7 @@ Not part of the suite:
 
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
-| C0.1 | CI baseline | — | dev | 1–2 d | done | PR #2, merged and deployed 2026-10-13 |
+| C0.1 | CI baseline | — | dev | 1–2 d | done, then removed | PR #2, merged and deployed 2026-10-13; workflow deleted 2026-10-16 at GitHub's request (§0.3); the test files stay and run locally |
 | C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | done | PR #1, deployed 2026-10-13; health, Klaviyo chat, admin panel and a crawl OK |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources approved by Leo and merged 2026-10-15 (PR #4, `docs/integrations/messaging_sources.md`); next: Leo creates the platforms |
@@ -181,7 +188,7 @@ Not part of the suite:
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PRs #6–#9, merged and deployed 2026-10-15; follow-ups from Leo's review (wording, popups, no tier, two states, products from documents, crawl box) in Deviations; live checks OK |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
-| C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | todo | |
+| C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | doing | branch `v2/c1-7-prompts-by-type`; built, tested, golden check 26/26 identical; next: PR, merge, deploy; then Leo reads the four drafts (Admin → General Settings → Kind of platform) |
 | C1.8 | Portability seams, Sentry, no local disk | C1.3 | dev + 🛑 | 3–4 d | todo | |
 | C1.9 | Production import, approvals, labelling | C1.2–C1.8 deployed | 🛑 Leo | 4–6 h | todo | |
 | C1.10 | "Find links" for one integration | C1.3, C1.4 | dev + 🛑 model budget | 2–3 d | todo | Leo, 2026-10-15: needed for a complete product |
@@ -1062,14 +1069,14 @@ those integrations are `listed`.
 - `frontend/app.js`: `loadSystemPrompt` (2926), `loadAuditLog` (2942), `restoreFromBackup` (3121).
 
 **Tasks**
-- [ ] **Shipped defaults**, `backend/prompts/system_prompt_{storefront,service,data,content}.txt`.
+- [x] **Shipped defaults**, `backend/prompts/system_prompt_{storefront,service,data,content}.txt`.
   - These live under `backend/` because the Dockerfile does not copy `eval/`.
   - Build each from Appendix C with the **common rules** and **closing** blocks expanded inline.
   - The first line of each file is a comment block the loader strips:
     `# DRAFT — Leo rewrites this in the <type> wave`.
-- [ ] **`backend/prompt_blocks.py`:** the common-rules text as one constant. A test checks that it
+- [x] **`backend/prompt_blocks.py`:** the common-rules text as one constant. A test checks that it
   appears verbatim in every shipped default.
-- [ ] **`config_manager`:**
+- [x] **`config_manager`:**
   - Seed `system_prompts: {}` into the stored config when missing; `update_config` needs the key
     to exist.
   - `get_system_prompt(platform_type='messaging')`:
@@ -1085,37 +1092,37 @@ those integrations are `listed`.
       entry changed it);
     - an entry **without** one (all existing entries) restores `ai_model` + `system_prompt` as
       today and leaves `system_prompts` untouched.
-- [ ] **`ai_client.AIClient`:**
+- [x] **`ai_client.AIClient`:**
   - holds a `prompts` mapping, all five, loaded through `config_manager`;
   - `generate_response(…, product, platform_type='messaging')` renders that type's prompt per
     call;
   - every place in `app.py` that rebuilds `ai_client` after a settings change reloads all five.
-- [ ] **`chat()`:**
+- [x] **`chat()`:**
   - read the integration's `platform_type` from the cached row (C1.1), default `messaging`;
   - pass it to `generate_response`;
   - pass the facts block and source style to `build_rag_context` **only** when the type is not
     `messaging`.
-- [ ] **`rag_context.build_rag_context`** gains `integration_facts: Optional[str] = None` and
+- [x] **`rag_context.build_rag_context`** gains `integration_facts: Optional[str] = None` and
   `source_style: str = 'esp'`. Defaults leave the context byte-identical (I3). With
   `source_style='integration'`:
   - source headers read `Integration:` and `Source: Yotpo guide | partner documentation`, from
     `source_kind`;
   - the no-sources fallback says the documentation does not cover this and points to the guide;
   - the limited-documentation warning is phrased per type (plan §4.6.6).
-- [ ] **`backend/integration_facts.py`:** `facts_block(esp_row, documents)`, in the format of plan
+- [x] **`backend/integration_facts.py`:** `facts_block(esp_row, documents)`, in the format of plan
   §4.6.5. Lines with no data are omitted.
-- [ ] **Routes:**
+- [x] **Routes:**
   - `GET` and `POST /api/admin/settings/system-prompt?platform_type=` (default `messaging`, so the
     old frontend still works);
   - `POST /api/admin/settings/prompt-preview {esp, product}` → rendered prompt plus facts block.
     Owner-only.
-- [ ] **Editor UI:**
+- [x] **Editor UI:**
   - platform-type selector above the prompt textarea;
   - "Preview for…": pick an integration and a product;
   - the audit log shows the type;
   - warning when the common rules are missing from a non-messaging prompt;
   - warning when a type has `active` integrations but no stored prompt.
-- [ ] **`backend/test_prompts_by_type.py`:**
+- [x] **`backend/test_prompts_by_type.py`:**
   1. Messaging rendered for `None`, `loyalty` and `reviews` equals `render(stored_template, p)`.
      The stored template is today's, from `eval/prompts/system_prompt_template.txt` and the
      `config_manager` default.
@@ -1134,8 +1141,58 @@ those integrations are `listed`.
 - The preview shows a storefront prompt for a `listed` storefront integration.
 - 🛑 Leo reads the four drafts once (2–3 h). Final wording happens in each wave.
 
+**Deviations** (2026-10-15)
+- **No type joins chat here.** `admin_integrations_routes.TYPES_IN_CHAT` stays `('messaging',)`.
+  NEXT_SESSION.md suggested C1.7 extend it, but this checkpoint's goal and plan §4.6.8 put each
+  type into chat in its wave, after Leo rewrites the draft and the trap eval passes. Extending it
+  is Leo's call; the chat path already works for every type (tested with an active storefront row).
+- **`build_rag_context` also takes `platform_type`**, to pick the per-type limited-documentation
+  note (`rag_context.LIMITED_DOCS_BY_TYPE`). With `source_style='integration'` the task section is
+  headed "## Integration Documentation:" instead of "## ESP-Specific Knowledge:". The four notes
+  and the no-sources text are drafts for Leo, like the prompts.
+- **`source_kind` is read from the address** while nothing writes the column
+  (`integration_facts.source_kind`): `support.yotpo.com` → Yotpo guide, other `yotpo.com` hosts →
+  Yotpo developer documentation, `local://` → text pasted by a Yotpo admin, anything else → partner
+  documentation. A stored value wins.
+- **Plans and store platforms** come from `supported_plans` / `supported_platforms` when the crawl
+  has written them (C1.3), otherwise from the guide's header text (`doc_header.parse_header`).
+  Only indexed documents count (completed, not retired, `vector_count` NULL or > 0). "Works with"
+  uses C1.4's rule: the catalog's products plus any a document is labelled with.
+- **The facts block also lists the Yotpo guides' links** ("Yotpo guide: <url>", up to 3), so the
+  no-sources note can point the user to one.
+- **`system_prompts` is seeded in memory** by `get_config`, and stored with the first save. Nothing
+  is written to production at boot.
+- **Saving the Email & SMS prompt also records its type** (`platform_type: messaging`). Undoing such a
+  save now puts back that prompt only; before, it also put back the model from that moment, which
+  could revert a later model change. Entries saved before this change (no type) restore as before.
+- **The golden tool's stub refuses a non-messaging prompt**, so a messaging case answered with
+  another prompt shows as a DIFF.
+- **Test 6 compares against contexts captured from the old code**:
+  `backend/fixtures/prompts/rag_context_default.json` was written by
+  `test_prompts_by_type.py --write-rag-fixture` run on `origin/main` (7b81ac8), with a fake index.
+- **Fixes from the independent review** (same PR):
+  - The editor saves the kind whose prompt is loaded, not the picker's; the text box is emptied and
+    Save disabled while a prompt loads or after a failed load; switching kind asks before
+    discarding unsaved edits. Before, a failed load could save one kind's text over another's,
+    including the live Email & SMS prompt.
+  - "Undo this change" sends the entry's position in the whole log (`audit-log` now returns
+    `offset` and `total`). Before (already on `main`), it counted within the 20 shown, so with more
+    than 20 entries it undid the wrong change.
+  - Chat reads the type with the same key spelling as the key check (`integration_key`, which
+    trims spaces), and the active cache is read once per call (a PATCH could clear it mid-read).
+- **Open for the first wave (Leo):** when the type can't be read (database error, no type set),
+  chat answers with the messaging prompt, as the key check lets a message through. Harmless while
+  only messaging is in chat; before a non-messaging type goes in, decide whether such a chat
+  should be refused instead. The audit log also grows faster (each entry's backup carries every
+  stored prompt); consider a cap if it gets large.
+- **Not here:** "Untrusted context" (plan §4.6.7: excerpts introduced as documentation, hidden text,
+  outside links) is not in this checkpoint's tasks; it belongs with the first wave.
+
 **Rollback:**
 - Code older than this gives every integration the messaging prompt.
+- On older code, "Undo" on an entry saved by this code (e.g. a storefront save) uses the old
+  restore: it puts back the model and the Email & SMS prompt from that moment. Don't undo such
+  entries after a rollback.
 - **Before rolling back below this checkpoint, run `scripts/activate_integrations.py --deactivate
   --type storefront,service,content,data --apply`** (C2.1 creates it). Until then, no
   non-messaging integration is active, so a revert is safe.
@@ -1581,3 +1638,6 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | C1.4 | Leo: the "i" popups work on hover, focus and click; coverage tier removed; Hidden merged into Not in chat; products ticked from documents | Claude Code |
 | 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |
+| 2026-10-15 | C1.7 | Prompts by platform type: four shipped drafts, per-type storage, audit and undo, facts block, integration source headers, editor with preview; `test_prompts_by_type.py` (19 checks); independent review, findings fixed; golden check 26/26 identical | Claude Code |
+| 2026-10-16 | — | Leo: GitHub restricted his account because of Claude Code's API use; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
+| 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |

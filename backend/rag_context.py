@@ -365,6 +365,32 @@ def chat_search_products(product):
     return CHAT_SEARCH_PRODUCTS.get(product)
 
 
+# The "limited documentation" warning for integrations of the non-messaging
+# types (plan §4.6.6), naming what to send the user to instead of guessing.
+# {name} is the integration's display name.
+LIMITED_DOCS_BY_TYPE = {
+    'storefront': ("\n⚠️ WARNING: Limited documentation found for this question. Answer only what "
+                   "these excerpts support; for {name}'s own screens and settings, refer the user "
+                   "to {name}'s documentation instead of describing them.\n\n"),
+    'service': ("\n⚠️ WARNING: Limited documentation found for this question. Answer only what "
+                "these excerpts support; for what {name} shows agents and when it syncs, refer the "
+                "user to {name}'s documentation instead of describing it.\n\n"),
+    'data': ("\n⚠️ WARNING: Limited documentation found for this question. Answer only what these "
+             "excerpts support; for event, field and action names on {name}'s side, refer the user "
+             "to {name}'s documentation. Never guess a name.\n\n"),
+    'content': ("\n⚠️ WARNING: Limited documentation found for this question. Answer only what "
+                "these excerpts support; for {name}'s own requirements, thresholds and timelines, "
+                "refer the user to {name}'s documentation. Never estimate them.\n\n"),
+}
+
+# With nothing retrieved. Today's messaging text invites an answer from
+# general knowledge, which for a single-guide integration means invention.
+NO_SOURCES_INTEGRATION = (
+    "No documentation for {name} covers this question. Say so plainly instead of answering "
+    "from general knowledge, and point the user to {name}'s Yotpo guide (listed under "
+    "Integration above, when there is one).\n\n")
+
+
 @dataclass
 class RagContext:
     context: str
@@ -405,6 +431,9 @@ def build_rag_context(
     filter_to_product: bool = False,
     expand_neighbours: bool = True,
     search_products: Optional[tuple] = None,
+    integration_facts: Optional[str] = None,
+    source_style: str = 'esp',
+    platform_type: Optional[str] = None,
 ) -> RagContext:
     """
     Retrieve for one chat turn and assemble the context the model reads.
@@ -431,7 +460,19 @@ def build_rag_context(
         search_products: product labels every query is restricted to, by
             the vector database's metadata filter; None searches all. Chat
             passes chat_search_products(product).
+
+    Platform type options (C1.7; chat sets them only for integrations that
+    are not messaging, so the messaging context is unchanged):
+        integration_facts: integration_facts.facts_block(), placed first.
+        source_style: 'esp' (today's headers) or 'integration': each source
+            says "Integration: <esp_display>" and "Source: Yotpo guide |
+            partner documentation | ...", and the no-sources and limited-
+            documentation notes are the integration ones.
+        platform_type: picks the limited-documentation note
+            (LIMITED_DOCS_BY_TYPE) when source_style is 'integration'.
     """
+    if source_style not in ('esp', 'integration'):
+        raise ValueError(f"Unknown source_style {source_style!r}")
     if filter_to_product and (product_of is None or product is None):
         raise ValueError("filter_to_product needs product_of and product")
 
@@ -523,9 +564,20 @@ def build_rag_context(
         label = product_of(metadata)
         return f"Yotpo product line: {PRODUCT_NAMES.get(label, 'not labelled')}\n"
 
+    integration_style = source_style == 'integration'
+    integration_name = esp_display or esp_normalized
+
+    def source_lines(metadata):
+        """The lines under a source heading that say where it comes from."""
+        if not integration_style:
+            return f"ESP: {metadata.get('esp', 'Unknown')}\n"
+        from integration_facts import SOURCE_LABELS, source_kind
+        kind = source_kind(metadata.get('source_url'), metadata.get('source_kind'))
+        return f"Integration: {integration_name}\nSource: {SOURCE_LABELS[kind]}\n"
+
     # Product preamble. Empty unless an option asks for it, so the default
     # context is unchanged.
-    context = ""
+    context = integration_facts or ""
     if reviews_coverage is False:
         esp_name = esp_display or esp_normalized
         if product == 'reviews':
@@ -555,7 +607,7 @@ def build_rag_context(
         context += "whether a setup works, not just what it is called):\n"
         for doc, metadata in zip(mech_results['documents'][0], mech_results['metadatas'][0]):
             context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
-            context += f"ESP: {metadata.get('esp', 'Unknown')}\n"
+            context += source_lines(metadata)
             context += f"URL: {metadata.get('source_url', 'N/A')}\n"
             context += product_line(metadata)
             context += f"{doc}\n\n"
@@ -563,10 +615,11 @@ def build_rag_context(
 
     # Add ESP-specific results
     if esp_results['documents'] and esp_results['documents'][0]:
-        context += "## ESP-Specific Knowledge:\n"
+        context += ("## Integration Documentation:\n" if integration_style
+                    else "## ESP-Specific Knowledge:\n")
         for doc, metadata in zip(esp_results['documents'][0], esp_results['metadatas'][0]):
             context += f"### Source {source_index}: {metadata.get('filename', 'Unknown')}\n"
-            context += f"ESP: {metadata.get('esp', 'Unknown')}\n"
+            context += source_lines(metadata)
             context += f"URL: {metadata.get('source_url', 'N/A')}\n"
             context += product_line(metadata)
             context += f"{doc}\n\n"
@@ -583,7 +636,11 @@ def build_rag_context(
             context += f"{doc}\n\n"
             source_index += 1
 
-    if source_index == 1:
+    if integration_style and source_index == 1:
+        context += NO_SOURCES_INTEGRATION.format(name=integration_name)
+    elif integration_style and source_index <= 4 and platform_type in LIMITED_DOCS_BY_TYPE:
+        context += LIMITED_DOCS_BY_TYPE[platform_type].format(name=integration_name)
+    elif source_index == 1:
         context += "No specific documentation found. Provide general guidance based on ESP best practices.\n\n"
     elif source_index <= 4:  # Very few sources (3 or fewer)
         context += "\n⚠️ WARNING: Limited documentation found for this specific query. Provide guidance but acknowledge any documentation gaps.\n\n"

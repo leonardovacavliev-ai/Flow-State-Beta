@@ -32,10 +32,22 @@ def get_temperature() -> Optional[float]:
 
 
 class AIClient:
-    def __init__(self, provider: str, model_name: str, system_prompt: str):
+    def __init__(self, provider: str, model_name: str, system_prompt: str,
+                 prompts: Optional[Dict[str, str]] = None):
+        """
+        system_prompt: the messaging (email & SMS) prompt template.
+        prompts: the other platform types' templates, by type
+            (config_manager.get_all_system_prompts). A type missing here gets
+            its shipped default, never the messaging prompt.
+        """
         self.provider = provider
         self.model_name = model_name
         self.system_prompt = system_prompt
+        from prompt_blocks import OTHER_TYPES, shipped_default
+        given = prompts or {}
+        self.prompts = {'messaging': system_prompt}
+        for platform_type in OTHER_TYPES:
+            self.prompts[platform_type] = given.get(platform_type) or shipped_default(platform_type)
         self.configured = False
 
         if provider == 'gemini':
@@ -157,7 +169,8 @@ class AIClient:
         message: str,
         context: str,
         conversation_history: List[Dict[str, str]],
-        product: Optional[str] = None
+        product: Optional[str] = None,
+        platform_type: str = 'messaging'
     ) -> str:
         """
         Generate a response using the configured AI provider
@@ -169,6 +182,8 @@ class AIClient:
             product: 'loyalty' | 'reviews' | None. Fills the [[product]]
                 placeholders in the system prompt (prompt_template.py) for
                 this request only; the stored template is never modified.
+            platform_type: which prompt answers (integration_types.
+                PLATFORM_TYPES); the integration's esps.platform_type.
 
         Returns:
             Generated response text
@@ -181,10 +196,13 @@ class AIClient:
                 f"{self.provider.title()} API not configured. Please set API key in admin settings."
             )
 
+        if platform_type not in self.prompts:
+            raise ValueError(f"Unknown platform type {platform_type!r}")
+
         # Rendered per call: this client is shared by every request thread, so
         # the filled prompt must never be written back onto self.
         from prompt_template import render
-        system_prompt = render(self.system_prompt, product)
+        system_prompt = render(self.prompts[platform_type], product)
 
         if self.provider == 'gemini':
             return self._generate_gemini(message, context, conversation_history, system_prompt)

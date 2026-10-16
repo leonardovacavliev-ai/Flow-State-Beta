@@ -572,9 +572,9 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
         sets.append('updated_at = CURRENT_TIMESTAMP')
         d.execute_query(f"UPDATE esps SET {', '.join(sets)} WHERE name = %s",
                         tuple(params) + (name,))
-        if 'status' in changes:
-            # This process's chat check sees it at once; others within
-            # esp_manager.ACTIVE_CACHE_SECONDS
+        if 'status' in changes or 'platform_type' in changes:
+            # This process's chat check (and the prompt chat picks) sees it at
+            # once; others within esp_manager.ACTIVE_CACHE_SECONDS
             get_esp_manager()._active_names = None
         return jsonify({'success': True, 'integration': _integration_row(d, name)})
 

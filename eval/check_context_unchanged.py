@@ -61,9 +61,13 @@ CASES = [
 def run():
     captured = []
 
-    def stub(message, context, conversation_history=None, product=None):
+    def stub(message, context, conversation_history=None, product=None, platform_type='messaging'):
         # product is not recorded: golden files from before the product
-        # picker have none, and the check is about the context.
+        # picker have none, and the check is about the context. Every case
+        # is an email/SMS platform, so the messaging prompt must answer
+        # (C1.7); anything else fails the request and shows as a DIFF.
+        if platform_type != 'messaging':
+            raise RuntimeError(f"answered with the {platform_type} prompt")
         captured.append({'message': message, 'context': context,
                          'history': conversation_history})
         return 'STUB'

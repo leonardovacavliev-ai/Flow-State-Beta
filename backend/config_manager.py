@@ -131,6 +131,10 @@ Always prioritize the quality of answer, never try to answer too quickly. Also, 
 Don't flatter and don't "glaze" the user. Be brief, direct and helpful. Tell them when they are wrong and provide helpful feedback.
 
 Keep the final answer as short as the task allows and act more as a tool than a person. Brevity applies to what you output, never to the checking you do before you output it. Do not pad, but do not omit a step that is required for the setup to actually work.""",
+                # The other platform types' prompts, by type, once an admin
+                # saves one; until then each uses its shipped default
+                # (prompt_blocks.shipped_default)
+                'system_prompts': {},
                 'last_updated': datetime.now().isoformat(),
                 'updated_by': 'system'
             }
@@ -143,14 +147,23 @@ Keep the final answer as short as the task allows and act more as a tool than a 
 
     def get_config(self) -> Dict[str, Any]:
         """Get current configuration (database first, file fallback)"""
+        config = None
         stored = self._db_get(self.CONFIG_KEY)
         if stored:
             try:
-                return json.loads(stored)
+                config = json.loads(stored)
             except json.JSONDecodeError as e:
                 print(f"[CONFIG] Corrupt config in database, falling back to file: {e}")
-        with open(self.config_file, 'r') as f:
-            return json.load(f)
+        if config is None:
+            with open(self.config_file, 'r') as f:
+                config = json.load(f)
+        # Configs stored before prompts by platform type have no
+        # system_prompts. Seeded here, in memory, so update_config (which only
+        # updates keys that exist) accepts it; it is stored with the first
+        # save, never at boot.
+        if not isinstance(config.get('system_prompts'), dict):
+            config['system_prompts'] = {}
+        return config
 
     def _save_config(self, config: Dict[str, Any]):
         """Persist config to the database, mirroring to the local file."""
@@ -162,7 +175,8 @@ Keep the final answer as short as the task allows and act more as a tool than a 
         except OSError as e:
             print(f"[CONFIG] Could not mirror config to file: {e}")
 
-    def update_config(self, updates: Dict[str, Any], user_email: str, change_description: str) -> Dict[str, Any]:
+    def update_config(self, updates: Dict[str, Any], user_email: str, change_description: str,
+                      platform_type: Optional[str] = None) -> Dict[str, Any]:
         """
         Update configuration and log the change
 
@@ -170,6 +184,9 @@ Keep the final answer as short as the task allows and act more as a tool than a 
             updates: Dictionary of configuration updates
             user_email: Email of user making the change
             change_description: Description of what changed
+            platform_type: set when the change is one platform type's
+                prompt. Recorded on the audit entry, so undoing it restores
+                that type's prompt only (restore_from_backup).
 
         Returns:
             Updated configuration
@@ -183,10 +200,13 @@ Keep the final answer as short as the task allows and act more as a tool than a 
             'description': change_description,
             'backup': {
                 'ai_model': current_config.get('ai_model', {}),
-                'system_prompt': current_config.get('system_prompt', '')
+                'system_prompt': current_config.get('system_prompt', ''),
+                'system_prompts': current_config.get('system_prompts', {})
             },
             'changes': updates
         }
+        if platform_type:
+            audit_entry['platform_type'] = platform_type
 
         # Update config
         for key, value in updates.items():
@@ -253,8 +273,38 @@ Keep the final answer as short as the task allows and act more as a tool than a 
 
         backup_entry = audit_log[audit_entry_index]
         backup = backup_entry['backup']
+        platform_type = backup_entry.get('platform_type')
+        description = f"Restored from backup (change made at {backup_entry['timestamp']})"
+        from prompt_template import validate
 
-        # Restore configuration
+        if platform_type:
+            # A change to one platform type's prompt: put back that type's
+            # prompt only. The model, and the other types' prompts, may have
+            # changed since, and undoing this change must not revert them.
+            updates = {}
+            if platform_type == 'messaging':
+                restored = backup.get('system_prompt', '')
+                updates['system_prompt'] = restored
+            else:
+                prompts = dict(self.get_config().get('system_prompts') or {})
+                restored = (backup.get('system_prompts') or {}).get(platform_type)
+                if restored is None:
+                    # Nothing was stored for the type then: back to its
+                    # shipped default
+                    prompts.pop(platform_type, None)
+                else:
+                    prompts[platform_type] = restored
+                updates['system_prompts'] = prompts
+            if 'ai_model' in (backup_entry.get('changes') or {}):
+                updates['ai_model'] = backup.get('ai_model', {})
+            prompt_errors = validate(restored or '')
+            if prompt_errors:
+                raise ValueError("That backup's prompt has placeholder problems: " + ' '.join(prompt_errors))
+            return self.update_config(updates, user_email, description, platform_type=platform_type)
+
+        # Entries from before prompts by type (and model or key changes):
+        # model and messaging prompt, as always. system_prompts is left
+        # alone; those backups don't have it.
         updates = {
             'ai_model': backup.get('ai_model', {}),
             'system_prompt': backup.get('system_prompt', '')
@@ -262,16 +312,11 @@ Keep the final answer as short as the task allows and act more as a tool than a 
 
         # Same check as saving: a restored prompt must not carry broken
         # [[product]] placeholders (prompt_template.py).
-        from prompt_template import validate
         prompt_errors = validate(updates['system_prompt'])
         if prompt_errors:
             raise ValueError("That backup's prompt has placeholder problems: " + ' '.join(prompt_errors))
 
-        return self.update_config(
-            updates,
-            user_email,
-            f"Restored from backup (change made at {backup_entry['timestamp']})"
-        )
+        return self.update_config(updates, user_email, description)
 
     def update_api_key(self, provider: str, api_key: str, user_email: str) -> bool:
         """
@@ -335,18 +380,57 @@ Keep the final answer as short as the task allows and act more as a tool than a 
             for var_name, var_value in env_vars.items():
                 f.write(f"{var_name}={var_value}\n")
 
-    def get_system_prompt(self) -> str:
-        """Get current system prompt"""
-        config = self.get_config()
-        return config.get('system_prompt', '')
+    @staticmethod
+    def _check_platform_type(platform_type: str):
+        from integration_types import PLATFORM_TYPES
+        if platform_type not in PLATFORM_TYPES:
+            raise ValueError(f"Unknown platform type {platform_type!r}")
 
-    def update_system_prompt(self, new_prompt: str, user_email: str) -> str:
-        """Update system prompt"""
-        self.update_config(
-            {'system_prompt': new_prompt},
-            user_email,
-            "Updated system prompt"
-        )
+    @staticmethod
+    def _prompt_for(config: Dict[str, Any], platform_type: str) -> str:
+        if platform_type == 'messaging':
+            return config.get('system_prompt', '')
+        # Never the messaging prompt: an email specialist's prompt on a
+        # point-of-sale question is the failure prompts by type exist to
+        # prevent (ALL_INTEGRATIONS_UPDATE.md §4.6.2)
+        from prompt_blocks import shipped_default
+        return (config.get('system_prompts') or {}).get(platform_type) or shipped_default(platform_type)
+
+    def get_system_prompt(self, platform_type: str = 'messaging') -> str:
+        """The system prompt template for one platform type.
+
+        messaging: the stored system_prompt, as before prompts by type.
+        Other types: the stored one, or the type's shipped default when none
+        is stored. Raises ValueError for an unknown type.
+        """
+        self._check_platform_type(platform_type)
+        return self._prompt_for(self.get_config(), platform_type)
+
+    def get_all_system_prompts(self) -> Dict[str, str]:
+        """Every platform type's prompt template, from one config read."""
+        from integration_types import PLATFORM_TYPES
+        config = self.get_config()
+        return {t: self._prompt_for(config, t) for t in PLATFORM_TYPES}
+
+    def has_stored_prompt(self, platform_type: str) -> bool:
+        """False while a non-messaging type runs on its shipped default."""
+        self._check_platform_type(platform_type)
+        if platform_type == 'messaging':
+            return True
+        return bool((self.get_config().get('system_prompts') or {}).get(platform_type))
+
+    def update_system_prompt(self, new_prompt: str, user_email: str,
+                             platform_type: str = 'messaging') -> str:
+        """Update one platform type's system prompt"""
+        self._check_platform_type(platform_type)
+        if platform_type == 'messaging':
+            updates = {'system_prompt': new_prompt}
+        else:
+            prompts = dict(self.get_config().get('system_prompts') or {})
+            prompts[platform_type] = new_prompt
+            updates = {'system_prompts': prompts}
+        self.update_config(updates, user_email, "Updated system prompt",
+                           platform_type=platform_type)
         return new_prompt
 
     def get_model_config(self) -> Dict[str, Any]:
