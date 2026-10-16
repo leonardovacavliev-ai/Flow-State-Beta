@@ -1,266 +1,222 @@
 # Next session: agenda for the next agent
 
-Written 2026-10-13 after the first v2 build session; updated 2026-10-15 after the second (C1.2),
-the third (C0.4 merge, C1.4), the fourth (C1.7, deployed 2026-10-16; GitHub restriction and the
-workflow's removal, §5; integrations require their kind, I10) and the fifth (C1.10 Find links and
-the Add integration dialog, 2026-10-16), then C1.3 (refresh pipeline) the same day.
-Read this first, then
+Written 2026-10-16 at the end of the fifth v2 build session (C1.10 Find links and the Add
+integration dialog, then C1.3 refresh pipeline, both merged and deployed). Read this first, then
 [ALL_INTEGRATIONS_ROADMAP.md](ALL_INTEGRATIONS_ROADMAP.md) §0–§2. Replace this file at the end of
 your session with the agenda for the one after.
 
 ## 1. Where things stand
 
-**Live in production (merged to `main`, deployed, smoke-checked):**
+**Live in production (merged to `main`, deployed, smoke-checked).** Details of each are in the
+roadmap's checkpoint sections, under Deviations.
 
-| PR | checkpoint | what it did |
+| PR / commit | checkpoint | what it did |
 |---|---|---|
 | #1 | C0.2 | Dependencies pinned to production's own freeze (`requirements.txt`, `constraints.txt`, Dockerfile) |
-| #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres`. **Deleted 2026-10-16** (`dc79c2a`) at GitHub's request: see §5 |
+| #2 | C0.1 | CI workflow. **Deleted 2026-10-16** (`dc79c2a`) at GitHub's request (§5); the tests run locally |
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
-| #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms, approved by Leo 2026-10-15 (docs only) |
-| #6 | C1.4 | Admin **Integrations** tab (list, filters, an integration's page, crawl summary) and **Proposals** tab (the import's inbox); owner/editor roles (`ADMIN_OWNER_EMAILS`, unset = all owners); listed integrations can be documented before they go into chat; only messaging can be active; `--apply` stores the inbox's notes. Details: roadmap C1.4 Deviations |
-| #7 | C1.4 | Plain wording in the admin (In chat / Not in chat, Kind of platform, Suggested Links, "the yotpo.com import"), explanations behind "i", product ticks in the list, nothing pre-ticked; plan: C1.10 "Find links" and R1 |
-| #8 | C1.4 | Working "i" popups (hover, focus, click); coverage tier ("Ready / Missing documents") removed; Hidden merged into Not in chat (admin can't set `archived`); Loyalty/Reviews ticked automatically from labelled documents (computed, locked) |
-| #9 | C1.4 | Crawls box shown only when something is waiting, failed, never crawled, or crawled since the tab was opened |
-| #10 | C1.7 | A system prompt per platform type: four shipped drafts (`backend/prompts/`), per-type storage, audit and undo, the integration facts block, integration source headers, the editor's kind picker and preview. Messaging unchanged (golden 26/26). Merged with plain git as `55124c7` |
-| — | I10 | No integration without its kind of platform (Leo, 2026-10-16): Create New Integration asks for the kind (non-messaging kinds created not in chat), `create_esp` requires it, the import leaves kindless ones out. Merged with plain git (branch `v2/type-required`) |
-| — | C1.10 | **Find links** per integration (`backend/link_finder.py`, shared with the yotpo.com import; `backend/find_links_job.py`, a background run; the Find links card on each integration's page) and the **Add integration** dialog (Leo, 2026-10-16: name + kind, optional website; adding starts Find links at once). Replaces the inline Create New Integration form. Merged with plain git (branch `v2/c1-10-find-links`). Details: roadmap C1.10 Deviations |
-| — | C1.3 | **Refresh pipeline**: unchanged text isn't re-indexed; Yotpo guides read with their own rule (header kept, empty product slots and Yotpo's support box dropped, spaces around links kept); title, plans and platforms stored on crawl; support.yotpo.com's sitemap read monthly (the 1st, 03:17 UTC; Leo, 2026-10-16) (changed guides re-crawled, new and vanished articles in Suggested Links); pages missing 3 times offer Retire / Replace; retired documents left out of crawls, counts, rebuilds and the audit. Branch `v2/c1-3-refresh`. Details: roadmap C1.3 Deviations |
-| #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (catalog → integrations and proposals; dry run, `--apply` from a saved plan); partner mechanics (below); crawler reads JSON-LD article text on empty-shell pages. Nothing imported yet: `--apply` is C1.9 |
+| #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms (docs only) |
+| #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (dry run; `--apply` is C1.9); partner mechanics (below) |
+| #6–#9 | C1.4 | Admin **Integrations** and **Suggested Links** tabs, owner/editor roles, plain wording, "i" popups, two states (In chat / Not in chat), products from documents, crawl box |
+| #10 (`55124c7`) | C1.7 | A system prompt per platform type (four drafts in `backend/prompts/`), facts block, editor with preview. Messaging unchanged |
+| `4030b87` | I10 | No integration without its kind of platform |
+| `fecd270` | C1.10 | **Find links** per integration (`backend/link_finder.py`, shared with the yotpo.com import; `backend/find_links_job.py`, a background run; the Find links card) and the **Add integration** dialog (name, kind, optional website; adding starts Find links at once). Find links fetches only public addresses |
+| `dbf63cb` | C1.3 | **Refresh pipeline** (`backend/refresh.py`, `refresh_routes.py`, `sitemap_refresh.py`): unchanged text isn't re-indexed; Yotpo guides read with their own rule; title/plans/platforms stored on crawl; support.yotpo.com's sitemap read **monthly** (the 1st, 03:17 UTC, and at boot when overdue; Leo); pages missing 3 times offer Retire / Replace; retired documents left out everywhere they would count |
 
-Production data steps Leo ran on 2026-10-13:
-- `scripts/fix_url_spellings.py --apply`: the 3 links stored with a `#section` were tidied (row and
-  vectors). `eval/check_url_normalisation.py` now reports 0, and `audit_product_labels.py` is OK
-  (577 vectors, 95 rows).
-- `scripts/normalize_esp_keys.py --apply`: 16 `esp_selections` rows renamed `other/webhook` →
-  `other_webhook`. The dashboard recomputes its daily aggregates on its next load.
+Last live smoke check (2026-10-16 16:27, after `dbf63cb`): health 200, Klaviyo loyalty chat
+answered with 15 sources, unknown integration 400, `/api/admin/sitemap-changes` and
+`/api/admin/integrations/<name>/find-links` 403 without sign-in.
 
-**Partner mechanics (C1.2, Leo's design, 2026-10-14/15).** Besides the Yotpo guides, every
-integration needs the partner's own articles on the functions the integration touches (Klaviyo flow
-triggers, Recharge subscription discount codes). Per integration, `backend/app_mechanics.py` and
-`backend/mechanics_ai.py` (Gemini Flash, the app's `GEMINI_API_KEY`):
-1. read the Yotpo guides, the partner's Yotpo pages and the partner help centre's own Yotpo articles;
-2. the model lists the partner functions the integration touches;
-3. code searches the help centre (Zendesk API, or the model picks from the centre's titles);
-4. code reads each candidate, the model accepts only articles whose text explains a function;
-5. help centres that can't be read automatically (bot check, login, moved, browser-only) go to a
-   person; **a person approves each integration's final list in the admin (C1.4)**.
-Leo rejected two earlier versions (general "Welcome to the app" articles; hand-made topic lists).
-Don't bring them back. Last dry run (2026-10-14/15): 272 articles for 65 integrations, 39 for a
-person, 37 with no help centre found, 13 where the model accepted nothing. Report:
-`docs/integrations/catalog_dry_run.md`.
+**The first sitemap read** runs by itself about ten minutes after that deploy (no read on record
+yet). It only *records* the ~700 articles: it re-crawls nothing (Leo's call, below). The Suggested
+Links tab, section "New on support.yotpo.com", shows it and counts our guides that Yotpo changed
+since their last crawl.
 
-**Open, waiting for Leo:**
-- **C1.7 drafts:** Leo reads the four drafts once (Admin → General Settings → Kind of platform;
-  "Preview for…" shows one for a real integration). Final wording happens in each wave.
-- **Before the first non-messaging wave:** should a chat whose integration type can't be read be
-  refused instead of answered with the messaging prompt? (roadmap C1.7 Deviations)
-- **C0.4:** Leo creates the 13 email/SMS platforms in the admin (Integrations tab → **+ Add
-  integration**, owner only, kind Email & SMS). Find links now starts by itself and suggests each
-  one's yotpo.com guides and pages (tried locally on Mailchimp: exactly the four links in
-  `docs/integrations/messaging_sources.md`) and its help articles; Leo approves them in Suggested
-  Links, then adds by hand whatever that file lists and Find links didn't, and crawls or pastes them. Use the names the import expects (`catalog_import.KNOWN_MATCHES`), e.g.
-  "Salesforce Marketing Cloud" → `salesforce_marketing_cloud`. Then you do the per-platform
-  retrieval check C0.4 describes.
-- **C1.4:** done (#6–#9); Leo confirmed the "i" popups work. Suggested Links is empty until
-  C1.9's import. Optionally he sets `ADMIN_OWNER_EMAILS` on Railway. The screen vocabulary and
-  Leo's later decisions (no coverage tier, two states, products from documents, crawl box) are in
-  the roadmap's C1.4 Deviations: follow them in C1.5 and later UI work.
-- **Integration delete:** offered to Leo (not built). If he wants it: owner-only, deletes vectors
-  and rows; a catalog integration comes back on the next import unless that is handled.
-- **A suggested task** (chip in the session that built C1.4): chat's integration check lets a
-  message through when the database check fails, and the public Reviews-coverage list includes
-  listed integrations' names. Both are pre-existing; they matter once listed integrations have
-  indexed documents (after C1.9).
+**Partner mechanics (C1.2, Leo's design; keep it).** Per integration, a model (Gemini Flash, the
+app's `GEMINI_API_KEY`) lists the partner functions the integration touches from the integration's
+own documents, code searches the partner's help centre, and the model accepts only articles whose
+text explains a function; blocked help centres go to a person; a person approves the final list.
+Leo rejected two earlier versions (general "Welcome" articles; hand-made topic lists): don't bring
+them back. Last catalog dry run: `docs/integrations/catalog_dry_run.md` (2026-10-14/15).
+
+**Open, waiting for Leo** (tell him in plain words when it's relevant; none blocks the next work):
+1. **C0.4**: he adds the 13 email/SMS platforms (Integrations tab → **+ Add integration**, kind
+   Email & SMS, the names `catalog_import.KNOWN_MATCHES` expects, e.g. "Salesforce Marketing
+   Cloud"). Find links suggests each one's links; he approves them in Suggested Links, adds what
+   `messaging_sources.md` lists and Find links missed, and crawls or pastes them. Then you do C0.4's
+   per-platform retrieval check.
+2. **C1.7 drafts**: he reads the four non-messaging prompt drafts once (General Settings → Kind of
+   platform). Final wording comes per wave.
+3. **Yotpo guides re-crawled with the new rule**: only those Yotpo changes are re-crawled, from the
+   second monthly read on. Re-crawling all of them at once, sooner, is his call (then run
+   `eval/retrieval_recall.py`).
+4. **Glued words on other sites**: every non-Yotpo page still loses the spaces around its links
+   ("go toRecharge Marketplaceand"). Fixing the general rule changes every page on its next crawl:
+   his decision.
+5. **Before the first non-messaging wave**: should a chat whose integration type can't be read be
+   refused instead of answered with the messaging prompt? (roadmap C1.7 Deviations)
+6. **Not built, offered**: a daily cap on Find links runs (he asked why one is needed; none built);
+   integration delete (owner-only; a catalog one would come back on the next import).
+7. **Never run**: Find links with the real model (spends the chat's Gemini credit; tests use a fake
+   one), and every Postgres test since CI was removed (no `TEST_DATABASE_URL`). Ask him how he wants
+   database code tested when it matters.
+8. **Pre-existing, from C1.4**: chat's integration check lets a message through when the database
+   check fails, and the public Reviews-coverage list includes listed integrations' names. Both
+   matter once listed integrations have indexed documents (after C1.9).
 
 ## 2. How to work with Leo (he asked for these)
 
-- **Plain language, no jargon.** Every message says what was done and why it matters in a
-  sentence or two, then whether anything is needed from him, as short numbered steps with exact
-  commands or clicks. He said he could not follow a jargon-heavy summary.
-- **Review every change before committing and before pushing.** Read the whole diff. This
-  session's review caught a real bug: the hidden `global` row would have been typed `messaging`.
-- **You merge and deploy** (his decision, roadmap §0.3). Railway deploys every push to `main`.
-  Merge only when the local §1.4 suite is green, the diff is reviewed, and the checkpoint's pre-merge 🛑 steps are
-  done. Smoke-check after each deploy (§4). If it fails, revert the merge commit and tell him.
+- **Plain language, no jargon.** Each message: what was done and why it matters in a sentence or
+  two, then whether anything is needed from him, as short numbered steps with exact clicks or
+  commands.
+- **Review every change before committing and before pushing.** Read the whole diff, and before a
+  merge run an independent reviewer agent on the branch. This session's reviews found real bugs
+  both times (an SSRF hole in Find links; retired documents that could come back into chat).
+- **You merge and deploy, without asking** (Leo, 2026-10-15: "do the pulls and deploys, just go").
+  Merge only when the local suite is green and the diff is reviewed; smoke-check after each deploy
+  (§4); if it fails, revert the merge commit and tell him.
 - **Data-changing scripts on production stay his** (`--apply`, `--write`, rebuilds). Give him the
-  exact command, then verify it afterwards with the read-only checks.
-- **Read-only checks against production** may be run by you: he approved this session's (the URL
-  check and the key-rename dry run). The roadmap §1.1 list applies otherwise.
-- **The safety filter blocked one merge** (#3, the first one that changes the live database
-  schema). Don't work around it. Explain it to Leo and ask. He then said "merge 3", and it went
-  through.
-- **Merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the pulls and
-  deploys, just go"). Report when done. Plain git only, see the next point and §4.
-- ⛔ **Never drive Leo's GitHub account through the GitHub API** (Leo, 2026-10-16). GitHub has
-  restricted it twice, both times right after sessions that opened, edited and merged PRs with
-  `curl` and the keychain token and polled Actions and deploy statuses every minute. Use plain
-  `git` only (`fetch`, `push`, `merge`), a handful of times per checkpoint. No `curl` to
-  `api.github.com` with a token, no PRs opened or merged by API, no polling of Actions,
-  deployments or commit statuses, no `gh`. Check a deploy on the live site
-  instead (§4). If Leo wants a PR page, he opens it.
-- Leo still does these himself: open the admin panel (Google sign-in) and run production data
-  scripts.
-- **Don't ask Leo to replace or rotate keys** (Leo, 2026-10-16).
+  exact command, then verify it with the read-only checks. Read-only checks against production
+  (roadmap §1.1 list: golden check, recall, label audit, seeding a local copy) are yours to run.
+- **Ask before anything that spends Gemini credit at volume** (the key is the live chat's prepaid
+  one; dry runs once emptied it).
+- **The safety filter** once blocked a schema-changing merge (#3). Don't work around a block:
+  explain it to Leo and ask.
+- ⛔ **Never use the GitHub API from Leo's account** (Leo, 2026-10-16): no `curl` to
+  `api.github.com`, no PRs opened or merged by API, no polling of Actions or deploy statuses, no
+  `gh`. GitHub restricted his account twice after sessions that did. Plain `git` only, a handful of
+  times per checkpoint. ⛔ No GitHub Actions workflow without his explicit OK.
+- **Don't ask Leo to replace or rotate keys.**
+- Leo does these himself: sign in to the admin (Google), run production data scripts.
 
 ## 3. Next work, in order
 
-1. **Next** (each its own branch; C1.1, C1.2, C1.4 and C1.7 are done): C1.3 refresh pipeline,
-   C1.5 chat picker, C1.6 Reviews readiness. C1.8 waits for C1.3. `TYPES_IN_CHAT` deliberately
-   stays messaging-only after C1.7: each type joins chat in its wave, Leo decides. Suggested
-   order: C1.5, C1.6, then C1.8 (now unblocked: C1.3 is done). C1.3 and C1.10 are done. Find
-   links still reads the sitemap itself; it could read `sitemap_urls` instead (small follow-up).
-   - Find links has **no daily cap** (Leo asked why one is needed). If Leo wants one, it goes in
-     `find_links_job.start`.
-   - From C1.9 on, **R1**: the catalog import is re-run by hand every 1–2 months (roadmap §7).
-   - C1.5 has a design prototype (`design/integrations-redesign.html`, Chat screen; untracked,
-     **don't commit it**: Leo, 2026-10-15). Use it as the baseline.
-   - The Usage Analytics additions in that design (plan §4.9) need C1.5's picks of listed
-     integrations and a source count per chat message; build them with or after C1.5.
-2. **C0.4**, once Leo has created the platforms (see §1).
-3. **Re-running the catalog dry run** (e.g. after help centres are added to
-   `scripts/help_centres.json`), read-only, against a local copy of the knowledge base:
-   ```bash
-   python3 eval/seed_local_db.py /private/tmp/<scratch>/seed.db
-   DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=/private/tmp/<scratch>/seed.db python3 scripts/import_catalog.py --cache /private/tmp/<scratch>/cache --plan /private/tmp/<scratch>/plan.json --report /private/tmp/<scratch>/report.md
-   ```
-   From an empty cache this takes **well over an hour** (1 request/s per host, ~1,500 pages) and
-   ~250 model calls (~1M tokens). **Ask Leo first** (§5: it spends the live chat's Gemini
-   credit). Run it in the background. Then copy the report
-   to `docs/integrations/catalog_dry_run.md`.
+1. **C1.5 Chat: integration picker, `/api/integrations`, copy by type.** The design prototype is
+   `design/integrations-redesign.html` (Chat screen; untracked: **don't commit it**, Leo). Products
+   follow the documents (`admin_integrations_routes.effective_products`): use the same rule.
+   `TYPES_IN_CHAT` stays messaging-only: each type joins chat in its wave, Leo decides. The Usage
+   Analytics additions in that design (plan §4.9) come with or after C1.5.
+2. **C1.6 Reviews readiness.**
+3. **C1.8 Portability seams, Sentry, no local disk** (unblocked now C1.3 is done). It also moves
+   the in-memory "one run at a time" checks of Find links and the sitemap into the database if the
+   app is ever to run more than one web process (§5).
+4. **Small follow-ups** (each a short branch, any time): Find links reads C1.3's `sitemap_urls`
+   instead of fetching the sitemap; `test_crawl_pacing.py postgres` gains the C1.3 worker paths
+   once there is a test database.
+5. **C0.4**, once Leo has added the platforms (§1 item 1).
+6. **C1.9** (Leo's production import) waits for C1.2–C1.8 deployed. From then on, **R1**: the
+   catalog import re-run by hand every 1–2 months (roadmap §7). A dry run from an empty cache takes
+   well over an hour and ~250 model calls: ask Leo first.
 
 ## 4. Procedures that worked
 
-**Merge and deploy** (from a scratch worktree, so the main checkout is never switched):
+**Work in a worktree under the scratchpad**, never in the main checkout:
+`git worktree add -b v2/<id>-<slug> <scratch>/wt origin/main`. The main checkout stays on `main`
+with only `design/` and `production-freeze.txt` untracked; fast-forward it (`git merge --ff-only
+origin/main`) after each merge so Leo's files match git.
+
+**The local suite, network blocked.** Put a `sitecustomize.py` in a scratch folder that makes
+`socket.connect` and `getaddrinfo` raise for anything but localhost; run with
+`PYTHONPATH=<that folder> HF_HUB_OFFLINE=1 VECTOR_DB_PROVIDER=chromadb DATABASE_PROVIDER=sqlite
+SESSION_PROVIDER=memory`:
+```
+backend/test_prompt_template.py  backend/test_product_write_paths.py  backend/test_conversation_seed.py
+backend/test_crawl_pacing.py  "backend/test_analytics_providers.py sqlite"  eval/test_product_scorer.py
+backend/test_integrations_schema.py  backend/test_doc_header.py  backend/test_catalog_import.py
+backend/test_admin_integrations.py  backend/test_prompts_by_type.py  backend/test_find_links.py
+backend/test_refresh_pipeline.py
+```
+plus the import smoke test (roadmap §1.1). `test_admin_integrations.py` prints a harmless
+"disk I/O error" from the analytics flush; look for its "9/9 passed".
+
+**Merge and deploy** (from a scratch worktree):
 ```bash
 git fetch origin
-git worktree add --detach /private/tmp/<scratch>/mainwt origin/main
-cd /private/tmp/<scratch>/mainwt
-git merge --no-ff origin/<branch> -m "Merge pull request #N from leonardovacavliev-ai/<branch>"
+git worktree add --detach <scratch>/mainwt origin/main
+cd <scratch>/mainwt
+git merge --no-ff origin/<branch> -F <scratch>/mergemsg.txt   # -F - (stdin) does not work here
 git push origin HEAD:main
 ```
-The merge commit's message carries what a PR description would (what changed, checks run,
-review findings). A deploy takes about 12 minutes. **Don't poll GitHub for it**: wait ~12 minutes,
-then look at the live site, e.g. that `index.html` serves the new `app.js?v=` cache-buster, then
-smoke-check. Check the site every few minutes at most.
+The merge message carries what a PR description would (what changed, checks, review). **Other
+sessions push to `main` too** (2026-10-16: two styling commits landed while C1.3 merged). If the
+push is refused, `git fetch`, `git reset --hard origin/main` in the scratch worktree, merge again,
+and resolve conflicts; so far they were only the `?v=` cache-busters in `index.html`: give the file
+you changed a fresh value and keep the other side's for the files you didn't. Run the suite on the
+merged tree before pushing.
 
-**Smoke check** (live: `https://flow-state-beta-production.up.railway.app`):
-- `GET /api/health`;
+**Is GitHub reachable?** `git ls-remote origin refs/heads/main` (plain git). Don't `curl` the API:
+auto mode refuses it, and Leo's rule forbids it anyway.
+
+**After a deploy** (~12 minutes; don't poll GitHub): check the live site
+(`https://flow-state-beta-production.up.railway.app`) serves the new `?v=` in `index.html`, then:
+- `GET /api/health` → 200;
 - `POST /api/session/init`, then `POST /api/chat` with `esp: klaviyo`, `product: loyalty` and a
-  real question. Expect an answer and ~16 sources;
-- since C1.1: an unknown `esp` gets 400 "Unknown integration. Reload the page.";
-- ask Leo to open the admin panel and crawl one link.
+  real question → an answer and ~15–16 sources;
+- an unknown `esp` → 400 "Unknown integration. Reload the page.";
+- new admin routes without sign-in → 403.
 
-**Golden context check (I3)**, read-only against the live index. Capture on the base code, then
-check on the branch, back to back:
+**Golden context check (I3)**, read-only against the live index (SQLite for the database, the model
+stubbed). Capture on `origin/main`, check on the branch, back to back:
 ```bash
-git worktree add /private/tmp/<scratch>/golden-base origin/main
-cp eval/check_context_unchanged.py /private/tmp/<scratch>/golden-base/eval/   # if the tool changed
-ln -s "$PWD/.env" /private/tmp/<scratch>/golden-base/.env
-(cd /private/tmp/<scratch>/golden-base && python3 eval/check_context_unchanged.py capture /private/tmp/<scratch>/golden.json)
-python3 eval/check_context_unchanged.py check /private/tmp/<scratch>/golden.json
+git worktree add --detach <scratch>/golden-base origin/main
+ln -s "<main checkout>/.env" <scratch>/golden-base/.env
+ln -s "<main checkout>/.env" <scratch>/wt/.env
+(cd <scratch>/golden-base && python3 eval/check_context_unchanged.py capture <scratch>/golden.json)
+(cd <scratch>/wt && python3 eval/check_context_unchanged.py check <scratch>/golden.json)
+rm <scratch>/golden-base/.env <scratch>/wt/.env
 ```
-Also confirm the captured cases are status 200 with model input. "Identical" also holds if both
-sides failed.
+Confirm the cases are status 200 with model input ("identical" also holds when both sides fail).
 
-**Prove a test needs no network:** put a `sitecustomize.py` in a scratch folder that makes
-`socket.connect` and `getaddrinfo` raise for anything but localhost, then run the suite with
-`PYTHONPATH=<that folder> HF_HUB_OFFLINE=1`. This session found two network calls that way
-(ipapi.co in the analytics test, huggingface.co on model load).
+**Try the admin locally** (how C1.10 and C1.3 were checked): add a temporary entry to the main
+checkout's `.claude/launch.json` that starts `app.py` from your worktree with every provider set by
+hand (`DATABASE_PROVIDER=sqlite`, `SQLITE_DB_PATH=<scratch>/local.db`, `SESSION_PROVIDER=memory`,
+`USE_ASYNC_CRAWL=false`, `VECTOR_DB_PROVIDER=chromadb`, `CHROMA_PERSIST_DIR=<scratch>/chroma`,
+`GEMINI_API_KEY=` and the other keys and `DATABASE_URL=` empty, `ADMIN_PASSWORD_FALLBACK=true`,
+`ADMIN_PASSWORD=local-only`), with no `.env` in the worktree; restore the file afterwards. In the
+browser set `window.Auth.headers` to send `X-Admin-Password: local-only` and
+`isSignedIn`/`isAdmin` to true, then `openAdminPanel()`. Override `window.confirm`/`prompt` to test
+their flows. Local crawls write `docs/<name>/` and `docs/crawl_metadata.json` in the worktree:
+restore them before committing. `eval/seed_local_db.py` copies production's knowledge base
+read-only into a local file when you need real rows. Screenshots in the browser pane can lag; read
+the page text to confirm.
 
-**No PRs through the API, no CI polling** (see §2 ⛔). Branches are pushed and merged with plain
-git (above). Run the §1.4 suite locally with the network blocked before merging, and say so in the
-merge commit. There is no GitHub CI any more (§5), and no workflow may be added without Leo's OK.
-The Postgres tests need `TEST_DATABASE_URL`, which nothing provides now (no Docker locally): tell
-Leo when a change touches the database code, and ask how he wants it tested.
-
-**Try the admin in the built-in browser, on local data only** (how C1.4 was checked):
-- Seed a scratch SQLite: `python3 eval/seed_local_db.py <scratch>/local.db` (reads production
-  read-only; needs `.env`, so link it in for this one command and remove the link after).
-- Optional: `DATABASE_PROVIDER=sqlite SQLITE_DB_PATH=<scratch>/local.db GEMINI_API_KEY= python3
-  scripts/import_catalog.py --no-mechanics --cache <scratch>/cache --plan <scratch>/plan.json`
-  (about 10 minutes, no model calls), then `--apply --plan` into the **same local file**.
-- Add a temporary entry to the main checkout's `.claude/launch.json` that starts `app.py` from your
-  worktree with every provider set by hand (`DATABASE_PROVIDER=sqlite`, `SQLITE_DB_PATH`,
-  `SESSION_PROVIDER=memory`, `USE_ASYNC_CRAWL=false`, `VECTOR_DB_PROVIDER=chromadb`,
-  `GEMINI_API_KEY=` and the other keys empty, `ADMIN_PASSWORD_FALLBACK=true`,
-  `ADMIN_PASSWORD=local-only`), with no `.env` in the worktree. Restore the file afterwards.
-- The page has no password sign-in: in the browser, set `window.Auth.headers` to send
-  `X-Admin-Password`, `isSignedIn`/`isAdmin` to true, then call `openAdminPanel()`.
-- Crawls and pastes write `docs/` and `docs/crawl_metadata.json` in the worktree: remove or restore
-  them before committing.
-
+**Testing the crawl worker without Postgres**: its job claiming is Postgres-only, but
+`_process_job` runs on SQLite through a wrapper that rewrites `NOW()` to `CURRENT_TIMESTAMP`, with
+the queue's extra columns added to the test database (`backend/test_refresh_pipeline.py`).
 
 ## 5. Watch out for
 
-- **Yotpo guides change text when re-crawled** (C1.3): the new rule keeps the spaces around links
-  and drops the header's empty slots, so a re-crawled guide's text differs from the stored one and
-  is re-indexed once. The monthly sitemap run re-crawls the guides Yotpo changed, so this happens
-  gradually; a golden check made across such a re-crawl differs for that reason alone. A full
-  re-crawl of all Yotpo guides at once is Leo's call (roadmap C1.3 note), followed by
-  `retrieval_recall.py`.
-
-- **Find links runs in the web process** (C1.10): a thread per run, the "one run per integration,
-  two at once" check held in memory. That is exact only with one web process (`--workers 1`). If
-  the app ever runs more (C1.8, CX.2), move the check into the database. Each run spends Gemini
-  credit when `GEMINI_API_KEY` is set (three model calls at most); tests use a fake model and a fake
-  fetch, and the local try-out ran with the key empty.
-
-- **Listed integrations are found by name** (C1.4): `get_esp_by_name` and `find_documents_by_url`
-  see `active` and `listed` rows, so their documents can be approved, crawled and indexed before
-  they go into chat. Chat (`is_active_integration`) and the sidebar (`list_esps`) still see
-  `active` only; `test_admin_integrations.py` checks it. Keep it that way.
-
-- **The main checkout is clean and up to date** (2026-10-16): `main`, fast-forwarded to
-  `origin/main`, with only `design/` and `production-freeze.txt` untracked. Keep it that way: work
-  in worktrees under the scratchpad, and fast-forward the main checkout (`git merge --ff-only
-  origin/main`) after each merge so Leo's local files match git.
-- **A design session's uncommitted plan notes (2026-10-13)** are set aside, not merged: they
-  predate C1.4 and partly contradict later decisions (e.g. the coverage tier Leo removed). They
-  are in `git stash` (`stash@{0}`, "design session's uncommitted plan notes") and in
-  `design/uncommitted-plan-notes-2026-10-13.patch` (local only). The prototype
-  `design/integrations-redesign.html` stays untracked (Leo: don't commit it); use it as C1.5's
-  baseline. Bring a note from the patch into the plan only when its checkpoint needs it, checked
-  against the later decisions.
-- **The catalog dry run spends the live chat's Gemini credit.** `.env`'s `GEMINI_API_KEY` is
-  production's, on a prepaid balance. The 2026-10-14/15 dry runs (~2.3M tokens) emptied it and
-  live chat failed with 429 "prepayment credits are depleted" until Leo topped it up. Don't run
-  the mechanics dry run (or anything else that calls Gemini at volume) without Leo's OK, and ask
-  him for a separate development key first.
-- **GitHub restricted Leo's account twice** (found 2026-10-15, and again 2026-10-15 evening, still
-  on 2026-10-16; reinstated 2026-10-16 after the workflow was removed and Leo replied). Railway
-  failed with "couldn't find the repo", Actions history vanished, and
-  `https://api.github.com/users/leonardovacavliev-ai` returned 404 to everyone else. Leo says it
-  is because of what Claude Code does: both times followed API-driven PR work and status polling
-  with his token. Hence the §2 ⛔ rule. **GitHub's own notice (2026-10-16) named GitHub Actions**
-  (workflows used "to interact with 3rd party websites … or for general computing") and asked
-  for workflows to be removed, credentials the violation used to be deleted, and an
-  acknowledgement. Our workflow was ordinary CI with no secrets, but Leo had it deleted
-  (`dc79c2a`) and replied to GitHub. Don't add a workflow back without his OK. Before a merge, check that URL once without a token
-  (200 = fine; 404 = restricted: stop, don't merge, tell Leo).
-- **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
-  disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
-  keep nothing only there.
-- **Partner mechanics: Leo's design, keep it.** No hand-made topic lists and no human picking,
-  except where a help centre blocks automated reading. The model lists the functions from the
-  integration's own documents and confirms articles by reading them; a person approves the final
-  list. A dry run needs `GEMINI_API_KEY`; tests use a fake model. Two runs can differ slightly.
-- **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
-  `backend/constraints.txt`. Leave it, or ask before deleting.
-- **Local Python is 3.9; production is 3.11.** The pins don't install on 3.9, but the
-  already-installed packages run the suite. There is no Docker locally.
-- **`.env` is production.** Never start the app with it plain. Tests set their own environment
-  before importing. The Postgres tests need `TEST_DATABASE_URL`; nothing provides one now that CI is gone.
-  `test_integrations_schema.py postgres` never falls back to `.env`.
-- **Chat now validates the integration key** against active `esps` rows, with a 60 s cache
-  (`ESPManager.is_active_integration`). Any test or tool driving `/api/chat` on an empty database
-  must create the integration first. `check_context_unchanged.py` does.
-- **The `platform_type` boot seed ran once** and is recorded in `app_settings`
-  (`seed:platform_type_messaging`).
-- **No integration without its kind of platform** (Leo, 2026-10-16; roadmap I10). `create_esp`
-  requires `platform_type` (no default; `None` only for `global`); Create New Integration asks for
-  it and creates non-messaging kinds not in chat; the catalog import leaves out an integration
-  whose categories give no kind and lists it in its report. Any new way of adding an integration
-  must do the same.
-- **First deploy after a dependency change is slow**: the full CUDA stack reinstalls (several
-  GB). If build time or image size starts to hurt, that is CX.3's trigger.
+- **`.env` is production** (Postgres and Pinecone). Never start the app with it plain; tests set
+  their own environment before importing.
+- **Two in-memory guards assume one web process** (`--workers 1` in Procfile and Dockerfile):
+  Find links' "one run per integration, two at once", and the sitemap's "one read at a time". If
+  the app ever runs more web processes (C1.8, CX.2), move them into the database.
+- **Find links fetches only public web addresses** (`link_finder.public_address_problem`, every
+  request and redirect hop). Keep it that way for anything that fetches an address an admin typed or
+  a page linked.
+- **Retired documents** keep their rows (`crawl_status = 'retired'`, `retired_at`); a hand crawl
+  brings one back; a retired URL is still refused as a duplicate when re-added. Any new query that
+  counts, crawls or indexes documents must leave them out (roadmap C1.3 lists the ones that do).
+- **The unchanged skip** trusts `content_hash`, `vector_count` and the saved filename. A change of
+  chunking or embedding is applied by Rebuild Vectors, not by re-crawls.
+- **Yotpo guides change text when re-crawled** (C1.3 rule). A golden check made across such a
+  re-crawl differs for that reason alone.
+- **Listed integrations are found by name** (`get_esp_by_name`, `find_documents_by_url` see
+  `active` and `listed`); chat (`is_active_integration`) and the sidebar (`list_esps`) see `active`
+  only. Keep it that way (I4).
+- **No integration without its kind of platform** (I10): any new way of adding one must require it.
+- **The catalog dry run and Find links spend the live chat's Gemini credit.** Ask first.
+- **GitHub restricted Leo's account twice** (2026-10-15/16) after API-driven PR work and status
+  polling; its notice named Actions. Hence §2's ⛔ rules.
+- **Temporary folders are wiped overnight.** Push branches as you go.
+- **Untracked, leave them**: `production-freeze.txt` (Leo's raw `pip freeze`; `constraints.txt` is
+  its content), `design/` (the prototype, and `uncommitted-plan-notes-2026-10-13.patch`: a design
+  session's notes set aside, also in `git stash@{0}`; they predate C1.4 and partly contradict later
+  decisions, so bring one into the plan only when its checkpoint needs it).
+- **Local Python is 3.9, production 3.11.** The pins don't install on 3.9, but the installed
+  packages run the suite. Write code that runs on both (e.g. `sitemap_refresh.parse_lastmod` pads
+  fractions of a second for 3.9). No Docker locally.
+- **Chat validates the integration key** against active rows (60 s cache): a tool driving
+  `/api/chat` on an empty database must create the integration first.
+- **First deploy after a dependency change is slow** (the CUDA stack reinstalls); CX.3 is the fix
+  if it starts to hurt.
