@@ -171,7 +171,7 @@ def search_target(row: Dict, fetch) -> Tuple[ci.Integration, Optional[List[str]]
     """(what to search for, the yotpo.com pages found by name or None).
 
     Uses the integration's recorded yotpo.com pages; with none, looks it up
-    in the catalog. The model is told its kind of platform when it has no
+    in the catalog. The model is told its category when it has no
     yotpo.com categories, so it knows what sort of platform it reads about."""
     slugs, categories, description = row['catalog_slugs'], row['categories'], row['catalog_description']
     matched = None
@@ -182,7 +182,7 @@ def search_target(row: Dict, fetch) -> Tuple[ci.Integration, Optional[List[str]]
             categories = categories or match.categories
             description = description or match.description
     if not categories and row['platform_type'] in TYPE_LABELS:
-        categories = [f"kind of platform: {TYPE_LABELS[row['platform_type']]}"]
+        categories = [f"category: {TYPE_LABELS[row['platform_type']]}"]
     integ = ci.Integration(name=row['name'], display_name=row['display_name'], slugs=list(slugs),
                            categories=list(categories), products=row['products'],
                            description=description or '', platform_type=row['platform_type'])

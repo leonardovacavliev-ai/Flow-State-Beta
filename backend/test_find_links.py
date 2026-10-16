@@ -313,7 +313,7 @@ def test_the_kind_reaches_the_model_and_the_website_the_search():
     fetch = fixture_fetch({'https://www.acmedesk.io/': home, 'https://help.acmedesk.io/en': help_home})
     run = job.run_once(db, 'acme', 'a', 'https://www.acmedesk.io/', fetch, Model(), overrides={})
     assert run['state'] == 'done', run
-    assert seen['categories'] == ['kind of platform: Customer service']
+    assert seen['categories'] == ['category: Customer service']
     assert run['help_centre'] == 'https://help.acmedesk.io/en' and run['website'] == 'https://www.acmedesk.io/'
     assert run['added'] == []
 

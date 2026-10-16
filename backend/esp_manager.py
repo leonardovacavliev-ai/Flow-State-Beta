@@ -63,21 +63,21 @@ class DuplicateURLError(ValueError):
 
 
 def require_platform_type(name: str, platform_type: Optional[str]) -> None:
-    """Every integration is added with its kind of platform (Leo, 2026-10-16):
+    """Every integration is added with its category (Leo, 2026-10-16):
     the kind decides which system prompt answers for it, so one without a
     kind would be answered by a guess. Only the hidden 'global' row has
     none. Raises ValueError otherwise."""
     from integration_types import PLATFORM_TYPES, TYPE_LABELS
     if name == 'global':
         if platform_type is not None:
-            raise ValueError("The global knowledge row has no kind of platform")
+            raise ValueError("The global knowledge row has no category")
         return
     if platform_type not in PLATFORM_TYPES:
         kinds = ', '.join(f"{TYPE_LABELS[t]} ({t})" for t in PLATFORM_TYPES)
         if platform_type is None or platform_type == '':
-            raise ValueError(f"Choose the kind of platform first. An integration can't be added "
+            raise ValueError(f"Choose the category first. An integration can't be added "
                              f"without one: {kinds}")
-        raise ValueError(f"Unknown kind of platform '{platform_type}': use one of {kinds}")
+        raise ValueError(f"Unknown category '{platform_type}': use one of {kinds}")
 
 
 class ESPManager:
@@ -101,7 +101,7 @@ class ESPManager:
             display_name: Human-readable name (e.g., 'Klaviyo', 'Mailchimp')
             description: Optional description
             platform_type: integration_types.PLATFORM_TYPES, required: no
-                integration is added without its kind of platform (Leo,
+                integration is added without its category (Leo,
                 2026-10-16), since the kind decides which prompt answers
                 for it. None only for the hidden 'global' row, which serves
                 every type.

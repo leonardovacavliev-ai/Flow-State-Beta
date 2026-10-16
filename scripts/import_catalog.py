@@ -208,7 +208,7 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
             if change:
                 plan['update'].append({'name': integ.name, 'changes': change})
         elif not row['platform_type']:
-            # No integration is added without its kind of platform (Leo,
+            # No integration is added without its category (Leo,
             # 2026-10-16): none of its categories maps to one. The report
             # lists it for a person to add, with a kind, in the admin.
             plan['no_type'].append(row)
@@ -392,7 +392,7 @@ def render_report(plan: Dict) -> str:
     for label, n in (('catalog cards (detail pages)', snap['cards']),
                      ('integrations in the catalog', plan['integrations']),
                      ('integrations to create (as `listed`)', len(plan['create'])),
-                     ('not added: no kind of platform from their categories', len(plan.get('no_type', []))),
+                     ('not added: no category from their categories', len(plan.get('no_type', []))),
                      ('existing integrations whose catalog fields change', len(plan['update'])),
                      ('proposals: Yotpo guides', len(yotpo)),
                      ('  of which renamed guides', len(renamed)),
@@ -419,8 +419,8 @@ def render_report(plan: Dict) -> str:
             f"{r['display_name']} (`{r['name']}`)" for r in sorted(rows, key=lambda r: r['name'])) + '\n')
 
     no_type = plan.get('no_type', [])
-    w(f'## Not added: no kind of platform ({len(no_type)})\n')
-    w('None of their catalog categories maps to a kind of platform, and no integration is added '
+    w(f'## Not added: no category ({len(no_type)})\n')
+    w('None of their catalog categories maps to a category, and no integration is added '
       'without one. To add one, create it in the admin (Integrations tab → Create New '
       'Integration) and choose its kind.\n')
     for r in sorted(no_type, key=lambda r: r['name']):

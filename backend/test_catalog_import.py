@@ -468,7 +468,7 @@ def test_plan_and_apply_is_idempotent():
 
 
 def test_no_integration_without_a_kind():
-    """An integration whose categories give no kind of platform is not
+    """An integration whose categories give no category is not
     planned for creation; the report lists it for a person (Leo, 2026-10-16)."""
     import import_catalog as ic
     store = ic.Store(write=False)
@@ -485,7 +485,7 @@ def test_no_integration_without_a_kind():
     assert [r['name'] for r in plan['no_type']] == ['reamaze']
     assert not plan['create'] and not [p for p in plan['proposals'] if p['esp'] == 'reamaze']
     report = ic.render_report(plan)
-    assert '## Not added: no kind of platform (1)' in report and '`reamaze`' in report
+    assert '## Not added: no category (1)' in report and '`reamaze`' in report
 
 
 def test_apply_never_overwrites_a_set_type_or_status():

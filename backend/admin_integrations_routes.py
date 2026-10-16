@@ -139,30 +139,41 @@ def summary_row(row) -> Dict:
     }
 
 
-def matches(item: Dict, q: str = '', category: str = '', ptype: str = '', status: str = '',
-            flag: str = '') -> bool:
-    """The list's filters. q searches the name, display name and category labels."""
+def _wanted(value) -> List[str]:
+    """A multiple-choice filter: a list, or comma-separated text from the URL."""
+    if isinstance(value, str):
+        value = value.split(',')
+    return [v.strip() for v in value or [] if v and v.strip()]
+
+
+def matches(item: Dict, q: str = '', category: str = '', ptype='', status='', flag='') -> bool:
+    """The list's filters. q searches the name, display name and yotpo.com
+    category labels. category is one yotpo.com category; type (the Category
+    column), status and flag take several values, any of which may match."""
     if q:
         hay = ' '.join([item['name'], item['display_name']] + item['category_names']).lower()
         if q.lower() not in hay:
             return False
     if category and category not in item['categories']:
         return False
-    if ptype and item['platform_type'] != ptype:
+    types, statuses, flags = _wanted(ptype), _wanted(status), _wanted(flag)
+    if types and item['platform_type'] not in types:
         return False
-    if status and item['status'] != status:
+    if statuses and item['status'] not in statuses:
         return False
-    if flag == 'unlabelled' and not item['documents']['unlabelled']:
-        return False
-    if flag == 'failed' and not item['failed']:
-        return False
-    if flag == 'proposals' and not item['open_proposals']:
-        return False
-    if flag == 'misses' and not item['misses']:
-        return False
-    if flag == 'mixed_types' and not item['needs_type']:
+    if flags and not any(_has_flag(item, f) for f in flags):
         return False
     return True
+
+
+def _has_flag(item: Dict, flag: str) -> bool:
+    return bool({
+        'unlabelled': item['documents']['unlabelled'],
+        'failed': item['failed'],
+        'proposals': item['open_proposals'],
+        'misses': item['misses'],
+        'mixed_types': item['needs_type'],
+    }.get(flag))
 
 
 def paginate(items: List, page: int, per_page: int):
@@ -201,7 +212,7 @@ def validate_patch(body, current: Dict, is_owner: bool):
         changes['display_name'] = name.strip()
     if 'platform_type' in body:
         if body['platform_type'] not in PLATFORM_TYPES:
-            return None, f"Kind of platform must be one of: {', '.join(PLATFORM_TYPES)}", 400
+            return None, f"Category must be one of: {', '.join(PLATFORM_TYPES)}", 400
         changes['platform_type'] = body['platform_type']
     if 'categories' in body:
         cats = body['categories']
@@ -518,6 +529,8 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
     def admin_list_integrations():
         """GET ?q=&category=&type=&status=&flag=&page=&per_page=
 
+        type, status and flag take several comma-separated values (any may match).
+
         One summary query for every integration; filters and pages in Python.
         `facets` counts the whole list, so the filters can say how many match.
         """
@@ -531,8 +544,8 @@ def register_admin_integrations_routes(app, use_async_crawl: bool):
                 ('q', 'category', 'type', 'status', 'flag')}
         for key, allowed in (('type', PLATFORM_TYPES), ('status', STATUSES),
                              ('flag', FLAGS)):
-            if args[key] and args[key] not in allowed:
-                return jsonify({'error': f"{key} must be one of: {', '.join(allowed)}"}), 400
+            if any(v not in allowed for v in _wanted(args[key])):
+                return jsonify({'error': f"{key} must be one of: {', '.join(allowed)} (several may be comma-separated)"}), 400
         items = [summary_row(r) for r in db().execute_query(SUMMARY_SQL, fetch=True) or []]
         items.sort(key=lambda i: (i['display_name'].lower(), i['name']))
         cats: Dict[str, int] = {}

@@ -769,7 +769,7 @@ def prompt_warnings(platform_type, prompt, stored=True):
         if active:
             warnings.append(f"{active} {TYPE_LABELS[platform_type]} integration"
                             f"{'s are' if active != 1 else ' is'} in chat, answered by the shipped "
-                            "draft: no prompt has been saved for this kind of platform yet.")
+                            "draft: no prompt has been saved for this category yet.")
     product = product_warning(prompt)
     if product:
         warnings.append(product)
@@ -872,7 +872,7 @@ def prompt_preview():
         facts = load_facts(get_database_adapter(), name, use_cache=False)
         platform_type = (facts or {}).get('platform_type')
         if not platform_type:
-            return jsonify({'error': f"{row['display_name']} has no kind of platform yet. Set it in "
+            return jsonify({'error': f"{row['display_name']} has no category yet. Set it in "
                                      "the Integrations tab first."}), 400
         product = chat_product(data.get('product'))
         return jsonify({

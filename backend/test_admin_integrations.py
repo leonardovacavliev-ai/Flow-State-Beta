@@ -245,6 +245,9 @@ def check_list_pages_and_filters(c, db, ids):
     assert found('type=storefront') == ['recharge', 'tapcart']
     assert c.get('/api/admin/integrations?status=archived').status_code == 400
     assert 'old_partner' in found('')                             # archived by older code: still listed
+    assert found('type=storefront,service') == ['gorgias', 'recharge', 'tapcart']   # checklists: any may match
+    assert found('flag=failed,misses') == ['klaviyo', 'listrak']
+    assert c.get('/api/admin/integrations?type=storefront,nope').status_code == 400
     assert found('flag=unlabelled') == ['klaviyo']
     assert found('flag=failed') == ['klaviyo']
     assert found('flag=proposals') == ['gorgias', 'recharge']
@@ -571,7 +574,7 @@ def test_create_needs_a_kind():
     for body in ({'name': 'nokind_t'}, {'name': 'nokind_t', 'platform_type': ''},
                  {'name': 'nokind_t', 'platform_type': 'email'}):
         r = c.post('/api/admin/esp/create', json=body)
-        assert r.status_code == 400 and 'kind of platform' in r.get_json()['error'], body
+        assert r.status_code == 400 and 'category' in r.get_json()['error'], body
     assert mgr.get_esp_by_name('nokind_t', include_archived=True) is None
     r = c.post('/api/admin/esp/create', json={'name': 'Mail Kind T', 'platform_type': 'messaging'})
     body = r.get_json()

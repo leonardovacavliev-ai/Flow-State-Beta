@@ -19,7 +19,7 @@ roadmap's checkpoint sections, under Deviations.
 | #5 | C1.2 | Yotpo guide header parser; `scripts/import_catalog.py` (dry run; `--apply` is C1.9); partner mechanics (below) |
 | #6–#9 | C1.4 | Admin **Integrations** and **Suggested Links** tabs, owner/editor roles, plain wording, "i" popups, two states (In chat / Not in chat), products from documents, crawl box |
 | #10 (`55124c7`) | C1.7 | A system prompt per platform type (four drafts in `backend/prompts/`), facts block, editor with preview. Messaging unchanged |
-| `4030b87` | I10 | No integration without its kind of platform |
+| `4030b87` | I10 | No integration without its category |
 | `fecd270` | C1.10 | **Find links** per integration (`backend/link_finder.py`, shared with the yotpo.com import; `backend/find_links_job.py`, a background run; the Find links card) and the **Add integration** dialog (name, kind, optional website; adding starts Find links at once). Find links fetches only public addresses |
 | `dbf63cb` | C1.3 | **Refresh pipeline** (`backend/refresh.py`, `refresh_routes.py`, `sitemap_refresh.py`): unchanged text isn't re-indexed; Yotpo guides read with their own rule; title/plans/platforms stored on crawl; support.yotpo.com's sitemap read **monthly** (the 1st, 03:17 UTC, and at boot when overdue; Leo); pages missing 3 times offer Retire / Replace; retired documents left out everywhere they would count |
 
@@ -204,7 +204,7 @@ the queue's extra columns added to the test database (`backend/test_refresh_pipe
 - **Listed integrations are found by name** (`get_esp_by_name`, `find_documents_by_url` see
   `active` and `listed`); chat (`is_active_integration`) and the sidebar (`list_esps`) see `active`
   only. Keep it that way (I4).
-- **No integration without its kind of platform** (I10): any new way of adding one must require it.
+- **No integration without its category** (I10): any new way of adding one must require it.
 - **The catalog dry run and Find links spend the live chat's Gemini credit.** Ask first.
 - **GitHub restricted Leo's account twice** (2026-10-15/16) after API-driven PR work and status
   polling; its notice named Actions. Hence §2's ⛔ rules.

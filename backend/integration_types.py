@@ -11,7 +11,7 @@ from typing import Iterable, Optional
 
 PLATFORM_TYPES = ('messaging', 'storefront', 'service', 'data', 'content')
 
-# What the admin calls each type: what kind of platform it is
+# What the admin calls each type: what category it is
 TYPE_LABELS = {
     'messaging': 'Email & SMS',
     'storefront': 'Store & checkout',

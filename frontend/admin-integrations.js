@@ -19,7 +19,7 @@
     // Two states (Leo, 2026-10-15): in chat, or admin only. A row archived by
     // older code reads "Not in chat" and is read-only until set to it.
     const STATUS_NAMES = { active: 'In chat', listed: 'Not in chat', archived: 'Not in chat' };
-    // One short line each: shown under the In chat? control and as tooltips
+    // One short line each: shown under the Status control and as tooltips
     const STATUS_HELP = {
         active: 'Anyone using the chat can pick it.',
         listed: 'Only admins see it, here. Prepare its documents before it goes into chat.',
@@ -34,7 +34,7 @@
         unlabelled: 'No product picked',
         failed: 'Crawl failed',
         misses: 'Page gone',
-        mixed_types: 'Kind of platform to set or confirm'
+        mixed_types: 'Category to set or confirm'
     };
     const NEEDS_PERSON = {
         blocked: 'Help site blocks automatic reading',
@@ -95,7 +95,7 @@
     const btnOutline = 'px-3 py-1 border border-input bg-background text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 
     const S = {
-        filters: { q: '', category: '', type: '', status: '', flag: '' },
+        filters: { q: '', type: [], status: [], flag: [] },
         page: 1,
         open: null,            // the integration whose page is shown, or null for the list
         docPage: 1,
@@ -135,7 +135,9 @@
     }
 
     function qs(params) {
-        return Object.entries(params).filter(([, v]) => v !== '' && v != null)
+        // A list (a multiple-choice filter) goes as comma-separated values
+        return Object.entries(params).map(([k, v]) => [k, Array.isArray(v) ? v.join(',') : v])
+            .filter(([, v]) => v !== '' && v != null)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&');
     }
 
@@ -463,22 +465,36 @@
 
     function listShellHTML() {
         const f = S.filters;
-        const facets = S.facets || { categories: [], flags: {} };
-        // Each filter is named like the column it filters
-        const sel = (key, label, options, width) => `
-            <select class="filter-select ${inputCls} ${width}" data-filter="${key}" aria-label="${attr(label)}">
-                <option value="">${esc(label)}</option>
-                ${options.map(([v, t]) => `<option value="${attr(v)}" ${f[key] === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}
-            </select>`;
+        const facets = S.facets || { flags: {} };
+        // Each filter is a checklist named like the column it filters. Nothing
+        // ticked means no filter; the name is the button, not a choice.
+        const pick = (key, label, options, width) => `
+            <details class="filter-pick relative" data-filter="${key}">
+                <summary class="${inputCls} ${width} flex items-center justify-between gap-2 cursor-pointer list-none select-none">
+                    <span class="truncate" data-filter-label>${esc(pickLabel(label, f[key].length))}</span>
+                    <svg class="w-4 h-4 shrink-0 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </summary>
+                <div class="absolute z-20 mt-1 min-w-full w-max bg-background border border-border rounded-lg shadow-lg p-1" role="group" aria-label="${attr(label)}">
+                    ${options.map(([v, t]) => `
+                        <label class="flex items-center gap-2 px-2 py-1.5 rounded text-sm cursor-pointer hover:bg-muted whitespace-nowrap">
+                            <input type="checkbox" value="${attr(v)}" ${f[key].includes(v) ? 'checked' : ''}>
+                            <span data-option-text="${attr(v)}">${esc(t)}</span>
+                        </label>`).join('')}
+                </div>
+            </details>`;
         return `
             <div class="flex flex-wrap items-center gap-3 mb-5">
                 <input id="intSearch" value="${attr(f.q)}" placeholder="Search" class="flex-1 min-w-[12rem] ${inputCls}" aria-label="Search integrations by name or category">
-                ${sel('category', 'Category', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]), 'w-40')}
-                ${sel('type', 'Kind of platform', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-44')}
-                ${sel('status', 'In chat?', [['active', STATUS_NAMES.active], ['listed', STATUS_NAMES.listed]], 'w-36')}
-                ${sel('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-36')}
+                ${pick('type', 'Category', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-44')}
+                ${pick('status', 'Status', [['active', STATUS_NAMES.active], ['listed', STATUS_NAMES.listed]], 'w-36')}
+                ${pick('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-36')}
             </div>
             <div id="intTable"></div>`;
+    }
+
+    // "Category" with nothing ticked, "Category (2)" with two
+    function pickLabel(label, n) {
+        return n ? `${label} (${n})` : label;
     }
 
     function flagOption(k, n) {
@@ -493,8 +509,8 @@
             i.failed && `<span class="text-red-700">${plural(i.failed, 'crawl failed', 'crawls failed')}</span>`,
             i.misses && `<span class="text-red-700">${plural(i.misses, 'page gone', 'pages gone')}</span>`,
             waiting && `<span class="text-amber-800" ${tip(STATE_HELP.pending)}>${waiting} not crawled</span>`,
-            !i.platform_type && '<span class="text-amber-800">set its kind</span>',
-            i.type_choices.length && `<span class="text-amber-800" ${tip(`yotpo.com lists it under ${i.type_choices.map(t => TYPE_NAMES[t]).join(' and ')}`)}>confirm its kind</span>`
+            !i.platform_type && '<span class="text-amber-800">set its category</span>',
+            i.type_choices.length && `<span class="text-amber-800" ${tip(`yotpo.com lists it under ${i.type_choices.map(t => TYPE_NAMES[t]).join(' and ')}`)}>confirm its category</span>`
         ].filter(Boolean);
         // one per line: the column is narrow
         return parts.join('<br>');
@@ -518,8 +534,8 @@
             <div class="bg-background border border-border rounded-lg overflow-x-auto">
                 <table class="w-full text-sm min-w-[680px]">
                     <thead><tr class="border-b border-border bg-muted">
-                        ${head('Integration')}${head('Yotpo products', HELP.products)}${head('Kind of platform', HELP.kind)}
-                        ${head('In chat?', HELP.inChat)}<th class="text-right ${th}">Documents</th>${head('To do').replace('px-4', 'pl-8 pr-4')}<th class="w-4"></th>
+                        ${head('Integration')}${head('Yotpo products', HELP.products)}${head('Category', HELP.kind)}
+                        ${head('Status', HELP.inChat)}<th class="text-right ${th}">Documents</th>${head('To do').replace('px-4', 'pl-8 pr-4')}<th class="w-4"></th>
                     </tr></thead>
                     <tbody>${rows || '<tr><td colspan="7" class="text-center py-8 text-muted-foreground">No integrations match these filters.</td></tr>'}</tbody>
                 </table>
@@ -549,8 +565,8 @@
             box.innerHTML = listShellHTML();
             wireListShell(box);
         } else {
-            box.querySelectorAll('[data-filter="flag"] option[value]:not([value=""])').forEach(o => {
-                o.textContent = flagOption(o.value, data.facets.flags[o.value]);
+            box.querySelectorAll('[data-filter="flag"] [data-option-text]').forEach(o => {
+                o.textContent = flagOption(o.dataset.optionText, data.facets.flags[o.dataset.optionText]);
             });
         }
         const table = $('intTable');
@@ -600,12 +616,26 @@
             clearTimeout(timer);
             timer = setTimeout(() => { S.filters.q = e.target.value.trim(); S.page = 1; loadList(); }, 250);
         });
-        // To do (data-filter="flag") is one choice at a time, like the other filters
-        box.querySelectorAll('[data-filter]').forEach(s => s.addEventListener('change', () => {
-            S.filters[s.dataset.filter] = s.value;
+        // Category, Status and To do are checklists: ticked boxes add up (any of them matches)
+        box.querySelectorAll('[data-filter]').forEach(d => d.addEventListener('change', () => {
+            const key = d.dataset.filter;
+            S.filters[key] = [...d.querySelectorAll('input:checked')].map(c => c.value);
+            d.querySelector('[data-filter-label]').textContent = pickLabel(d.querySelector('[role="group"]').getAttribute('aria-label'), S.filters[key].length);
             S.page = 1;
             loadList();
         }));
+        // One checklist open at a time; a click elsewhere or Escape closes it
+        const closeLists = (except) => box.querySelectorAll('details.filter-pick[open]').forEach(d => { if (d !== except) d.open = false; });
+        box.querySelectorAll('details.filter-pick').forEach(d => d.addEventListener('toggle', () => { if (d.open) closeLists(d); }));
+        if (!S.pickCloser) {
+            S.pickCloser = true;
+            document.addEventListener('click', (e) => {
+                document.querySelectorAll('details.filter-pick[open]').forEach(d => { if (!d.contains(e.target)) d.open = false; });
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') document.querySelectorAll('details.filter-pick[open]').forEach(d => { d.open = false; });
+            });
+        }
     }
 
     // ==================== One integration ====================
@@ -680,9 +710,9 @@
         const kindsText = (i.category_kinds || []).filter(c => c.type).map(c => `${c.name}: ${TYPE_NAMES[c.type]}`).join(' · ');
         const note = (html) => `<div class="mt-2 rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-xs text-amber-900">${html}</div>`;
         const typeNote = !i.platform_type
-            ? note('Not set yet: pick the closest kind.')
+            ? note('Not set yet: pick the closest category.')
             : i.type_choices.length
-            ? note(`<span class="cursor-help underline decoration-dotted" ${tip(kindsText)}>A guess: its yotpo.com categories fit more than one kind.</span>
+            ? note(`<span class="cursor-help underline decoration-dotted" ${tip(kindsText)}>A guess: its yotpo.com categories fit more than one category.</span>
                    <button type="button" class="mt-1.5 block px-3 py-1 rounded-md bg-background border border-amber-400 font-medium text-amber-900 hover:bg-amber-100" data-keep-type>Confirm ${esc(TYPE_NAMES[i.platform_type])}</button>`)
             : '';
         const kindHelp = HELP.kind + (i.type_set_by && !i.type_choices.length
@@ -692,12 +722,12 @@
         return `
             <div class="${card} space-y-5">
                 <div>
-                    ${label('In chat?', HELP.inChat)}
-                    <div class="inline-flex flex-wrap gap-1 p-1 rounded-lg bg-muted border border-border" role="radiogroup" aria-label="In chat?">${statusButtons}</div>
+                    ${label('Status', HELP.inChat)}
+                    <div class="inline-flex flex-wrap gap-1 p-1 rounded-lg bg-muted border border-border" role="radiogroup" aria-label="Status">${statusButtons}</div>
                     ${muted(statusLine)}
                 </div>
                 <div>
-                    <label class="flex items-center gap-1.5 text-sm font-medium text-card-foreground mb-1.5" for="intType" data-saved-for="kind">Kind of platform ${info(kindHelp)}</label>
+                    <label class="flex items-center gap-1.5 text-sm font-medium text-card-foreground mb-1.5" for="intType" data-saved-for="kind">Category ${info(kindHelp)}</label>
                     <select id="intType" class="w-full ${inputCls}">
                         ${i.platform_type ? '' : '<option value="" selected disabled>Not set</option>'}
                         ${PLATFORM_TYPES.map(t => `<option value="${t}" ${i.platform_type === t ? 'selected' : ''}>${TYPE_NAMES[t]}</option>`).join('')}
@@ -1098,9 +1128,9 @@
             $('addIntegrationName').focus();
             return;
         }
-        // No integration without its kind of platform (I10)
+        // No integration without its category (I10)
         if (!kind) {
-            setAddError("Pick its kind of platform: an integration can't be added without one.");
+            setAddError("Pick its category: an integration can't be added without one.");
             return;
         }
         const submit = $('addIntegrationSubmit');

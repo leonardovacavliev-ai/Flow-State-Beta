@@ -2810,7 +2810,7 @@ function updateModelOptions(provider, selectedModel = null) {
     });
 }
 
-// Prompts by kind of platform (C1.7). The server keeps one prompt per
+// Prompts by category (C1.7). The server keeps one prompt per
 // platform type; Email & SMS (messaging) is the one chat has always used.
 const PROMPT_TYPE_LABELS = {
     messaging: 'Email & SMS',

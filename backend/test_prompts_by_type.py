@@ -592,7 +592,7 @@ def test_prompt_preview_for_a_listed_storefront_integration():
     assert body['product'] == 'loyalty' and body['system_prompt'] == render(todays_template(), 'loyalty')
     integration('untyped_t', 'listed', None)
     r = c.post('/api/admin/settings/prompt-preview', json={'esp': 'untyped_t'})
-    assert r.status_code == 400 and 'kind of platform' in r.get_json()['error']
+    assert r.status_code == 400 and 'category' in r.get_json()['error']
 
 
 def test_chat_picks_the_prompt_by_type():

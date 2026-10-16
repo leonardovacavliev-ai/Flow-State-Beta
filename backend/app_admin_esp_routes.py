@@ -333,7 +333,7 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
         at once (C1.10), using the website when one is given.
 
         Owner-only: putting an integration into chat is an owner's call
-        (C1.4). The kind of platform is required (Leo, 2026-10-16). A kind
+        (C1.4). The category is required (Leo, 2026-10-16). A kind
         whose prompt is in chat (TYPES_IN_CHAT) goes into chat at once; any
         other kind is created not in chat."""
         if not check_admin_password():

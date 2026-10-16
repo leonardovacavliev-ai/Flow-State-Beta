@@ -118,7 +118,7 @@ So:
 | I7 | Every string that reaches HTML from the database or the catalog is escaped (`escapeHtml` / `escapeAttr`, `app.js:12-19`) | code review checklist in each UI PR |
 | I8 | Nothing new depends on Railway, and nothing new stores state on local disk | review; C1.8 removes what exists |
 | I9 | Only Yotpo Loyalty & Referrals and Yotpo Reviews (incl. UGC) are in scope | catalog import ignores other products; header parser ignores SMS & Email and Subscriptions |
-| I10 | No integration is added without its kind of platform (`platform_type`); only the hidden `global` row has none (Leo, 2026-10-16). The kind decides which prompt answers, so it is chosen when the integration is created, never left for later | `esp_manager.create_esp` requires it (`require_platform_type`); Create New Integration has a required "Kind of platform" choice; the catalog import doesn't create an integration whose categories give no kind and lists it in the report; PATCH refuses an empty kind; `test_integrations_schema`, `test_admin_integrations`, `test_catalog_import` |
+| I10 | No integration is added without its category (`platform_type`); only the hidden `global` row has none (Leo, 2026-10-16). The kind decides which prompt answers, so it is chosen when the integration is created, never left for later | `esp_manager.create_esp` requires it (`require_platform_type`); Create New Integration has a required "Category" choice; the catalog import doesn't create an integration whose categories give no kind and lists it in the report; PATCH refuses an empty kind; `test_integrations_schema`, `test_admin_integrations`, `test_catalog_import` |
 
 ### 1.3 Conventions
 
@@ -189,7 +189,7 @@ Not part of the suite:
 | C1.4 | Admin: integrations, proposals inbox, crawl summary, roles | C1.1, C1.2 | dev | 5–6 d | done | PRs #6–#9, merged and deployed 2026-10-15; follow-ups from Leo's review (wording, popups, no tier, two states, products from documents, crawl box) in Deviations; live checks OK |
 | C1.5 | Chat: integration picker, `/api/integrations`, copy by type | C1.1 | dev | 5–6 d | todo | |
 | C1.6 | Reviews readiness | C1.1 | dev + 🛑 | 2–3 d + 4–6 h | todo | |
-| C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | done | PR #10, merged (`55124c7`) and deployed 2026-10-16; golden check 26/26 identical; live health, Klaviyo chat (16 sources), unknown-key 400 and owner-only routes OK. 🛑 still open: Leo reads the four drafts (Admin → General Settings → Kind of platform) |
+| C1.7 | System prompt per platform type + facts block | C1.1 | dev + 🛑 read drafts | 4–5 d | done | PR #10, merged (`55124c7`) and deployed 2026-10-16; golden check 26/26 identical; live health, Klaviyo chat (16 sources), unknown-key 400 and owner-only routes OK. 🛑 still open: Leo reads the four drafts (Admin → General Settings → Category) |
 | C1.8 | Portability seams, Sentry, no local disk | C1.3 | dev + 🛑 | 3–4 d | todo | |
 | C1.9 | Production import, approvals, labelling | C1.2–C1.8 deployed | 🛑 Leo | 4–6 h | todo | |
 | C1.10 | "Find links" for one integration, and the Add integration dialog | C1.4 | dev + 🛑 model budget | 2–3 d | done | Leo, 2026-10-15: needed for a complete product; 2026-10-16: adding an integration starts it. Merged (`fecd270`) and deployed 2026-10-16, live checks OK; built before C1.3 (Deviations) |
@@ -978,7 +978,7 @@ Management, whose N+1 fetch-and-render cannot scale.
   C1.5 picks and a source count per chat message; user-facing "ESP" strings outside the admin
   (sidebar, feedback modal), which C1.5 rewrites.
 - **Create New Integration is owner-only**: putting an integration into chat is an owner's call
-  like its status. Since 2026-10-16 (I10) it asks for the kind of platform, required, nothing
+  like its status. Since 2026-10-16 (I10) it asks for the category, required, nothing
   pre-selected: an Email & SMS platform goes into chat at once, any other kind is created "Not in
   chat" (`TYPES_IN_CHAT`).
 - **Refresh All and Rebuild Vectors "all" include listed integrations**, so a listed one's
@@ -994,8 +994,8 @@ Management, whose N+1 fetch-and-render cannot scale.
 
   | in code and this map | on screen |
   |---|---|
-  | status `active` / `listed` | In chat? — **In chat** / **Not in chat** (`archived` is no longer offered, below) |
-  | `platform_type` messaging / storefront / service / data / content | Kind of platform — **Email & SMS** / **Store & checkout** / **Customer service** / **Data & automation** / **Reviews & content** |
+  | status `active` / `listed` | Status — **In chat** / **Not in chat** (`archived` is no longer offered, below) |
+  | `platform_type` messaging / storefront / service / data / content | Category — **Email & SMS** / **Store & checkout** / **Customer service** / **Data & automation** / **Reviews & content** |
   | `products` | Yotpo products it works with (tick boxes in the list too; ticked automatically from documents, below) |
   | catalog cards | Its pages on yotpo.com/integrations |
   | proposals (sources catalog / sitemap / manual / mechanics) | **Suggested Links** (From yotpo.com / New Yotpo article / Added by hand / Platform help article) |
@@ -1024,7 +1024,7 @@ Management, whose N+1 fetch-and-render cannot scale.
   never-crawled links used to be pre-ticked, which showed "5 selected · Delete Selected" before the
   admin had chosen anything. The admin ticks what to crawl.
 - **"In chat" is disabled** on the page for kinds other than Email & SMS (the server already refused
-  it, C1.4), and an integration with no kind is listed under "Kind of platform to set or confirm".
+  it, C1.4), and an integration with no kind is listed under "Category to set or confirm".
 
 **Rollback:** revert. The old tab returns. Routes are additive.
 
@@ -1402,7 +1402,7 @@ the Gemini key is the live chat's prepaid key.
   and the type … this needs to trigger a call that crawls and checks which potential links should
   be added"). Create New Integration, the inline form under Global Knowledge, is replaced by an
   **Add integration** dialog (button beside "All integrations", owner only, as creating was): name,
-  kind of platform (required, nothing pre-picked, each kind explained, I10), and the platform's
+  category (required, nothing pre-picked, each kind explained, I10), and the platform's
   website or help site (optional). "Add and find links" creates it through the same
   `POST /api/admin/esp/create` (now with `find_links: true` and `website`) and opens its page,
   where the search is already running. A website that isn't a public web address is refused
@@ -1430,7 +1430,7 @@ the Gemini key is the live chat's prepaid key.
   guides and pages at once: Mailchimp, tried locally against the live site, got exactly its four
   links from that file. The integration's own fields (`catalog_slugs`, categories) are not written:
   the next import does that.
-- **With no yotpo.com categories, the model is told the kind** ("kind of platform: Customer
+- **With no yotpo.com categories, the model is told the kind** ("category: Customer
   service") in place of catalog categories.
 - **The job**: a thread in the web process, never in the request; the run (who, when, step, what
   was suggested, why nothing else) is stored in `app_settings` `find_links:<name>`, so no new table
@@ -1748,7 +1748,7 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | No multi-integration chat, no alias matcher, no category-scoped knowledge, no automated link-following | out of scope for v2 |
 | No coverage tier; two states (in chat / not in chat); products follow the documents (Leo, 2026-10-15) | C1.4 Deviations; plan §4.1's tier is dropped |
 | New links keep coming after the first import: the import is re-run by hand every 1–2 months (R1), and any integration can be searched on demand with "Find links" (Leo, 2026-10-15) | C1.10 and R1; still no scheduled discovery: everything found is a suggestion a person approves |
-| No integration without its kind of platform (Leo, 2026-10-16) | I10: the kind is required wherever an integration is created; the import leaves out one whose categories give no kind and reports it |
+| No integration without its category (Leo, 2026-10-16) | I10: the kind is required wherever an integration is created; the import leaves out one whose categories give no kind and reports it |
 | Partner mechanics are found by a model and approved by a person (Leo, 2026-10-14) | a bounded exception to "no automated link-following": the model lists the partner functions from the integration's own documents and confirms each article by reading it; blocked help centres go to a person; a person approves each integration's final list; source `mechanics`, label pre-filled `shared` (C1.2; plan §4.3) |
 
 ---
@@ -1786,4 +1786,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-16 | C1.10 | Merged (`fecd270`) and deployed; live smoke check OK | Claude Code |
 | 2026-10-16 | C1.3 | Refresh pipeline: unchanged text not re-indexed, the Yotpo guide rule (header kept, placeholders and Yotpo's support box dropped, spaces around links), header fields on crawl, monthly sitemap (Leo; `sitemap_urls`, changes in Suggested Links), misses, Retire and Replace, retired rows left out; `test_refresh_pipeline.py` (18); review findings fixed; golden 26/26 | Claude Code |
 | 2026-10-16 | C1.10 | Find links (`backend/link_finder.py`, shared with the import; `backend/find_links_job.py`; routes; the Find links card) and the Add integration dialog, which starts it (Leo); homepage help-link fix; `test_find_links.py` (16); independent review: no blocking bugs, its findings fixed (public addresses only, typed website trusted, accurate counts when two runs race, failures recorded) | Claude Code |
-| 2026-10-16 | I10 | No integration without its kind of platform (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |
+| 2026-10-16 | I10 | No integration without its category (Leo): `create_esp` requires it, Create New Integration asks for it (non-messaging kinds are created not in chat), the import leaves kindless ones out and reports them; legacy scripts pass `messaging`; `seed_local_db.py` copies the kind and catalog fields | Claude Code |

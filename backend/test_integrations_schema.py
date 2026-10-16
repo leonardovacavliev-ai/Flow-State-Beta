@@ -139,7 +139,7 @@ def mgr():
 
 
 def test_new_integrations_need_a_kind():
-    """No integration is added without its kind of platform (Leo, 2026-10-16)."""
+    """No integration is added without its category (Leo, 2026-10-16)."""
     m = mgr()
     m.create_esp('mailchimp_t', 'Mailchimp', platform_type='messaging')
     assert _type_of(m.db, 'mailchimp_t') == 'messaging'
