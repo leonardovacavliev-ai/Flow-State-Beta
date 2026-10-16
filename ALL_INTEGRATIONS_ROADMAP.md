@@ -22,15 +22,19 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
    - Claude Code only prepares their inputs, where the checkpoint says so.
 3. **Branching:**
    - Use one branch per checkpoint: `v2/<id>-<slug>` (e.g. `v2/c1-1-schema`).
-   - Use conventional commits and **open the PR yourself** (Leo, 2026-10-15: never ask him to).
-     `gh` is not installed: use the GitHub REST API with the token `git credential fill` gives
-     (never print it). NEXT_SESSION.md §4 has the commands.
+   - Use conventional commits. Push the branch with plain `git push`.
+   - ⛔ **Never use the GitHub API from Leo's account** (Leo, 2026-10-16): no `curl` to
+     `api.github.com` with the keychain token, no opening, editing or merging PRs by API, no
+     polling Actions, deployments or commit statuses. GitHub restricted the account twice
+     (2026-10-15 and 2026-10-15/16), each time after sessions that did exactly that; while it is
+     restricted Railway can't deploy. Plain `git fetch`/`push`/`merge` only, and as few as the
+     work needs. No PR is opened: the review summary goes in the merge commit and in this map.
    - **Claude Code merges and deploys** (Leo's decision, 2026-10-13). Railway deploys every push
      to `main`, so a merge is a deploy.
      - Merge only when the check suite is green, the whole diff has been reviewed, and every 🛑
-       step the checkpoint puts before the merge is done. **GitHub Actions has never run on this
-       repository** (0 workflow runs as of 2026-10-15, workflow active), so run §1.4 locally and
-       say so in the PR. Don't stop to ask Leo between PR, merge and deploy: go, then report.
+       step the checkpoint puts before the merge is done. Run §1.4 locally (GitHub's CI runs on
+       the push to `main`; don't poll it). Don't stop to ask Leo between merge and deploy: go,
+       then report.
      - One PR at a time, in dependency order: `git merge --no-ff` into `main`, then push.
      - After each deploy, smoke-check the live site: `/api/health` answers and one Klaviyo chat
        answers. The admin panel needs Leo's Google sign-in, so ask him to open it.
@@ -1632,3 +1636,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | C1.10, R1 | Leo: re-run the import by hand every 1–2 months (R1) and add "Find links" per integration (C1.10); both added | Claude Code |
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |
 | 2026-10-15 | C1.7 | Prompts by platform type: four shipped drafts, per-type storage, audit and undo, facts block, integration source headers, editor with preview; `test_prompts_by_type.py` (19 checks); independent review, findings fixed; golden check 26/26 identical | Claude Code |
+| 2026-10-16 | — | Leo: GitHub restricted his account because of Claude Code's API use; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |

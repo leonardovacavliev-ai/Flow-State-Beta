@@ -52,8 +52,9 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
   Deviations). **Not merged** because on 2026-10-15 ~17:40 the account was restricted again:
   `https://api.github.com/users/leonardovacavliev-ai` returned 404, the first CI run was
   cancelled by the fix push and no run started for `11d7320` (Actions lists 0 runs). Next session:
-  check that URL; once it returns 200, check CI runs on the PR (push an empty commit if none
-  starts), then merge, deploy and smoke-check (§4). After the deploy, ask Leo to read the four
+  check that URL once; once it returns 200, merge with plain git, deploy and smoke-check (§4).
+  PR #10 exists on GitHub (opened by API before the rule in §2); leave it, a merge pushed to
+  `main` closes it. After the deploy, ask Leo to read the four
   drafts once (Admin → General Settings → Kind of platform), and set the C1.7 row to `done`.
 
 **Open, waiting for Leo:**
@@ -90,8 +91,15 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 - **The safety filter blocked one merge** (#3, the first one that changes the live database
   schema). Don't work around it. Explain it to Leo and ask. He then said "merge 3", and it went
   through.
-- **Open PRs, merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the
-  pulls and deploys, just go"). Report when done. See §4 for the API commands.
+- **Merge and deploy yourself, without asking** (Leo, 2026-10-15, firmly: "do the pulls and
+  deploys, just go"). Report when done. Plain git only, see the next point and §4.
+- ⛔ **Never drive Leo's GitHub account through the GitHub API** (Leo, 2026-10-16). GitHub has
+  restricted it twice, both times right after sessions that opened, edited and merged PRs with
+  `curl` and the keychain token and polled Actions and deploy statuses every minute. Use plain
+  `git` only (`fetch`, `push`, `merge`), a handful of times per checkpoint. No `curl` to
+  `api.github.com` with a token, no PRs opened or merged by API, no polling of Actions,
+  deployments or commit statuses, no `gh`. Check a deploy on the live site
+  instead (§4). If Leo wants a PR page, he opens it.
 - Leo still does these himself: open the admin panel (Google sign-in) and run production data
   scripts.
 
@@ -131,9 +139,10 @@ cd /private/tmp/<scratch>/mainwt
 git merge --no-ff origin/<branch> -m "Merge pull request #N from leonardovacavliev-ai/<branch>"
 git push origin HEAD:main
 ```
-Railway reports each deploy to GitHub. Poll
-`https://api.github.com/repos/leonardovacavliev-ai/Flow-State-Beta/deployments?per_page=1` for the
-merge commit's sha, then its `statuses_url` until `success`. A deploy took about 12 minutes.
+The merge commit's message carries what a PR description would (what changed, checks run,
+review findings). A deploy takes about 12 minutes. **Don't poll GitHub for it**: wait ~12 minutes,
+then look at the live site, e.g. that `index.html` serves the new `app.js?v=` cache-buster, then
+smoke-check. Check the site every few minutes at most.
 
 **Smoke check** (live: `https://flow-state-beta-production.up.railway.app`):
 - `GET /api/health`;
@@ -159,22 +168,11 @@ sides failed.
 `PYTHONPATH=<that folder> HF_HUB_OFFLINE=1`. This session found two network calls that way
 (ipapi.co in the analytics test, huggingface.co on model load).
 
-**Open, check and merge a PR without `gh`** (do it yourself; never send Leo a link to click). The
-token comes from the macOS keychain via git; never print it:
-```bash
-TOKEN=$(printf "protocol=https\nhost=github.com\n\n" | git credential fill | sed -n 's/^password=//p')
-API=https://api.github.com/repos/leonardovacavliev-ai/Flow-State-Beta
-# open
-curl -s -X POST -H "Authorization: Bearer $TOKEN" $API/pulls -d '{"title":"…","head":"<branch>","base":"main","body":"…"}'
-# merge (merge commit, like the earlier PRs)
-curl -s -X PUT -H "Authorization: Bearer $TOKEN" $API/pulls/<N>/merge -d '{"merge_method":"merge","commit_title":"Merge pull request #<N> from leonardovacavliev-ai/<branch>"}'
-# deploy: Railway posts a commit status on the merge sha
-curl -s -H "Authorization: Bearer $TOKEN" $API/commits/<sha>/status
-```
-**CI may not run on GitHub**: on 2026-10-15 Actions showed 0 runs ever while the account was
-restricted (see §5); check whether runs appear again once it is lifted. Run the §1.4 suite locally (network blocked, see above) before merging and say so in the
-PR. The Postgres jobs need `TEST_DATABASE_URL`, which isn't available locally. Tell Leo if a change
-touches the database code; fixing Actions (billing or settings) is his.
+**No PRs through the API, no CI polling** (see §2 ⛔). Branches are pushed and merged with plain
+git (above). Run the §1.4 suite locally with the network blocked before merging, and say so in the
+merge commit. GitHub's CI runs by itself on the push to `main`; don't query it. The Postgres jobs
+need `TEST_DATABASE_URL`, which isn't available locally: tell Leo when a change touches the
+database code, and he can look at the Actions tab himself.
 
 **Try the admin in the built-in browser, on local data only** (how C1.4 was checked):
 - Seed a scratch SQLite: `python3 eval/seed_local_db.py <scratch>/local.db` (reads production
@@ -192,8 +190,6 @@ touches the database code; fixing Actions (billing or settings) is his.
 - Crawls and pastes write `docs/` and `docs/crawl_metadata.json` in the worktree: remove or restore
   them before committing.
 
-**The app's PR panel can't follow PRs here** (`bind_pr` needs `gh`). Read CI from the Actions API
-for the branch's sha, at most once a minute.
 
 ## 5. Watch out for
 
@@ -218,11 +214,12 @@ for the branch's sha, at most once a minute.
   live chat failed with 429 "prepayment credits are depleted" until Leo topped it up. Don't run
   the mechanics dry run (or anything else that calls Gemini at volume) without Leo's OK, and ask
   him for a separate development key first.
-- **GitHub restricted the account once (found 2026-10-15).** Railway failed with "couldn't find
-  the repo", Actions showed 0 runs ever, and `https://api.github.com/users/leonardovacavliev-ai`
-  returned 404 to everyone else. Leo had it lifted the same day. If a deploy fails at "Snapshot
-  code" or Actions history vanishes, check that URL first (200 = fine), and stop merging until it
-  is. Poll GitHub at most once a minute (the 20-second polling that day ran into the API limit).
+- **GitHub restricted Leo's account twice** (found 2026-10-15, and again 2026-10-15 evening, still
+  on 2026-10-16). Railway failed with "couldn't find the repo", Actions history vanished, and
+  `https://api.github.com/users/leonardovacavliev-ai` returned 404 to everyone else. Leo says it
+  is because of what Claude Code does: both times followed API-driven PR work and status polling
+  with his token. Hence the §2 ⛔ rule. Before a merge, check that URL once without a token
+  (200 = fine; 404 = restricted: stop, don't merge, tell Leo).
 - **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
   disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
   keep nothing only there.

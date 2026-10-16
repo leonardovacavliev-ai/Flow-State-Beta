@@ -29,9 +29,14 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
 - ⚠️ **The local `.env` points at production Postgres and production Pinecone.** Starting the
   backend with it runs schema changes on production at boot, and local crawls write production
   vectors. Before running anything locally, read roadmap §1.1.
-- **Claude Code opens the PRs, merges and deploys, without asking** (Railway deploys every push
-  to `main`; GitHub Actions does not run, so run the check suite locally; NEXT_SESSION.md §4).
-  Running data-changing scripts on production stays Leo's.
+- **Claude Code merges and deploys, without asking** (Railway deploys every push to `main`; run
+  the check suite locally; NEXT_SESSION.md §4). Running data-changing scripts on production stays
+  Leo's.
+- ⛔ **Never use the GitHub API from Leo's account** (Leo, 2026-10-16): no `curl` to
+  `api.github.com` with the keychain token, no PRs opened or merged by API, no polling of Actions
+  or deploy statuses, no `gh`. GitHub restricted his account twice after Claude Code did that.
+  Plain `git` (`fetch`, `push`, `merge`) only, as few times as the work needs; check deploys on
+  the live site.
 
 ---
 
