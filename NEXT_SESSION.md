@@ -13,7 +13,7 @@ your session with the agenda for the one after.
 | PR | checkpoint | what it did |
 |---|---|---|
 | #1 | C0.2 | Dependencies pinned to production's own freeze (`requirements.txt`, `constraints.txt`, Dockerfile) |
-| #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres` |
+| #2 | C0.1 | CI: `.github/workflows/ci.yml`, jobs `unit` (pure + SQLite) and `postgres`. **Deleted 2026-10-16** (`dc79c2a`) at GitHub's request: see §5 |
 | #3 | C1.1 | Integration schema, `platform_type`, `document_proposals`, key validation in chat, URL normalisation, `vector_count` |
 | #4 | C0.4 | `docs/integrations/messaging_sources.md`: help links for the 13 missing email/SMS platforms, approved by Leo 2026-10-15 (docs only) |
 | #6 | C1.4 | Admin **Integrations** tab (list, filters, an integration's page, crawl summary) and **Proposals** tab (the import's inbox); owner/editor roles (`ADMIN_OWNER_EMAILS`, unset = all owners); listed integrations can be documented before they go into chat; only messaging can be active; `--apply` stores the inbox's notes. Details: roadmap C1.4 Deviations |
@@ -52,7 +52,8 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
   Deviations). **Not merged** because on 2026-10-15 ~17:40 the account was restricted again:
   `https://api.github.com/users/leonardovacavliev-ai` returned 404, the first CI run was
   cancelled by the fix push and no run started for `11d7320` (Actions lists 0 runs). Next session:
-  check that URL once; once it returns 200, merge with plain git, deploy and smoke-check (§4).
+  check that URL once; once it returns 200, merge with plain git (`main` was already merged into
+  the branch, with the workflow deleted), deploy and smoke-check (§4).
   PR #10 exists on GitHub (opened by API before the rule in §2); leave it, a merge pushed to
   `main` closes it. After the deploy, ask Leo to read the four
   drafts once (Admin → General Settings → Kind of platform), and set the C1.7 row to `done`.
@@ -82,7 +83,7 @@ person, 37 with no help centre found, 13 where the model accepted nothing. Repor
 - **Review every change before committing and before pushing.** Read the whole diff. This
   session's review caught a real bug: the hidden `global` row would have been typed `messaging`.
 - **You merge and deploy** (his decision, roadmap §0.3). Railway deploys every push to `main`.
-  Merge only when CI is green, the diff is reviewed, and the checkpoint's pre-merge 🛑 steps are
+  Merge only when the local §1.4 suite is green, the diff is reviewed, and the checkpoint's pre-merge 🛑 steps are
   done. Smoke-check after each deploy (§4). If it fails, revert the merge commit and tell him.
 - **Data-changing scripts on production stay his** (`--apply`, `--write`, rebuilds). Give him the
   exact command, then verify it afterwards with the read-only checks.
@@ -170,9 +171,9 @@ sides failed.
 
 **No PRs through the API, no CI polling** (see §2 ⛔). Branches are pushed and merged with plain
 git (above). Run the §1.4 suite locally with the network blocked before merging, and say so in the
-merge commit. GitHub's CI runs by itself on the push to `main`; don't query it. The Postgres jobs
-need `TEST_DATABASE_URL`, which isn't available locally: tell Leo when a change touches the
-database code, and he can look at the Actions tab himself.
+merge commit. There is no GitHub CI any more (§5), and no workflow may be added without Leo's OK.
+The Postgres tests need `TEST_DATABASE_URL`, which nothing provides now (no Docker locally): tell
+Leo when a change touches the database code, and ask how he wants it tested.
 
 **Try the admin in the built-in browser, on local data only** (how C1.4 was checked):
 - Seed a scratch SQLite: `python3 eval/seed_local_db.py <scratch>/local.db` (reads production
@@ -218,7 +219,13 @@ database code, and he can look at the Actions tab himself.
   on 2026-10-16). Railway failed with "couldn't find the repo", Actions history vanished, and
   `https://api.github.com/users/leonardovacavliev-ai` returned 404 to everyone else. Leo says it
   is because of what Claude Code does: both times followed API-driven PR work and status polling
-  with his token. Hence the §2 ⛔ rule. Before a merge, check that URL once without a token
+  with his token. Hence the §2 ⛔ rule. **GitHub's own notice (2026-10-16) named GitHub Actions**
+  (workflows used "to interact with 3rd party websites … or for general computing") and asked
+  for workflows to be removed, credentials the violation used to be deleted, and an
+  acknowledgement. Our workflow was ordinary CI with no secrets, but Leo had it deleted
+  (`dc79c2a`) and replied to GitHub. Don't add a workflow back without his OK. Separately, the
+  history holds the live Pinecone key and production database password (July–August docs and
+  scripts); Leo rotates both once he can sign in again. Before a merge, check that URL once without a token
   (200 = fine; 404 = restricted: stop, don't merge, tell Leo).
 - **Temporary folders are wiped overnight.** The scratchpad and worktrees under `/private/tmp`
   disappeared between 2026-10-14 and 10-15, with the dry-run page cache. Push branches as you go;
@@ -229,10 +236,10 @@ database code, and he can look at the Actions tab himself.
   list. A dry run needs `GEMINI_API_KEY`; tests use a fake model. Two runs can differ slightly.
 - **`production-freeze.txt`** (untracked) is Leo's raw `pip freeze`. Its content is
   `backend/constraints.txt`. Leave it, or ask before deleting.
-- **Local Python is 3.9; production and CI are 3.11.** The pins don't install on 3.9, but the
+- **Local Python is 3.9; production is 3.11.** The pins don't install on 3.9, but the
   already-installed packages run the suite. There is no Docker locally.
 - **`.env` is production.** Never start the app with it plain. Tests set their own environment
-  before importing. The Postgres tests need `TEST_DATABASE_URL` (CI provides one).
+  before importing. The Postgres tests need `TEST_DATABASE_URL`; nothing provides one now that CI is gone.
   `test_integrations_schema.py postgres` never falls back to `.env`.
 - **Chat now validates the integration key** against active `esps` rows, with a 60 s cache
   (`ESPManager.is_active_integration`). Any test or tool driving `/api/chat` on an empty database

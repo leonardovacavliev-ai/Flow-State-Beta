@@ -32,9 +32,12 @@ yotpo.com/integrations is either **live in chat**, answered by the prompt for it
    - **Claude Code merges and deploys** (Leo's decision, 2026-10-13). Railway deploys every push
      to `main`, so a merge is a deploy.
      - Merge only when the check suite is green, the whole diff has been reviewed, and every 🛑
-       step the checkpoint puts before the merge is done. Run §1.4 locally (GitHub's CI runs on
-       the push to `main`; don't poll it). Don't stop to ask Leo between merge and deploy: go,
-       then report.
+       step the checkpoint puts before the merge is done. Run §1.4 locally: there is no GitHub CI
+       any more (below). Don't stop to ask Leo between merge and deploy: go, then report.
+   - ⛔ **No GitHub Actions workflows** (Leo, 2026-10-16). GitHub's restriction notice named
+     Actions ("use GitHub Actions solely to interact with 3rd party websites … or for general
+     computing") and asked for workflows to be removed; `.github/workflows/ci.yml` was deleted
+     from `main` that day (`dc79c2a`). Don't add any workflow back without Leo's explicit OK.
      - One PR at a time, in dependency order: `git merge --no-ff` into `main`, then push.
      - After each deploy, smoke-check the live site: `/api/health` answers and one Klaviyo chat
        answers. The admin panel needs Leo's Google sign-in, so ask him to open it.
@@ -175,7 +178,7 @@ Not part of the suite:
 
 | ID | checkpoint | depends on | owner | size | status | PR / notes |
 |---|---|---|---|---|---|---|
-| C0.1 | CI baseline | — | dev | 1–2 d | done | PR #2, merged and deployed 2026-10-13 |
+| C0.1 | CI baseline | — | dev | 1–2 d | done, then removed | PR #2, merged and deployed 2026-10-13; workflow deleted 2026-10-16 at GitHub's request (§0.3); the test files stay and run locally |
 | C0.2 | Pin dependencies | 🛑 production `pip freeze` | dev + 🛑 | ½ d | done | PR #1, deployed 2026-10-13; health, Klaviyo chat, admin panel and a crawl OK |
 | C0.3 | Chat hardening: rate limit, daily cap, retrieval errors | C0.1 | dev | 2 d | todo | |
 | C0.4 | 13 missing email/SMS platforms (content) | — | 🛑 Leo (dev prepares sources) | 13–20 h | doing | sources approved by Leo and merged 2026-10-15 (PR #4, `docs/integrations/messaging_sources.md`); next: Leo creates the platforms |
@@ -1637,3 +1640,4 @@ Decided; don't relitigate. Source: ALL_INTEGRATIONS_UPDATE.md v3 and Leo, 2026-1
 | 2026-10-15 | C1.4 | PR #6: CI green (both jobs, incl. the new Postgres test); merged and deployed; live smoke check OK | Claude Code |
 | 2026-10-15 | C1.7 | Prompts by platform type: four shipped drafts, per-type storage, audit and undo, facts block, integration source headers, editor with preview; `test_prompts_by_type.py` (19 checks); independent review, findings fixed; golden check 26/26 identical | Claude Code |
 | 2026-10-16 | — | Leo: GitHub restricted his account because of Claude Code's API use; rule added — plain git only, no GitHub API, no polling (§0.3, NEXT_SESSION.md) | Claude Code |
+| 2026-10-16 | C0.1 | GitHub's notice named Actions; Leo asked to remove the workflow: `ci.yml` deleted on `main` (`dc79c2a`), no workflows without Leo's OK; the Postgres tests now have nowhere to run (no Docker locally) | Claude Code |
