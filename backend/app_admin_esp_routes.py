@@ -10,7 +10,8 @@ IMPORTANT: Uses lazy initialization to avoid database connection at import time.
 from flask import jsonify, request
 from urls import normalize_url
 from esp_manager import get_esp_manager, DuplicateURLError
-from crawler import crawl_single_url_detailed, vectorize_single_document, filename_from_url
+from crawler import crawl_single_url_result, vectorize_single_document, filename_from_url
+import refresh
 from mechanics_cache import clear_mechanics_cache
 import os
 import json
@@ -444,8 +445,12 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         doc = esp_mgr.add_document(esp_name, url, product=product)
 
                     # Crawl the URL
-                    filename, crawl_error = crawl_single_url_detailed(url, esp_name, BASE_PATH)
+                    filename, fetched = crawl_single_url_result(url, esp_name, BASE_PATH)
+                    crawl_error = None if filename else fetched.error
                     backfilled = False
+                    if not filename and refresh.is_miss(fetched.kind, fetched.status_code):
+                        # Page gone: counted, so the admin can retire or replace it
+                        refresh.record_miss(esp_mgr.db, doc['id'])
 
                     if not filename:
                         # Crawl failed — if the saved file from an earlier
@@ -495,13 +500,25 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         with open(metadata_path, 'w') as f:
                             json.dump(metadata, f, indent=2)
 
+                        # Same text as the stored copy, already indexed: the
+                        # index is left alone (C1.3)
+                        # (and under the same file name: chunk ids carry it)
+                        stored = esp_mgr.db.execute_query(
+                            "SELECT content_hash, vector_count, filename FROM esp_documents WHERE id = %s",
+                            (doc['id'],), fetch=True)
+                        same = (not backfilled and bool(stored) and stored[0][2] == filename
+                                and refresh.unchanged(stored[0][0], stored[0][1], content))
+
                         # Vectorize just this document — refresh_esp() would
                         # delete the whole namespace and re-add only local
                         # files, wiping prod knowledge on ephemeral storage.
                         warnings = []
+                        indexed = False
                         try:
-                            vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
-                            print(f"[VECTORIZE] Successfully vectorized {filename}")
+                            if not same:
+                                vectorize_single_document(vectorizer, esp_name, url, file_path, filename)
+                                indexed = True
+                                print(f"[VECTORIZE] Successfully vectorized {filename}")
                         except Exception as ve:
                             print(f"[VECTORIZE ERROR] {esp_name}/{filename}: {ve}")
                             import traceback
@@ -518,6 +535,20 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                             content=content,
                             filename=filename
                         )
+                        # Header fields, misses back to 0 (not for a saved
+                        # copy: the page is still gone), un-retired: an admin
+                        # asked for this crawl
+                        refresh.record_success(
+                            esp_mgr.db, doc['id'],
+                            {} if backfilled else refresh.header_fields(url, fetched.content, fetched.title),
+                            reset_misses=not backfilled)
+                        if indexed or same:
+                            # A Replace waiting for this document. Its own
+                            # problem must not mark this good crawl failed
+                            try:
+                                refresh.retire_replaced(esp_mgr.db, vectorizer, doc['id'])
+                            except Exception as re_error:
+                                warnings.append(f"the link it replaces was not retired: {re_error}")
 
                         entry = {
                             'url': url,
@@ -527,14 +558,19 @@ def register_esp_admin_routes(app, BASE_PATH, vectorizer):
                         if backfilled:
                             entry['note'] = (f"could not crawl ({crawl_error}); "
                                              "backed up from saved local copy")
+                        elif same:
+                            entry['note'] = refresh.UNCHANGED_NOTE
                         if warnings:
                             entry['warnings'] = warnings
                         results['success'].append(entry)
                     else:
-                        # Mark as failed with the actual reason
+                        # Mark as failed with the actual reason (a retired
+                        # document stays retired: it isn't in use either way)
+                        retired = esp_mgr.db.execute_query(
+                            "SELECT retired_at FROM esp_documents WHERE id = %s", (doc['id'],), fetch=True)
                         esp_mgr.update_document_crawl_status(
                             doc['id'],
-                            status='failed',
+                            status='retired' if retired and retired[0][0] else 'failed',
                             error_message=crawl_error
                         )
                         results['failed'].append({

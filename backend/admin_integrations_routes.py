@@ -22,6 +22,8 @@ from typing import Dict, List, Optional
 from flask import jsonify, request
 
 from esp_manager import get_esp_manager, DuplicateURLError, _json_list, _iso
+# A document missing MISS_LIMIT crawls in a row is flagged to retire or replace
+from refresh import MISS_LIMIT
 from integration_types import (PLATFORM_TYPES, TYPE_LABELS, CATEGORY_DEFAULT_TYPE, category_types,
                                category_name)
 
@@ -34,9 +36,6 @@ FLAGS = ('unlabelled', 'failed', 'proposals', 'misses', 'mixed_types')
 CATALOG_PRODUCTS = ('loyalty', 'reviews')
 PROPOSAL_STATES = ('open', 'approved', 'rejected')
 PROPOSAL_SOURCES = ('catalog', 'sitemap', 'manual', 'mechanics')
-# A document missing this many crawls in a row is flagged to retire or
-# replace (C1.3 counts the misses)
-MISS_LIMIT = 3
 # Platform types whose integrations may be active. Every other type still
 # answers with the email/SMS prompt until C1.7 gives it its own, and goes
 # into chat only in its wave (plan §4.6), so activating one now is refused.
@@ -297,13 +296,16 @@ def document_rows(db, esp_id, use_async: bool) -> List[Dict]:
     plans, platforms and the index and miss counts."""
     from product_labels import header_label, HEADER_SCAN_CHARS
     from workers.crawl_queue import list_document_states, describe_link
+    # Retired ones too, listed last: an admin sees why a link is gone, and
+    # can delete it or crawl it again
     if use_async:
-        docs = list_document_states(db, esp_id)
+        docs = list_document_states(db, esp_id, include_retired=True)
     else:
         rows = db.execute_query("""
             SELECT url, filename, crawl_status, last_crawled_at, error_message,
                    content IS NOT NULL AS has_content
-            FROM esp_documents WHERE esp_id = %s ORDER BY created_at DESC
+            FROM esp_documents WHERE esp_id = %s
+            ORDER BY retired_at IS NOT NULL, created_at DESC
         """, (esp_id,), fetch=True) or []
         docs = []
         for url, filename, crawl_status, last_crawled_at, error, has_content in rows:

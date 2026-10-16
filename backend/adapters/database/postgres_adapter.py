@@ -398,7 +398,22 @@ class PostgresAdapter(DatabaseAdapter):
                 ('sitemap_lastmod', 'TIMESTAMP'),
                 ('consecutive_misses', 'INTEGER NOT NULL DEFAULT 0'),
                 ('retired_at', 'TIMESTAMP'),
+                # Replace (C1.3): the new document's id; this one is retired
+                # once that one is indexed
+                ('replaced_by', 'UUID'),
             ])
+            # support.yotpo.com's sitemap as last read (C1.3,
+            # sitemap_refresh.py): when each article first and last
+            # appeared, and when it vanished
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sitemap_urls (
+                    url           TEXT PRIMARY KEY,
+                    lastmod       TIMESTAMP,
+                    first_seen_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    last_seen_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    gone_at       TIMESTAMP
+                )
+            """)
             # Links found by the catalog import or the sitemap job, waiting
             # for an admin to accept or reject them. One row per URL, ever:
             # a rejected link is not proposed again.

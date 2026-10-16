@@ -18,6 +18,8 @@ from crawler import url_host, RATE_LIMITED, TRANSIENT, PERMANENT
 INDEX = 'index'
 # Couldn't crawl, so the doc was re-indexed from its saved copy instead.
 BACKFILLED = 'backfilled'
+# Crawled, and the text was the stored one: not re-indexed (refresh.py)
+UNCHANGED = 'unchanged'
 
 # Wait before each retry of a transient failure (attempt 1 -> 15s, ...),
 # plus up to 25% jitter so a batch of failures doesn't retry in lockstep.
@@ -249,7 +251,7 @@ def describe_link(crawl_status, has_content, doc_error, job_status=None,
 
     state is one of: crawled, saved_copy (couldn't crawl; indexed from the
     copy we already had), pending (never crawled), failed, queued, crawling,
-    retrying, waiting (rate-limited). detail is a short human-readable
+    retrying, waiting (rate-limited), retired. detail is a short human-readable
     reason, or None.
     """
     if job_status == 'processing':
@@ -263,7 +265,11 @@ def describe_link(crawl_status, has_content, doc_error, job_status=None,
             return 'queued', f"Queued — the site is paused after a rate limit, starts {format_wait(wait_seconds)}"
         return 'queued', 'Queued'
 
+    if crawl_status == 'retired':
+        return 'retired', 'Retired: no longer crawled or used. Crawl it again to bring it back.'
     if crawl_status == 'completed':
+        if job_error_kind == UNCHANGED:
+            return 'crawled', job_error
         if job_error_kind == BACKFILLED and job_error:
             # A pasted doc can only ever be re-indexed, so that's a success;
             # a web page we couldn't fetch is a problem even if it's indexed
@@ -299,14 +305,18 @@ DOCUMENT_STATE_QUERY = """
     FROM esp_documents d
     LEFT JOIN crawl_jobs j ON j.id = d.crawl_job_id
     LEFT JOIN crawl_hosts h ON h.host = j.host
-    WHERE d.esp_id = %s
-    ORDER BY d.created_at DESC
+    WHERE d.esp_id = %s {retired}
+    ORDER BY d.retired_at IS NOT NULL, d.created_at DESC
 """
+# Retired documents are left out unless asked for (C1.3)
+NOT_RETIRED = 'AND d.retired_at IS NULL'
 
 
-def list_document_states(db, esp_id):
-    """Rows of DOCUMENT_STATE_QUERY as dicts, with state/detail added."""
-    rows = db.execute_query(DOCUMENT_STATE_QUERY, (esp_id,), fetch=True) or []
+def list_document_states(db, esp_id, include_retired: bool = False):
+    """Rows of DOCUMENT_STATE_QUERY as dicts, with state/detail added.
+    The admin's integration page asks for retired ones too, listed last."""
+    sql = DOCUMENT_STATE_QUERY.format(retired='' if include_retired else NOT_RETIRED)
+    rows = db.execute_query(sql, (esp_id,), fetch=True) or []
     docs = []
     for (url, filename, crawl_status, last_crawled_at, doc_error, has_content,
          is_crawling, job_status, job_error_kind, job_error, wait_seconds) in rows:

@@ -59,12 +59,15 @@ def all_vectors(idx):
 
 
 def db_labels():
-    """{(esp, url): product} for every esp_documents row."""
+    """{(esp, url): product} for every esp_documents row but retired ones
+    (C1.3): a retired document has no vectors, so a vector left for one is
+    reported as having no row."""
     import psycopg2
     conn = psycopg2.connect(os.environ['DATABASE_URL'])
     conn.set_session(readonly=True)
     cur = conn.cursor()
-    cur.execute("SELECT e.name, d.url, d.product FROM esp_documents d JOIN esps e ON e.id = d.esp_id")
+    cur.execute("SELECT e.name, d.url, d.product FROM esp_documents d JOIN esps e ON e.id = d.esp_id "
+                "WHERE d.retired_at IS NULL")
     rows = {(esp, url): product for esp, url, product in cur.fetchall()}
     conn.close()
     return rows

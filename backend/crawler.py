@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import os
+import re
 import threading
 import time
 from dataclasses import dataclass
@@ -29,6 +30,7 @@ class FetchResult:
     error: Optional[str] = None           # human-readable, shown to admins
     status_code: Optional[int] = None
     retry_after: Optional[float] = None   # seconds, from the response headers
+    title: Optional[str] = None           # a Yotpo guide's page title (C1.3)
 
 
 def url_host(url):
@@ -149,7 +151,20 @@ def fetch_main_content(url):
     content, error = _extract_text(url, response)
     if error:
         return FetchResult(PERMANENT, error=error, status_code=response.status_code)
-    return FetchResult(OK, content=content, status_code=response.status_code)
+    title = page_title(response.content) if url_host(url) == YOTPO_GUIDE_HOST else None
+    return FetchResult(OK, content=content, status_code=response.status_code, title=title)
+
+
+def page_title(html) -> Optional[str]:
+    """A page's own title (og:title, else <title>), for a Yotpo guide's row."""
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
+    except Exception:
+        return None
+    meta = soup.find('meta', attrs={'property': 'og:title'})
+    text = (meta.get('content') if meta else None) or (soup.title.get_text() if soup.title else '')
+    text = re.sub(r'\s+', ' ', text or '').strip()
+    return text[:300] or None
 
 
 def extract_main_content_detailed(url):
@@ -191,6 +206,42 @@ def _structured_data_text(soup):
     return BeautifulSoup(body, 'html.parser').get_text('\n').strip() if body else ''
 
 
+# Yotpo's help centre (Document360). Its guides are read with their own rule
+# (C1.3), chosen from the saved pages in fixtures/document360/:
+YOTPO_GUIDE_HOST = 'support.yotpo.com'
+# the article itself; the table of contents, "Was this article helpful" and
+# related articles sit outside it
+YOTPO_ARTICLE = 'article.editor360-preview-content'
+# an unused product slot of the guide's header ("Change this text for SMS & Email")
+_TEMPLATE_PLACEHOLDER = re.compile(r'^\s*Change this text for\b', re.I)
+# the support box at the end of every integration guide
+_SUPPORT_BOX = re.compile(r'^\s*Having issues with the integration\?\s*$', re.I)
+_YOTPO_SUPPORT = re.compile(r'^\s*Contact our support team\s*\.?\s*$', re.I)
+
+
+def _drop_yotpo_boilerplate(article):
+    """Remove what a Yotpo guide repeats on every page: header slots for
+    products the guide doesn't cover, and the closing support box. The
+    header itself (Products, Supported plans, eCommerce Platform) stays at
+    the top: doc_header reads it."""
+    for tab in article.select('.tab-container .tabcontent'):
+        # Everything in the slot but its headings ("Supported plans")
+        headings = {h.get_text(' ', strip=True) for h in tab.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])}
+        values = [t for t in tab.stripped_strings if t not in headings]
+        if values and all(_TEMPLATE_PLACEHOLDER.match(v) for v in values):
+            tab.decompose()
+    for p in article.find_all('p'):
+        if _TEMPLATE_PLACEHOLDER.match(p.get_text(' ', strip=True)):
+            p.decompose()
+    for box in article.find_all('section', class_='infoBox'):
+        title, content = box.find(class_='title'), box.find(class_='content')
+        # Only Yotpo's own "Contact our support team": a partner's support
+        # address in the same box (Tapcart's) is worth keeping
+        if title and content and _SUPPORT_BOX.match(title.get_text(' ', strip=True)) \
+                and _YOTPO_SUPPORT.match(content.get_text(' ', strip=True)):
+            box.decompose()
+
+
 def _extract_text(url, response):
     """Turn a fetched page into structured text: (content, error)."""
     try:
@@ -206,6 +257,19 @@ def _extract_text(url, response):
         if not main_content:
             main_content = soup
 
+        yotpo_guide = url_host(url) == YOTPO_GUIDE_HOST and soup.select_one(YOTPO_ARTICLE) is not None
+        if yotpo_guide:
+            main_content = soup.select_one(YOTPO_ARTICLE)
+            _drop_yotpo_boilerplate(main_content)
+
+        def inline(tag):
+            # A Yotpo guide keeps the spaces around its links ("go to
+            # Recharge Marketplace and"); the general rule, unchanged for
+            # every other site, joins them up ("go toRecharge Marketplaceand")
+            if yotpo_guide:
+                return re.sub(r'\s+', ' ', tag.get_text()).strip()
+            return tag.get_text(strip=True)
+
         # Convert HTML structure to markdown-like text
         # This preserves document structure for better chunking
 
@@ -213,20 +277,20 @@ def _extract_text(url, response):
         for tag in main_content.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6']):
             level = int(tag.name[1])
             # Use ## for h1, ### for h2, etc. (avoid single # which might be confused with other text)
-            markdown_header = '\n\n' + ('#' * (level + 1)) + ' ' + tag.get_text(strip=True) + '\n\n'
+            markdown_header = '\n\n' + ('#' * (level + 1)) + ' ' + inline(tag) + '\n\n'
             tag.replace_with(markdown_header)
 
         # 2. Convert unordered lists to markdown
         for ul in main_content.find_all('ul'):
             for li in ul.find_all('li', recursive=False):
-                li_text = li.get_text(strip=True)
+                li_text = inline(li)
                 li.replace_with(f'\n- {li_text}')
             ul.unwrap()  # Remove <ul> tag but keep content
 
         # 3. Convert ordered lists to markdown
         for ol in main_content.find_all('ol'):
             for idx, li in enumerate(ol.find_all('li', recursive=False), 1):
-                li_text = li.get_text(strip=True)
+                li_text = inline(li)
                 li.replace_with(f'\n{idx}. {li_text}')
             ol.unwrap()  # Remove <ol> tag but keep content
 
@@ -238,7 +302,7 @@ def _extract_text(url, response):
 
         # 5. Add double line breaks after paragraphs for clear separation
         for p in main_content.find_all('p'):
-            p_text = p.get_text(strip=True)
+            p_text = inline(p)
             p.replace_with(f'{p_text}\n\n')
 
         # 6. Extract final text
@@ -500,6 +564,16 @@ def vectorize_single_document(vectorizer, esp_name, url, filepath, filename, con
     if content is None:
         with open(filepath, 'r', encoding='utf-8') as f:
             content = f.read()
+
+    # Forget the old count before touching the index: if the delete or the
+    # add below fails half way, the document has fewer chunks than its count
+    # said, and an unknown count makes the next crawl re-index it instead of
+    # skipping it as unchanged (refresh.unchanged)
+    try:
+        from esp_manager import get_esp_manager
+        get_esp_manager().set_vector_count(esp_key, url, None)
+    except Exception as e:
+        print(f"[INDEX] Could not clear the chunk count for {url}: {e}")
 
     if hasattr(vectorizer, 'delete_by_url'):
         vectorizer.delete_by_url(url, esp_key)

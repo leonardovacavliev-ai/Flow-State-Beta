@@ -14,35 +14,11 @@ Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce
 
 ####### Supported plans
 
-Change this text for SMS & Email
-
-####### eCommerce Platform
-
-Change this text for SMS & Email
-
-####### Supported plans
-
 Premium, Enterprise
 
 ####### eCommerce Platform
 
 Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce
-
-####### Supported plans
-
-Change this text for Visual UGC
-
-####### eCommerce Platform
-
-Change this text for Visual UGC
-
-####### Supported plans
-
-Change this text for Subscriptions
-
-####### eCommerce Platform
-
-Change this text for Subscriptions
 
 ### Goals and Outcomes
 
@@ -50,30 +26,30 @@ The Gorgias integration for Yotpo Reviews and Yotpo Loyalty & Referrals enables 
 
 With this integration, your team can:
 
-- View customer data using the Yotpo Customer Widget, displayed in theCustomersidebar. It displays data for loyalty points, VIP tier, past reviews, sentiment, top topics, and more.
-- Moderate reviews and Q&A, including product and site reviews, directly from new Gorgias tickets created byYotpo’s escalation tools.Note
+- View customer data using the Yotpo Customer Widget, displayed in the Customer sidebar. It displays data for loyalty points, VIP tier, past reviews, sentiment, top topics, and more.
+- Moderate reviews and Q&A, including product and site reviews, directly from new Gorgias tickets created by Yotpo’s escalation tools.Note
 
 You don’t need to use both Yotpo Reviews and Yotpo Loyalty & Referrals to enable the integration. The Yotpo Customer Widget will omit data for any Yotpo product you’re not using. If you add another Yotpo product later, data will begin syncing automatically with no reinstallation required.
 
 ### About Gorgias
 
-Gorgiasis a customer support helpdesk built for eCommerce merchants that connects you with your customers across their favorite channels, and lets you automate up to 30% of your ticket volume.
+Gorgias is a customer support helpdesk built for eCommerce merchants that connects you with your customers across their favorite channels, and lets you automate up to 30% of your ticket volume.
 
 ### Integrating Yotpo with Gorgias
 
 Follow these steps to add Yotpo data to the customer sidebar in Gorgias:
 
-1. In yourGorgias account, go toSettings>App store>Yotpo.
-2. ClickAdd Yotpo accountto install the integration.
-3. You will beredirected to Yotpo. If you’re not logged in, you’ll be prompted to log in to complete the installation.
-4. ClickConnectto allow Gorgias to access Yotpo data.
+1. In your Gorgias account, go to Settings > App store > Yotpo.
+2. Click Add Yotpo account to install the integration.
+3. You will be redirected to Yotpo. If you’re not logged in, you’ll be prompted to log in to complete the installation.
+4. Click Connect to allow Gorgias to access Yotpo data.
 5. After authorization, you’ll be redirected back to Gorgias and should see a confirmation screen.
 
 If the confirmation screen does not appear, repeat steps 1 through 4.
 
 Note
 
-Gorgias assigns a long default name to your Yotpo integration. You can customize it by editing theIntegration namefield and clickingUpdate integrations.
+Gorgias assigns a long default name to your Yotpo integration. You can customize it by editing the Integration name field and clicking Update integrations.
 
 ### How Yotpo Loyalty Data Syncs to Gorgias
 
@@ -95,7 +71,7 @@ If an agent replies to a customer email, loyalty data will update after five min
 
 Tip
 
-For the most up-to-date loyalty details, agents can reference theCustomers section inside the Yotpo admin.
+For the most up-to-date loyalty details, agents can reference the Customers section inside the Yotpo admin.
 
 #### Yotpo Customer Widget Overview
 
@@ -131,20 +107,20 @@ For each review, the widget displays:
 - Published status: An indicator of whether this review has been published or left unpublished
 - Title and text: The title and text of this review
 - Rating upvotes and downvotes: The number of upvotes and downvotes by other customers for these reviews
-- Product details, including:Name: This product's nameProduct page:The URL of this product's pageCategory: The product categoryReviews: The total number of reviews made for this productProduct rating: The average star rating for this product from all customers
+- Product details, including:Name: This product's nameProduct page: The URL of this product's pageCategory: The product categoryReviews: The total number of reviews made for this productProduct rating: The average star rating for this product from all customers
 
 #### Customizing the Widget with Action Buttons
 
 In addition to viewing customer details, you can also customize the Yotpo Customer Widget by adding action buttons. These buttons give your team more flexibility when managing customers, such as adjusting loyalty points or updating a customer’s birthday.
 
-You can create buttons for the loyalty actions supported byYotpo’s API. Buttons can be placed at the top of the widget or within theLoyalty & Referralssection.
+You can create buttons for the loyalty actions supported by Yotpo’s API. Buttons can be placed at the top of the widget or within the Loyalty & Referrals section.
 
 To add a button:
 
-1. In Gorgias, open any ticket andclick the cog iconin the top-right corner to enter the widget edit mode.
-2. Scroll down to the Yotpo widget and clickAdd Button.
-3. In the modal,configure the HTTP action:Select the HTTP method.Add the relevant endpoint.Set headers, parameters, and body content as needed.
-4. ClickSaveto apply your changes.Once created, custom action buttons will appear in the widget, in the ticket sidebar. When clicked, they will trigger the configured HTTP request. Depending on your setup, some fields can be edited before execution.
+1. In Gorgias, open any ticket and click the cog icon in the top-right corner to enter the widget edit mode.
+2. Scroll down to the Yotpo widget and click Add Button.
+3. In the modal, configure the HTTP action:Select the HTTP method.Add the relevant endpoint. Set headers, parameters, and body content as needed.
+4. Click Save to apply your changes.Once created, custom action buttons will appear in the widget, in the ticket sidebar. When clicked, they will trigger the configured HTTP request. Depending on your setup, some fields can be edited before execution.
 
 Learn more about adding buttons in Gorgias widgets.
 
@@ -152,38 +128,31 @@ Learn more about adding buttons in Gorgias widgets.
 
 To add a button that allows agents to manually adjust a customer’s loyalty points directly from Gorgias, follow these steps:
 
-1. Open the widget editor and clickAdd Button.
-2. In the modal, enter atitle for the button, e.g.,Adjust Points.
-3. Set theHTTP methodtoPOST, and enter this webhook URL:https://loyalty.yotpo.com/api/v2/points/adjust
-4. In theHeaderssection,add your API key and GUID. You can find both in the Yotpo Loyalty admin underSettings > General Settings > Integrations.For the API key:Key: x-api-keyValue: Your API keyFor the GUID:Key: x-guidValue: Your GUID
-5. UnderQuery Parameters, select the second option forBody:application/x-www-form-urlencoded.
-6. Add the following body parameters:Key: visible_to_customerValue: TrueKey: customer_emailValue: {{ticket.customer.email}}Key: point_adjustment_amountValue: (Set as an editable field)(Optional)To customize the reason for the adjustment:Key: history_titleValue: (Set as an editable field)
-7. ClickSaveto apply your changes.
-8. (Optional)Test the buttonby adjusting points for a test customer.Once configured, theAdjust Pointsbutton will appear in the Yotpo widget, allowing agents to update loyalty points directly from the ticket sidebar.
+1. Open the widget editor and click Add Button.
+2. In the modal, enter a title for the button, e.g., Adjust Points.
+3. Set the HTTP method to POST, and enter this webhook URL: https://loyalty.yotpo.com/api/v2/points/adjust
+4. In the Headers section, add your API key and GUID. You can find both in the Yotpo Loyalty admin under Settings > General Settings > Integrations.For the API key:Key: x-api-keyValue: Your API keyFor the GUID:Key: x-guidValue: Your GUID
+5. Under Query Parameters, select the second option for Body: application/x-www-form-urlencoded.
+6. Add the following body parameters:Key: visible_to_customerValue: TrueKey: customer_emailValue: {{ticket.customer.email}}Key: point_adjustment_amountValue: (Set as an editable field)(Optional) To customize the reason for the adjustment:Key: history_titleValue: (Set as an editable field)
+7. Click Save to apply your changes.
+8. (Optional) Test the button by adjusting points for a test customer.Once configured, the Adjust Points button will appear in the Yotpo widget, allowing agents to update loyalty points directly from the ticket sidebar.
 
 ##### Example 2: Creating a button to opt customers into your loyalty program
 
-This applies to storesusing Shopify’s new Customer Accountsand opt-in eligibility set toOnly members who signed up.
+This applies to stores using Shopify’s new Customer Accounts and opt-in eligibility set to Only members who signed up.
 
-1. Open the widget editor and clickAdd Button.
-2. In the modal, enter atitle for the button, e.g.,Enroll in Loyalty Rewards.
-3. Set theHTTP methodtoPOST, and enter this webhook URL:https://loyalty.yotpo.com/api/v2/customers
-4. In theHeaderssection,add your API key and GUID.For the API key:Key: x-api-keyValue: Your API keyFor the GUID:Key: x-guidValue: Your GUID
-5. UnderQuery Parameters, select the first option forBody:application/json.
-6. Add the following body parameter:{
-"email": "{{ticket.customer.email}}",
-"opted_in": true
-}NoteIf you want customers enrolled through this button to also receive theirNew Member Reward, add"has_account": trueto the body (forCustomer Accounts+Only Members Who Signed Upopt-in). Without this parameter, the customer is opted in but won't get the reward.{
-"email": "{{ticket.customer.email}}",
-"opted_in": true,
-"has_account": true
-}
-7. ClickSaveto apply your changes.All set! The new button will be available in the Yotpo widget for agents to enroll customers in your loyalty program directly from Gorgias.
+1. Open the widget editor and click Add Button.
+2. In the modal, enter a title for the button, e.g., Enroll in Loyalty Rewards.
+3. Set the HTTP method to POST, and enter this webhook URL: https://loyalty.yotpo.com/api/v2/customers
+4. In the Headers section, add your API key and GUID.For the API key:Key: x-api-keyValue: Your API keyFor the GUID:Key: x-guidValue: Your GUID
+5. Under Query Parameters, select the first option for Body: application/json.
+6. Add the following body parameter: { "email": "{{ticket.customer.email}}", "opted_in": true }NoteIf you want customers enrolled through this button to also receive their New Member Reward, add "has_account": true to the body (for Customer Accounts + Only Members Who Signed Up opt-in). Without this parameter, the customer is opted in but won't get the reward.{ "email": "{{ticket.customer.email}}", "opted_in": true, "has_account": true }
+7. Click Save to apply your changes.All set! The new button will be available in the Yotpo widget for agents to enroll customers in your loyalty program directly from Gorgias.
 
 ### Using Gorgias to Respond to Yotpo Reviews and Q&A
 
-UsingYotpo’s moderation interface or automatic escalation rules, reviews and questions can be escalated into Gorgias as support tickets. Agents can then respond directly within Gorgias, just like any other support ticket.
+Using Yotpo’s moderation interface or automatic escalation rules, reviews and questions can be escalated into Gorgias as support tickets. Agents can then respond directly within Gorgias, just like any other support ticket.
 
 Need help?
 
-If you’re experiencing issues with the integration, contact Gorgias support atsupport@gorgias.com.
+If you’re experiencing issues with the integration, contact Gorgias support at support@gorgias.com.

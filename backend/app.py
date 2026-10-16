@@ -147,6 +147,10 @@ if USE_DATABASE_ESP_ROUTES:
     from admin_integrations_routes import register_admin_integrations_routes
     register_admin_integrations_routes(app, use_async_crawl=USE_ASYNC_CRAWL)
 
+    # Keeping documents current: retire, replace, the sitemap (C1.3)
+    from refresh_routes import register_refresh_routes
+    register_refresh_routes(app, vectorizer, use_async_crawl=USE_ASYNC_CRAWL)
+
 # Health check endpoint for Railway
 @app.route('/api/health', methods=['GET'])
 def health_check():
@@ -1599,8 +1603,20 @@ if USE_ASYNC_CRAWL:
             minutes=5,
             id='cleanup_stale_jobs'
         )
+        # support.yotpo.com's sitemap, monthly (C1.3; Leo, 2026-10-16):
+        # re-crawls the Yotpo guides that changed. A fixed date, not "every
+        # 30 days from boot": each deploy would restart that clock. A
+        # restart at that moment would skip a whole month, so each boot
+        # also reads it, ten minutes in, when the last read is over a month old
+        from datetime import datetime as _dt, timedelta as _td
+        from refresh_routes import run_sitemap_refresh, run_sitemap_refresh_if_overdue
+        scheduler.add_job(func=run_sitemap_refresh, args=[True], trigger='cron', day=1, hour=3, minute=17,
+                          id='sitemap_refresh', misfire_grace_time=6 * 3600, coalesce=True)
+        scheduler.add_job(func=run_sitemap_refresh_if_overdue, args=[True], trigger='date',
+                          run_date=_dt.now() + _td(minutes=10), id='sitemap_refresh_overdue')
         scheduler.start()
-        print("[ASYNC CRAWL] Stale job cleanup scheduler started (every 5 minutes)")
+        print("[ASYNC CRAWL] Stale job cleanup scheduler started (every 5 minutes); "
+              "sitemap refresh monthly, on the 1st at 03:17")
 
         # Graceful shutdown on exit
         import atexit

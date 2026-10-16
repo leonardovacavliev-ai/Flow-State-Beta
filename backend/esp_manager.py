@@ -224,7 +224,7 @@ class ESPManager:
                 e.created_at, e.updated_at,
                 COUNT(d.id) as doc_count
             FROM esps e
-            LEFT JOIN esp_documents d ON e.id = d.esp_id
+            LEFT JOIN esp_documents d ON e.id = d.esp_id AND d.retired_at IS NULL
             WHERE e.status = 'active' OR %s = true
             GROUP BY e.id, e.name, e.display_name, e.description, e.status,
                      e.created_at, e.updated_at
@@ -262,7 +262,7 @@ class ESPManager:
                 e.platform_type, e.catalog_slugs, e.categories, e.products,
                 e.catalog_description, COUNT(d.id) as doc_count
             FROM esps e
-            LEFT JOIN esp_documents d ON e.id = d.esp_id
+            LEFT JOIN esp_documents d ON e.id = d.esp_id AND d.retired_at IS NULL
             WHERE e.status IN ({placeholders})
             GROUP BY e.id, e.name, e.display_name, e.description, e.status,
                      e.platform_type, e.catalog_slugs, e.categories, e.products,
@@ -466,8 +466,9 @@ class ESPManager:
             }
         return None
 
-    def list_documents(self, esp_name: str) -> List[Dict]:
-        """List all documents for an ESP."""
+    def list_documents(self, esp_name: str, include_retired: bool = False) -> List[Dict]:
+        """List an ESP's documents; retired ones (C1.3) only when asked.
+        Refresh All and the global knowledge list read this."""
         esp = self.get_esp_by_name(esp_name)
         if not esp:
             return []
@@ -479,10 +480,10 @@ class ESPManager:
                    last_crawled_at, error_message, created_at, updated_at,
                    content IS NOT NULL AS has_content
             FROM esp_documents
-            WHERE esp_id = %s
+            WHERE esp_id = %s AND (retired_at IS NULL OR %s = true)
             ORDER BY created_at DESC
         """
-        results = self.db.execute_query(query, (esp['id'],), fetch=True)
+        results = self.db.execute_query(query, (esp['id'], include_retired), fetch=True)
 
         docs = []
         for row in results:
@@ -580,7 +581,7 @@ class ESPManager:
             SELECT e.name, d.url
             FROM esp_documents d
             JOIN esps e ON e.id = d.esp_id
-            WHERE d.product = 'reviews'
+            WHERE d.product = 'reviews' AND d.retired_at IS NULL
         """, fetch=True) or []
         return [(r[0], r[1]) for r in rows]
 
@@ -657,7 +658,8 @@ class ESPManager:
         List an ESP's documents including their stored content.
 
         Used to rebuild files/vectors after a redeploy wipes the container
-        filesystem.
+        filesystem. Retired documents are left out: their vectors were
+        deleted on purpose.
         """
         esp = self.get_esp_by_name(esp_name)
         if not esp:
@@ -666,7 +668,7 @@ class ESPManager:
         query = """
             SELECT id, url, filename, content, content_hash, crawl_status, product
             FROM esp_documents
-            WHERE esp_id = %s
+            WHERE esp_id = %s AND retired_at IS NULL
             ORDER BY created_at ASC
         """
         results = self.db.execute_query(query, (esp['id'],), fetch=True)
@@ -727,7 +729,7 @@ class ESPManager:
                 SUM(CASE WHEN crawl_status = 'failed' THEN 1 ELSE 0 END) as failed,
                 MAX(last_crawled_at) as last_crawl
             FROM esp_documents
-            WHERE esp_id = %s
+            WHERE esp_id = %s AND retired_at IS NULL
         """
         result = self.db.execute_query(query, (esp['id'],), fetch=True)
         if result:

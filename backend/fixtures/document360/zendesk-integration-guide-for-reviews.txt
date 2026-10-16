@@ -10,7 +10,7 @@ Premium, Enterprise
 
 Shopify, Shopify Plus, Adobe Commerce (Magento), BigCommerce, WooCommerce, Volusion, Salesforce Commerce Cloud, Custom
 
-Yotpo'sZendesk integrationallows brands to generate reviews about their customer service by leveraging Yotpo’s Mail After Service solution. Once a support ticket is solved, a review request will be sent directly to your customer to collect feedback about their experience. Increase CVR on-site by publishing your reviews, and boost traffic by feeding them to Google so they appear in the search results of other shoppers online.
+Yotpo's Zendesk integration allows brands to generate reviews about their customer service by leveraging Yotpo’s Mail After Service solution. Once a support ticket is solved, a review request will be sent directly to your customer to collect feedback about their experience. Increase CVR on-site by publishing your reviews, and boost traffic by feeding them to Google so they appear in the search results of other shoppers online.
 
 ### About Zendesk
 
@@ -18,18 +18,18 @@ Zendesk builds software for better customer relationships. Improve customer enga
 
 ### Integrating Yotpo and Zendesk
 
-Together, Zendesk and Yotpo help eCommerce sites improve customer experience by integrating user-generated content (UGC) and proactive support to lift consumer satisfaction and trust, in turn boosting sales and retention. Integrating Yotpo with Zendesk means you canrequest reviews for provided serviceafter a ticket is solved. This is similar in principle to theAutomatic Review Requestfor products.
+Together, Zendesk and Yotpo help eCommerce sites improve customer experience by integrating user-generated content (UGC) and proactive support to lift consumer satisfaction and trust, in turn boosting sales and retention. Integrating Yotpo with Zendesk means you can request reviews for provided service after a ticket is solved. This is similar in principle to the Automatic Review Request for products.
 
-Emails are sent for solved tickets according to the Automatic Review Request settings.By default, they are sent two days after the ticket is solved.
+Emails are sent for solved tickets according to the Automatic Review Request settings. By default, they are sent two days after the ticket is solved.
 
 Good to know:
 - Yotpo supports Zendesk Multibrand! If you're using Zendesk Multibrand with one or more Yotpo stores, you'll need to link each store to the relevant Zendesk subdomain.
-- If you have more than one Yotpo store andyou're notusing Zendesk Multibrand, you'll need to link each Yotpo store to a separate Zendesk account.To connect Zendesk and Yotpo:
+- If you have more than one Yotpo store and you're not using Zendesk Multibrand, you'll need to link each Yotpo store to a separate Zendesk account.To connect Zendesk and Yotpo:
 
-1. In your Yotpo Reviews main menu, go toIntegrations.
-2. Choose theZendeskcard and follow the connection process.
-3. Enter your Zendesk subdomain.Not sure what your Zendesk subdomain is?To learn what your subdomain is, clickhere.
-4. ClickConnect.Please note:
+1. In your Yotpo Reviews main menu, go to Integrations.
+2. Choose the Zendesk card and follow the connection process.
+3. Enter your Zendesk subdomain.Not sure what your Zendesk subdomain is?To learn what your subdomain is, click here.
+4. Click Connect.Please note:
 - Once you integrate Yotpo with Zendesk, Yotpo will send out review requests for provided service to all the tickets that have been solved within the last 15 days.
 - If you try to install Zendesk on an account that already has this feature, you will get a message saying Zendesk is already installed.
 
@@ -44,22 +44,22 @@ You can customize some of the email settings in the Mail After Service email:
 
 ##### To customize the email:
 
-1. In Yotpo Reviews, go toIntegrations.
-2. ChooseZendesk.
+1. In Yotpo Reviews, go to Integrations.
+2. Choose Zendesk.
 
-1. Customize the email according to your requirements- The preview section changes according to your customization.
-- There are two variables you can use that are substituted when the email is sent.VariableDescription{user}The reviewer's name{company_name}Your company's name.4. Click theSave Changesbutton.
+1. Customize the email according to your requirements - The preview section changes according to your customization.
+- There are two variables you can use that are substituted when the email is sent.VariableDescription{user}The reviewer's name{company_name}Your company's name.4. Click the Save Changes button.
 
 For customers using our Enterprise planYou can customize the template even further by using the site_review_after_service.liquid file in the Email Template Editor.You can send a test email in order to see how the customers will see it:
 
-1. ClickSend test.
+1. Click Send test.
 2. Enter the recipient's email address.
-3. ClickSend.
+3. Click Send.
 
 ### Disconnecting Zendesk
 
-When you disconnect Zendesk, your data will no longer be synced with Zendesk, and all integration settings will be permanently deleted. To disconnect Zendesk:
+When you disconnect Zendesk, your data will no longer be synced with Zendesk, and all integration settings will be permanently deleted. To disconnect Zendesk:
 
-1. In Yotpo Reviews, go toIntegrations.
-2. ChooseZendesk.
-3. ClickDisconnect, andDisconnectagain to confirm.
+1. In Yotpo Reviews, go to Integrations.
+2. Choose Zendesk.
+3. Click Disconnect, and Disconnect again to confirm.

@@ -1,0 +1,127 @@
+Products
+
+Loyalty & Referrals
+
+####### Supported plans
+
+Pro, Premium, Enterprise
+
+####### eCommerce Platform
+
+Shopify, Shopify Plus, BigCommerce, Adobe Commerce (Magento)
+
+### Goals and Outcomes
+
+If you use Recharge to manage your subscription payments, you can use Yotpo Loyalty & Referrals to offer flexible incentives to customers when they purchase subscriptions or refer friends who do the same!
+
+This integration allows Yotpo Loyalty & Referrals to generate coupon codes that can be applied to Recharge products or ongoing Recharge subscriptions.
+
+### Getting Started
+
+Important
+
+- The Recharge integration available through the Yotpo Integrations Center currently supportsShopify and Shopify Plus stores only.
+- For other eCommerce platforms, such as BigCommerce and Adobe Commerce (Magento),Yotpo supports Recharge integration through API-based or self-developed solutionsoutside of the Integrations Center.To connect the apps:
+
+1. In your Recharge admin, go toRecharge Marketplaceand search forYotpo.
+2. Click onYotpoto start the connection process.
+3. Now, go toYotpo Loyalty & Referrals >Integrations, and locate theRechargetile.
+4. Follow the connection steps to complete the integration.
+
+### Awarding Points for Recharge Subscription Actions
+
+You can award points for Recharge-related actions, such as starting a subscription, completing a renewal, or placing a recurring subscription order.
+
+Note
+
+Currently, there isn’t a native Recharge-specific earning rule. However, for Shopify stores, you can use Shopify Flow to define the relevant logic and trigger a Yotpo earning rule that awards points. Learn more aboutcreating loyalty and referrals workflows using Shopify Flow.
+
+Tip
+
+Recharge automatically creates order and customer tags in Shopify for subscription events, such as renewals. In many cases, you can configure your Yotpo earning rules to use these existing Recharge tags directly, without building custom tagging logic in Shopify. See Recharge's guide onusing Shopify order and customer tagsto check which tags are available for your setup.
+
+Here are some examples of how you can set this up:
+
+#### 1. Award Points for Subscription Milestones
+
+You cancreate a Custom Action earning ruleto award points for specific subscription milestones, such as starting a subscription or completing a renewal.
+
+For example, you can use Shopify Flow to:
+
+1. Detect the relevant Recharge subscription event.
+2. Apply any conditions needed for your loyalty program.
+3. Trigger the corresponding Yotpo custom action.
+4. Award points when the custom action is triggered.This approach can be used for different subscription milestones, depending on the logic you configure in Shopify Flow.
+
+#### 2. Award Points for Specific Subscription Renewals
+
+If you want to reward customers for reaching specific subscription milestones, such as their 1st or 3rd renewal, you can use aPunch Card earning rule.
+
+For example, you can:
+
+1. Use Shopify Flow to identify the relevant subscription renewal.
+2. Add an order tag, such as 1st Subscription Renewal.
+3. Configure the Punch Card earning rule to award points when the relevant order tag is present.
+
+#### 3. Award extra points for subscription orders
+
+If you want to give customers additional points whenever they place a subscription order, you can create a separatePoints for Purchases earning rule.
+
+For example, you can:
+
+1. Use Shopify Flow to identify subscription orders.
+2. Add an order tag, such as Subscription Recurring Order.
+3. Configure a Points for Purchases earning rule to award additional points for orders with this tag.This allows you to give customers extra points for subscription orders on top of your standard purchase earning rule.
+
+You can also set up a separate loyalty tier for Recharge subscription orders via customer tags.Learn more about how to set it up.
+
+### Creating a Recharge-Specific Coupon in Yotpo Loyalty & Referrals
+
+Once the integration is active, you can create Recharge-specific coupons. To do that:
+
+1. Go toManage Program > Rewards program.
+2. UnderWays to redeem, clickCreate reward.
+3. Select thecoupon typefrom the dropdown and configure it:- Recharge Fixed Amount- Recharge Percentage- Shopify/Recharge Fixed Amount- Shopify/Recharge Percentage
+
+### Recharge Coupon Settings
+
+Recharge coupons allow you to specify four additional parameters to restrict your coupons to:
+
+Note
+
+These settings are only available on the Recharge fixed amount and Recharge percentage coupons.
+
+For Recharge, apply discount to:
+
+- All products
+- A specific product ID
+- A specific collection IDRecharge allows restricting coupons toonly one product or one collection.Only one ID can be applied in the coupon settings.
+
+This setting is also available on the joint Shopify/Recharge coupons.
+
+For Recharge, what types of products should the discount apply to?
+
+You can select whether you'd like your Recharge coupon to apply to:
+
+- Subscription products only
+- One time products only
+- Both subscription & one time productsThese options are available as one-time purchase products are pulled into Recharge checkout whenever you have a Recharge item in the cart as well:
+
+For Recharge, how long should the coupon apply for?
+
+You can also select whether you'd like the coupon you are creating to apply onlyonceto the first charge, or you can have it apply to consecutive Recharge charges, effectively creating a recurring coupon:
+
+For Recharge, should we automatically apply this discount to an existing subscription?
+
+You can select whether this coupon should apply to anexistingsubscriptionornot, allowing you to reward your existing Recharge subscribers as well.
+
+A few notes regarding the "existing subscriptions" option:
+
+- Due to Recharge limitations, theOnly apply if cart is greater thanfield must remain blank in order for a customer to use it on an existing subscription. If the value isn't blank, customers will only be able to apply the discount on the first purchase of the subscription.
+- A customer could potentially have multiple active subscriptions. In this scenario, we will use the subscription that has thehighest price. This means if you have a $10/mo subscription and a $25/mo subscription, we will apply the coupon to the $25/mo subscription. The reason for this was that if you were redeeming a $15 coupon code, you would not want to apply it to the $10/mo subscription and lose $5 of value.
+- A Recharge "charge" can only have one discount code applied to it.  As such, Yotpo not only ranks charges byamountbut also filters them to bypass the charges that already have a discount applied. So, if you had three charges: $35/mo with a discount already applied, $25/mo, and $10/mo, Yotpo would apply the discount code to the $25/mo subscription.
+- It is possible it fails to apply the discount because you don't have an eligible charge (either you have no upcoming charges or all of your charges already have a discount applied).  In this case, you will not lose the points you used, and the request will fail. Yotpo will only deduct points after a successful charge.Once you've made all of your coupon functionality selections, configure the rest of the coupon, and you should be all set.
+
+Having issues with the integration?
+
+Contact our support team.
