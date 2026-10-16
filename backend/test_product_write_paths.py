@@ -61,7 +61,7 @@ class FakeVectors:
 def mgr():
     m = get_esp_manager()
     if not m.get_esp_by_name(ESP):
-        m.create_esp(ESP, 'Test ESP')
+        m.create_esp(ESP, 'Test ESP', platform_type='messaging')
     return m
 
 
@@ -323,7 +323,7 @@ def test_failed_index_update_is_reported_not_hidden():
 def test_rebuild_passes_each_rows_label():
     from app_admin_esp_routes import rebuild_esp_vectors
     m = mgr()
-    m.create_esp('rebuildesp', 'Rebuild ESP')
+    m.create_esp('rebuildesp', 'Rebuild ESP', platform_type='messaging')
     doc = m.add_document('rebuildesp', 'https://x.test/r', product='reviews')
     m.update_document_crawl_status(doc['id'], 'completed', content='stored text')
     v = FakeVectors()

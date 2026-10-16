@@ -428,10 +428,14 @@ def test_plan_and_apply_is_idempotent():
     except SystemExit as e:
         assert '--only' in str(e)
     plan['only'] = None  # as if the dry run had covered the whole catalog
+    # A plan saved before the kind was required may hold one without a kind
+    plan['create'].append(dict(created['recharge'], name='kindless', display_name='Kindless',
+                               catalog_slugs=['kindless'], platform_type=None))
     first = ic.apply_plan(store, plan)
     second = ic.apply_plan(store, plan)
     store.close()
-    assert first['created'] == len(plan['create']) and first['proposals'] == len(plan['proposals'])
+    assert first['created'] == len(plan['create']) - 1 and first['proposals'] == len(plan['proposals'])
+    assert not db.execute_query("SELECT 1 FROM esps WHERE name = 'kindless'", fetch=True)
     assert second['created'] == 0 and second['proposals'] == 0
 
     rows = db.execute_query("SELECT name, status, platform_type, catalog_slugs FROM esps "
@@ -444,6 +448,27 @@ def test_plan_and_apply_is_idempotent():
     assert n == len(plan['proposals'])
     snap = db.execute_query("SELECT value FROM app_settings WHERE key = %s", (ci.SNAPSHOT_KEY,), fetch=True)
     assert json.loads(snap[0][0])['cards'] == 17
+
+
+def test_no_integration_without_a_kind():
+    """An integration whose categories give no kind of platform is not
+    planned for creation; the report lists it for a person (Leo, 2026-10-16)."""
+    import import_catalog as ic
+    store = ic.Store(write=False)
+    view = {'integrations': store.integrations(), 'documents': store.document_urls(),
+            'proposals': store.proposal_urls(), 'snapshot': store.snapshot()}
+    store.close()
+    real = ci.default_type
+    ci.default_type = lambda categories: None
+    try:
+        plan = ic.build_plan(_read(os.path.join(CATALOG, 'catalog.html')), view, _detail_fetch(),
+                             only=['reamaze'], log=lambda m: None, chooser=PlanModel())
+    finally:
+        ci.default_type = real
+    assert [r['name'] for r in plan['no_type']] == ['reamaze']
+    assert not plan['create'] and not [p for p in plan['proposals'] if p['esp'] == 'reamaze']
+    report = ic.render_report(plan)
+    assert '## Not added: no kind of platform (1)' in report and '`reamaze`' in report
 
 
 def test_apply_never_overwrites_a_set_type_or_status():

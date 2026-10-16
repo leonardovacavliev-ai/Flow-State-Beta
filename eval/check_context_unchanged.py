@@ -79,7 +79,7 @@ def run():
     esp_mgr = get_esp_manager()
     for esp in sorted({case[0] for case in CASES}):
         if not esp_mgr.get_esp_by_name(esp, include_archived=True):
-            esp_mgr.create_esp(esp, esp)
+            esp_mgr.create_esp(esp, esp, platform_type='messaging')
     client = app_module.app.test_client()
     out = []
     # Each case twice: as an old browser tab sends it (no product) and as the

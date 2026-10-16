@@ -65,7 +65,8 @@ def restore_esps():
         else:
             # Create ESP
             print(f"   ✅ Creating ESP in database")
-            esp = esp_manager.create_esp(esp_name, display_name)
+            # Every restored ESP is an email/SMS platform, as before v2
+            esp = esp_manager.create_esp(esp_name, display_name, platform_type='messaging')
 
         # Verify ESP exists (fetch from DB to ensure it was committed)
         esp = esp_manager.get_esp_by_name(esp_name)

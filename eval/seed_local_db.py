@@ -10,6 +10,7 @@ Reads production only (DATABASE_URL from .env, read-only session). Overwrites
 the esps / esp_documents rows in the local file; analytics tables stay empty.
 Pair it with the "backend-local" launch configuration.
 """
+import json
 import os
 import sys
 
@@ -35,7 +36,9 @@ def main():
     prod = psycopg2.connect(os.environ['DATABASE_URL'])
     prod.set_session(readonly=True)
     cur = prod.cursor()
-    cur.execute("SELECT id, name, display_name, description, status, created_at, updated_at FROM esps")
+    # platform_type and the catalog fields too: chat picks the prompt by kind
+    cur.execute("SELECT id, name, display_name, description, status, created_at, updated_at, "
+                "platform_type, catalog_slugs, categories, products, catalog_description FROM esps")
     esps = cur.fetchall()
     cur.execute(f"SELECT {', '.join(COLUMNS)} FROM esp_documents")
     docs = cur.fetchall()
@@ -46,9 +49,11 @@ def main():
         c.execute("DELETE FROM esp_documents")
         c.execute("DELETE FROM esps")
         c.executemany(
-            "INSERT INTO esps (id, name, display_name, description, status, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [tuple(str(v) if v is not None else None for v in row) for row in esps])
+            "INSERT INTO esps (id, name, display_name, description, status, created_at, updated_at, "
+            "platform_type, catalog_slugs, categories, products, catalog_description) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [tuple(json.dumps(v) if isinstance(v, (list, dict)) else (str(v) if v is not None else None)
+                   for v in row) for row in esps])
         c.executemany(
             f"INSERT INTO esp_documents ({', '.join(COLUMNS)}) VALUES ({', '.join('?' * len(COLUMNS))})",
             [tuple(str(v) if v is not None else None for v in row) for row in docs])

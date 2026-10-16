@@ -232,7 +232,8 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
             'create': [], 'update': [], 'proposals': [], 'clashes': [], 'removed_cards': [],
             'gone': [], 'ambiguous_renames': [], 'nothing': [], 'no_help_centre': [],
             'already_documents': [], 'already_proposed': [], 'duplicates': [], 'unreachable': [],
-            'mechanics': {}, 'blocked': [], 'integrations': 0, 'only': only, 'ai': None}
+            'mechanics': {}, 'blocked': [], 'integrations': 0, 'only': only, 'ai': None,
+            'no_type': []}
     if problem:
         return plan
     existing = store_view['integrations']
@@ -273,6 +274,12 @@ def build_plan(html: str, store_view: Dict, fetch, mechanics: bool = True,
             change = _catalog_changes(existing[integ.name], row)
             if change:
                 plan['update'].append({'name': integ.name, 'changes': change})
+        elif not row['platform_type']:
+            # No integration is added without its kind of platform (Leo,
+            # 2026-10-16): none of its categories maps to one. The report
+            # lists it for a person to add, with a kind, in the admin.
+            plan['no_type'].append(row)
+            continue
         else:
             plan['create'].append(row)
 
@@ -432,7 +439,9 @@ def apply_plan(store: Store, plan: Dict) -> Dict[str, int]:
     js = json.dumps
     try:
         for row in plan['create']:
-            if row['name'] in existing:
+            if row['name'] in existing or not row.get('platform_type'):
+                # a plan saved before the kind was required may hold one
+                # without a kind: it is not added (Leo, 2026-10-16)
                 counts['skipped'] += 1
                 continue
             esp_id = str(uuid.uuid4())
@@ -523,6 +532,7 @@ def render_report(plan: Dict) -> str:
     for label, n in (('catalog cards (detail pages)', snap['cards']),
                      ('integrations in the catalog', plan['integrations']),
                      ('integrations to create (as `listed`)', len(plan['create'])),
+                     ('not added: no kind of platform from their categories', len(plan.get('no_type', []))),
                      ('existing integrations whose catalog fields change', len(plan['update'])),
                      ('proposals: Yotpo guides', len(yotpo)),
                      ('  of which renamed guides', len(renamed)),
@@ -547,6 +557,15 @@ def render_report(plan: Dict) -> str:
         rows = by_type[t]
         w(f'**{t}** ({len(rows)}): ' + ', '.join(
             f"{r['display_name']} (`{r['name']}`)" for r in sorted(rows, key=lambda r: r['name'])) + '\n')
+
+    no_type = plan.get('no_type', [])
+    w(f'## Not added: no kind of platform ({len(no_type)})\n')
+    w('None of their catalog categories maps to a kind of platform, and no integration is added '
+      'without one. To add one, create it in the admin (Integrations tab → Create New '
+      'Integration) and choose its kind.\n')
+    for r in sorted(no_type, key=lambda r: r['name']):
+        w(f"- {r['display_name']} (`{r['name']}`): categories {', '.join(r['categories']) or 'none'}")
+    w('')
 
     conflicts = [r for r in plan['create'] if r['type_conflict']]
     w(f'## Type conflicts ({len(conflicts)})\n')

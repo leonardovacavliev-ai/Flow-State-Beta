@@ -62,6 +62,24 @@ class DuplicateURLError(ValueError):
         )
 
 
+def require_platform_type(name: str, platform_type: Optional[str]) -> None:
+    """Every integration is added with its kind of platform (Leo, 2026-10-16):
+    the kind decides which system prompt answers for it, so one without a
+    kind would be answered by a guess. Only the hidden 'global' row has
+    none. Raises ValueError otherwise."""
+    from integration_types import PLATFORM_TYPES, TYPE_LABELS
+    if name == 'global':
+        if platform_type is not None:
+            raise ValueError("The global knowledge row has no kind of platform")
+        return
+    if platform_type not in PLATFORM_TYPES:
+        kinds = ', '.join(f"{TYPE_LABELS[t]} ({t})" for t in PLATFORM_TYPES)
+        if platform_type is None or platform_type == '':
+            raise ValueError(f"Choose the kind of platform first. An integration can't be added "
+                             f"without one: {kinds}")
+        raise ValueError(f"Unknown kind of platform '{platform_type}': use one of {kinds}")
+
+
 class ESPManager:
     """Manages ESPs and their documentation in the database."""
 
@@ -73,8 +91,8 @@ class ESPManager:
 
     # ==================== ESP Operations ====================
 
-    def create_esp(self, name: str, display_name: str, description: str = "",
-                   platform_type: Optional[str] = 'messaging') -> Dict:
+    def create_esp(self, name: str, display_name: str, description: str = "", *,
+                   platform_type: Optional[str], status: str = 'active') -> Dict:
         """
         Create a new ESP.
 
@@ -82,19 +100,25 @@ class ESPManager:
             name: URL-safe identifier (e.g., 'klaviyo', 'mailchimp')
             display_name: Human-readable name (e.g., 'Klaviyo', 'Mailchimp')
             description: Optional description
-            platform_type: integration_types.PLATFORM_TYPES. Defaults to
-                messaging: until the v2 admin asks, every integration an
-                admin creates is an email/SMS platform. None only for the
-                hidden 'global' row, which serves every type
+            platform_type: integration_types.PLATFORM_TYPES, required: no
+                integration is added without its kind of platform (Leo,
+                2026-10-16), since the kind decides which prompt answers
+                for it. None only for the hidden 'global' row, which serves
+                every type.
+            status: 'active' (in chat) or 'listed' (not in chat yet)
 
         Returns:
             Dict with esp_id and details
 
         Raises:
-            ValueError: If ESP with same name already exists
+            ValueError: If ESP with same name already exists, or the
+                platform type is missing or unknown
         """
         # Normalize name (lowercase, replace spaces with underscores)
         name = name.lower().replace(' ', '_').replace('/', '_')
+        require_platform_type(name, platform_type)
+        if status not in ('active', 'listed'):
+            raise ValueError(f"Unknown status '{status}'")
 
         # Check if exists — including archived rows, since the name column
         # is UNIQUE regardless of status and the INSERT would fail anyway
@@ -109,14 +133,11 @@ class ESPManager:
 
         query = """
             INSERT INTO esps (id, name, display_name, description, status, platform_type)
-            VALUES (%s, %s, %s, %s, 'active', %s)
+            VALUES (%s, %s, %s, %s, %s, %s)
             RETURNING id, name, display_name, description, status, created_at
         """
-        from integration_types import PLATFORM_TYPES
-        if platform_type is not None and platform_type not in PLATFORM_TYPES:
-            raise ValueError(f"Unknown platform type '{platform_type}'")
         esp_id = str(uuid.uuid4())
-        params = (esp_id, name, display_name, description, platform_type)
+        params = (esp_id, name, display_name, description, status, platform_type)
 
         result = self.db.execute_query(query, params, fetch=True)
         if result:

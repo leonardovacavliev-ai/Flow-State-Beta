@@ -669,9 +669,17 @@
 
                             <div class="border-b border-border pb-6 owner-only">
                                 <h3 class="text-lg font-semibold text-card-foreground mb-2">Create New Integration</h3>
-                                <p class="text-sm text-muted-foreground mb-4">For an Email &amp; SMS platform not on yotpo.com/integrations. It goes into chat at once.</p>
-                                <div class="flex gap-3 max-w-xl">
-                                    <input type="text" id="newESPName" placeholder="Integration name" class="flex-1 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                <p class="text-sm text-muted-foreground mb-4">For a platform not on yotpo.com/integrations. Choose its kind of platform first: an integration can't be added without one. Email &amp; SMS platforms go into chat at once; other kinds are added as not in chat yet.</p>
+                                <div class="flex flex-wrap gap-3 max-w-2xl">
+                                    <input type="text" id="newESPName" placeholder="Integration name" class="flex-1 min-w-0 px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                    <select id="newESPType" aria-label="Kind of platform" class="px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring">
+                                        <option value="" selected disabled>Kind of platform…</option>
+                                        <option value="messaging">Email &amp; SMS</option>
+                                        <option value="storefront">Store &amp; checkout</option>
+                                        <option value="service">Customer service</option>
+                                        <option value="data">Data &amp; automation</option>
+                                        <option value="content">Reviews &amp; content</option>
+                                    </select>
                                     <button id="createESPBtn" class="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap">
                                         Create Integration
                                     </button>
@@ -909,7 +917,7 @@
     <script src="crawl-progress-tracker.js"></script>
     <script src="auth.js"></script>
     <!-- Bump ?v= when app.js changes, so browsers holding a cached copy fetch it -->
-    <script src="app.js?v=prompts-by-type-2"></script>
+    <script src="app.js?v=type-required-1"></script>
     <script src="admin-integrations.js?v=admin-crawls-1"></script>
     <script src="paste-content-modal.js"></script>
 </body>

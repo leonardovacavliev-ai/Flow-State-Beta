@@ -138,19 +138,28 @@ def mgr():
     return get_esp_manager()
 
 
-def test_new_integrations_are_messaging():
+def test_new_integrations_need_a_kind():
+    """No integration is added without its kind of platform (Leo, 2026-10-16)."""
     m = mgr()
-    m.create_esp('mailchimp_t', 'Mailchimp')
+    m.create_esp('mailchimp_t', 'Mailchimp', platform_type='messaging')
     assert _type_of(m.db, 'mailchimp_t') == 'messaging'
-    m.create_esp('shopify_t', 'Shopify', platform_type='storefront')
+    m.create_esp('shopify_t', 'Shopify', platform_type='storefront', status='listed')
     assert _type_of(m.db, 'shopify_t') == 'storefront'
     _app_module()._ensure_global_esp(m)
     assert _type_of(m.db, 'global') is None
+    for kind in (None, '', 'email'):
+        try:
+            m.create_esp('bad_t', 'Bad', platform_type=kind)
+        except ValueError:
+            continue
+        raise AssertionError(f"kind {kind!r} was accepted")
     try:
-        m.create_esp('bad_t', 'Bad', platform_type='email')
-    except ValueError:
-        return
-    raise AssertionError("an unknown platform type was accepted")
+        m.create_esp('bad_t', 'Bad')
+    except TypeError:
+        pass
+    else:
+        raise AssertionError("a create without a kind was accepted")
+    assert m.get_esp_by_name('bad_t', include_archived=True) is None
 
 
 def test_listed_rows_are_invisible_to_list_esps():
@@ -165,7 +174,7 @@ def test_listed_rows_are_invisible_to_list_esps():
 
 def test_list_integrations_reads_json_lists():
     m = mgr()
-    m.create_esp('braze_t', 'Braze')
+    m.create_esp('braze_t', 'Braze', platform_type='messaging')
     m.db.execute_query("UPDATE esps SET categories = %s, products = %s WHERE name = 'braze_t'",
                        ('["email-marketing", "sms-marketing"]', '["loyalty", "reviews"]'))
     braze = {e['name']: e for e in m.list_integrations()}['braze_t']
@@ -175,7 +184,7 @@ def test_list_integrations_reads_json_lists():
 
 def test_is_active_integration_follows_status():
     m = mgr()
-    m.create_esp('active_t', 'Active')
+    m.create_esp('active_t', 'Active', platform_type='messaging')
     esp_manager.ACTIVE_CACHE_SECONDS = -1   # no caching inside this test
     try:
         assert m.is_active_integration('active_t')
@@ -188,7 +197,7 @@ def test_is_active_integration_follows_status():
 
 def test_documents_are_stored_under_one_url():
     m = mgr()
-    m.create_esp('urls_t', 'URLs')
+    m.create_esp('urls_t', 'URLs', platform_type='messaging')
     doc = m.add_document('urls_t', ' HTTPS://Help.X.test:443/Guide/#setup ', product='loyalty')
     assert doc['url'] == 'https://help.x.test/Guide'
     esp = m.get_esp_by_name('urls_t')
@@ -204,7 +213,7 @@ def test_documents_are_stored_under_one_url():
 def test_vector_count_is_stored():
     import crawler
     m = mgr()
-    m.create_esp('count_t', 'Count')
+    m.create_esp('count_t', 'Count', platform_type='messaging')
     m.add_document('count_t', 'https://x.test/count', product='shared')
     n = crawler.vectorize_single_document(FakeVectors(chunks=4), 'count_t', 'https://x.test/count',
                                           None, 'count.txt', content='words')
@@ -287,7 +296,7 @@ def test_unknown_integration_is_refused():
 def test_archived_integration_is_refused():
     c = app_client()
     m = mgr()
-    m.create_esp('gone_t', 'Gone')
+    m.create_esp('gone_t', 'Gone', platform_type='messaging')
     m.archive_esp(m.get_esp_by_name('gone_t')['id'])
     esp_manager.ACTIVE_CACHE_SECONDS = -1
     try:

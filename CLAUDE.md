@@ -36,7 +36,10 @@ yotpo.com/integrations, answered per platform type (messaging, storefront, servi
   `api.github.com` with the keychain token, no PRs opened or merged by API, no polling of Actions
   or deploy statuses, no `gh`. GitHub restricted his account twice after Claude Code did that.
   Plain `git` (`fetch`, `push`, `merge`) only, as few times as the work needs; check deploys on
-  the live site.
+  the live site. ⛔ **No GitHub Actions workflows** without Leo's explicit OK: GitHub's notice
+  named Actions, and the only workflow was deleted on 2026-10-16. Run the tests locally.
+- **No integration without its kind of platform** (Leo, 2026-10-16; roadmap invariant I10): every
+  way of adding one requires `platform_type`; only the hidden `global` row has none.
 
 ---
 
