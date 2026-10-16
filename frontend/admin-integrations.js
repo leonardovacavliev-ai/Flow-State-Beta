@@ -87,9 +87,9 @@
     const SAVED_MS = 1600;
     const MISS_LIMIT = 3;
 
-    const inputCls = 'px-3 py-2 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring';
+    const inputCls = 'h-10 px-3 border border-input bg-background rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring';
     const card = 'bg-muted/50 rounded-lg p-4 border border-border';
-    const th = 'py-2 px-3 font-medium text-muted-foreground';
+    const th = 'py-3 px-4 text-xs font-medium uppercase tracking-wide text-muted-foreground';
     const btnPrimary = 'px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors whitespace-nowrap';
     const btnOutline = 'px-3 py-1 border border-input bg-background text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed';
 
@@ -464,17 +464,17 @@
         const facets = S.facets || { categories: [], flags: {} };
         // Each filter is named like the column it filters
         const sel = (key, label, options, width) => `
-            <select class="${inputCls} ${width}" data-filter="${key}" aria-label="${attr(label)}">
+            <select class="filter-select ${inputCls} ${width}" data-filter="${key}" aria-label="${attr(label)}">
                 <option value="">${esc(label)}</option>
                 ${options.map(([v, t]) => `<option value="${attr(v)}" ${f[key] === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}
             </select>`;
         return `
-            <div class="flex flex-wrap gap-2 mb-4">
-                <input id="intSearch" value="${attr(f.q)}" placeholder="Search" class="flex-1 min-w-[10rem] ${inputCls}" aria-label="Search integrations by name or category">
-                ${sel('category', 'Category', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]), 'w-36')}
-                ${sel('type', 'Kind of platform', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-40')}
-                ${sel('status', 'In chat?', [['active', STATUS_NAMES.active], ['listed', STATUS_NAMES.listed]], 'w-32')}
-                ${sel('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-32')}
+            <div class="flex flex-wrap items-center gap-3 mb-5">
+                <input id="intSearch" value="${attr(f.q)}" placeholder="Search" class="flex-1 min-w-[12rem] ${inputCls}" aria-label="Search integrations by name or category">
+                ${sel('category', 'Category', facets.categories.map(c => [c.slug, `${c.name} (${c.count})`]), 'w-40')}
+                ${sel('type', 'Kind of platform', PLATFORM_TYPES.map(t => [t, TYPE_NAMES[t]]), 'w-44')}
+                ${sel('status', 'In chat?', [['active', STATUS_NAMES.active], ['listed', STATUS_NAMES.listed]], 'w-36')}
+                ${sel('flag', 'To do', Object.keys(FLAG_NAMES).map(k => [k, flagOption(k, facets.flags[k])]), 'w-36')}
             </div>
             <div id="intTable"></div>`;
     }
@@ -501,15 +501,15 @@
     function tableHTML(data) {
         const rows = data.integrations.map(i => `
             <tr class="group border-b border-border last:border-0 hover:bg-muted/30 cursor-pointer" data-open-int="${attr(i.name)}" tabindex="0">
-                <td class="py-2.5 px-3"><div class="font-medium text-card-foreground">${esc(i.display_name)}</div><div class="text-xs text-muted-foreground truncate max-w-[12rem]" title="${attr(i.category_names.join(' · '))}">${esc(i.category_names.join(' · '))}</div></td>
-                <td class="relative py-2.5 px-3 whitespace-nowrap cursor-default" data-products-cell>
+                <td class="py-3 px-4"><div class="font-medium text-card-foreground">${esc(i.display_name)}</div><div class="text-xs text-muted-foreground truncate max-w-[12rem]" title="${attr(i.category_names.join(' · '))}">${esc(i.category_names.join(' · '))}</div></td>
+                <td class="relative py-3 px-4 whitespace-nowrap cursor-default" data-products-cell>
                     ${['loyalty', 'reviews'].map(p => productBox(i, p, 'data-row-product')).join('')}
                 </td>
-                <td class="py-2.5 px-3 whitespace-nowrap ${i.platform_type ? 'text-muted-foreground' : 'text-amber-800'}">${esc(TYPE_NAMES[i.platform_type] || 'Not set')}</td>
-                <td class="py-2.5 px-3">${statusPill(i.status)}</td>
-                <td class="py-2.5 px-3 text-right tabular-nums text-muted-foreground">${i.documents.total}</td>
-                <td class="py-2.5 px-3 text-xs min-w-[7rem]">${attentionHTML(i) || '<span class="text-muted-foreground">—</span>'}</td>
-                <td class="py-2.5 pr-3 text-muted-foreground group-hover:text-foreground" aria-hidden="true">›</td>
+                <td class="py-3 px-4 whitespace-nowrap ${i.platform_type ? 'text-muted-foreground' : 'text-amber-800'}">${esc(TYPE_NAMES[i.platform_type] || 'Not set')}</td>
+                <td class="py-3 px-4">${statusPill(i.status)}</td>
+                <td class="py-3 px-4 text-right tabular-nums text-muted-foreground">${i.documents.total}</td>
+                <td class="py-3 pl-8 pr-4 text-xs min-w-[7rem]">${attentionHTML(i) || '<span class="text-muted-foreground">—</span>'}</td>
+                <td class="py-3 pr-4 text-muted-foreground group-hover:text-foreground" aria-hidden="true">›</td>
             </tr>`).join('');
         const head = (text, help) => `<th class="text-left ${th}"><span class="inline-flex items-center gap-1.5 whitespace-nowrap">${text}${help ? ` ${info(help)}` : ''}</span></th>`;
         return `
@@ -517,7 +517,7 @@
                 <table class="w-full text-sm min-w-[680px]">
                     <thead><tr class="border-b border-border bg-muted">
                         ${head('Integration')}${head('Yotpo products', HELP.products)}${head('Kind of platform', HELP.kind)}
-                        ${head('In chat?', HELP.inChat)}<th class="text-right ${th}">Documents</th>${head('To do')}<th class="w-4"></th>
+                        ${head('In chat?', HELP.inChat)}<th class="text-right ${th}">Documents</th>${head('To do').replace('px-4', 'pl-8 pr-4')}<th class="w-4"></th>
                     </tr></thead>
                     <tbody>${rows || '<tr><td colspan="7" class="text-center py-8 text-muted-foreground">No integrations match these filters.</td></tr>'}</tbody>
                 </table>
